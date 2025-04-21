@@ -20,6 +20,11 @@ def save_profile(backend, user, response, *args, **kwargs):
                 profile.github_username = response.get('login')
                 logger.info(f"Saved GitHub username {profile.github_username} for user {user.username}")
             
+            # Save GitHub avatar URL if available
+            if response.get('avatar_url'):
+                profile.github_avatar_url = response.get('avatar_url')
+                logger.info(f"Saved GitHub avatar URL for user {user.username}")
+            
             # Save access token if available
             if 'social' in kwargs and hasattr(kwargs['social'], 'extra_data') and 'access_token' in kwargs['social'].extra_data:
                 profile.github_access_token = kwargs['social'].extra_data['access_token']

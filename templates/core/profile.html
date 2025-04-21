@@ -13,7 +13,11 @@
             <div class="card-body">
                 <div class="author">
                     <a href="#">
-                        <img class="avatar border-gray" src="/static/img/default-avatar.png" alt="Profile Image">
+                        {% if profile.github_avatar_url %}
+                            <img class="avatar border-gray" src="{{ profile.github_avatar_url }}" alt="{{ user.username }}'s GitHub avatar">
+                        {% else %}
+                            <img class="avatar border-gray" src="/static/img/default-avatar.png" alt="Default avatar">
+                        {% endif %}
                         <h5 class="title">{{ user.get_full_name|default:user.username }}</h5>
                     </a>
                     <p class="description">

@@ -7,6 +7,7 @@ class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     github_username = models.CharField(max_length=100, blank=True, null=True)
     github_access_token = models.CharField(max_length=255, blank=True, null=True)
+    github_avatar_url = models.URLField(max_length=500, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -36,7 +36,11 @@
                 {% if user.is_authenticated %}
                 <div class="user">
                     <div class="photo">
-                        <img src="/static/img/default-avatar.png" />
+                        {% if user.profile.github_avatar_url %}
+                            <img src="{{ user.profile.github_avatar_url }}" alt="{{ user.username }}'s avatar" />
+                        {% else %}
+                            <img src="/static/img/default-avatar.png" alt="Default avatar" />
+                        {% endif %}
                     </div>
                     <div class="info">
                         <a data-toggle="collapse" href="#collapseExample" class="collapsed">
