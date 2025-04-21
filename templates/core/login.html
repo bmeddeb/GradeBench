@@ -17,98 +17,149 @@
     <link href="/static/css/paper-dashboard.css" rel="stylesheet" />
     
     <style>
-        .login-page {
+        body, html {
+            height: 100%;
+            margin: 0;
             background-color: #f4f3ef;
+        }
+        
+        .login-page {
             height: 100vh;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
         }
+        
         .brand-logo {
             text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .brand-logo img {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .brand-name {
+            font-size: 42px;
+            font-weight: 300;
+            margin: 10px 0 30px;
+            color: #333;
+        }
+        
+        .login-card {
+            width: 100%;
+            max-width: 450px;
+            border-radius: 12px;
+            box-shadow: 0 15px 30px 0 rgba(0,0,0,.1);
+            background-color: white;
+            margin: 0 auto;
+        }
+        
+        .card-header {
+            padding: 25px 15px 15px;
+            border-bottom: 1px solid #f1f1f1;
+        }
+        
+        .card-title {
+            font-size: 28px;
+            font-weight: 400;
+            color: #333;
+            margin-bottom: 0;
+        }
+        
+        .card-body {
+            padding: 30px;
+        }
+        
+        .welcome-text {
+            font-size: 18px;
+            color: #66615b;
             margin-bottom: 30px;
         }
-        .brand-logo img {
-            width: 60px;
-            height: 60px;
-        }
-        .brand-name {
-            font-size: 28px;
-            font-weight: 300;
-            margin-top: 15px;
-        }
-        .login-card {
-            width: 400px;
-            border-radius: 8px;
-            box-shadow: 0 15px 30px 0 rgba(0,0,0,.1);
-        }
+        
         .btn-github {
             background-color: #24292e;
             color: white;
             border: none;
-            padding: 12px 20px;
+            padding: 15px 20px;
             font-size: 16px;
+            border-radius: 8px;
+            width: 100%;
             transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
+        
+        .btn-github i {
+            margin-right: 10px;
+            font-size: 20px;
+        }
+        
         .btn-github:hover {
             background-color: #0f1114;
             color: white;
             transform: translateY(-2px);
             box-shadow: 0 7px 14px rgba(0,0,0,.1), 0 3px 6px rgba(0,0,0,.1);
         }
+        
         .login-footer {
             text-align: center;
             margin-top: 30px;
             color: #66615b;
             font-size: 14px;
         }
+        
+        /* Added to ensure responsiveness */
+        @media (max-width: 576px) {
+            .login-card {
+                width: 90%;
+            }
+        }
     </style>
 </head>
 
 <body>
     <div class="login-page">
-        <div class="container">
-            <div class="row justify-content-center">
-                <div class="col-md-8 col-lg-6">
-                    <div class="brand-logo">
-                        <img src="/static/img/logo-small.png" alt="GradeBench Logo">
-                        <h1 class="brand-name">GradeBench</h1>
-                    </div>
-                    <div class="card login-card">
-                        <div class="card-header">
-                            <h3 class="card-title text-center">Login</h3>
-                        </div>
-                        <div class="card-body">
-                            <div class="text-center mb-4">
-                                <p>Welcome to GradeBench, a platform for grading code submissions</p>
-                            </div>
-                            
-                            {% if messages %}
-                            <div class="messages mb-4">
-                                {% for message in messages %}
-                                <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
-                                    <button type="button" aria-hidden="true" class="close" data-dismiss="alert" aria-label="Close">
-                                        <i class="nc-icon nc-simple-remove"></i>
-                                    </button>
-                                    <span>{{ message }}</span>
-                                </div>
-                                {% endfor %}
-                            </div>
-                            {% endif %}
-                            
-                            <div class="d-grid gap-2">
-                                <a href="{% url 'social:begin' 'github' %}" class="btn btn-block btn-github">
-                                    <i class="fa fa-github mr-2"></i> Sign in with GitHub
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="login-footer">
-                        <p>&copy; {% now "Y" %} GradeBench. All rights reserved.</p>
-                    </div>
-                </div>
+        <div class="brand-logo">
+            <img src="/static/img/logo-small.png" alt="GradeBench Logo">
+        </div>
+        <h1 class="brand-name">GradeBench</h1>
+        
+        <div class="login-card">
+            <div class="card-header">
+                <h3 class="card-title text-center">Login</h3>
             </div>
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <p class="welcome-text">Welcome to GradeBench, a platform for grading code submissions</p>
+                </div>
+                
+                {% if messages %}
+                <div class="messages mb-4">
+                    {% for message in messages %}
+                    <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+                        <button type="button" aria-hidden="true" class="close" data-dismiss="alert" aria-label="Close">
+                            <i class="nc-icon nc-simple-remove"></i>
+                        </button>
+                        <span>{{ message }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                <a href="{% url 'social:begin' 'github' %}" class="btn btn-github">
+                    <i class="fa fa-github"></i> SIGN IN WITH GITHUB
+                </a>
+            </div>
+        </div>
+        
+        <div class="login-footer">
+            <p>&copy; {% now "Y" %} GradeBench. All rights reserved.</p>
         </div>
     </div>
     
