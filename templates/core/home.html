@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+
+{% block title %}Home - GradeBench{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                Profile Information
+            </div>
+            <div class="card-body">
+                <h5 class="card-title">{{ user.get_full_name|default:user.username }}</h5>
+                <p class="card-text">
+                    <strong>Username:</strong> {{ user.username }}<br>
+                    <strong>Email:</strong> {{ user.email }}<br>
+                    {% if profile.github_username %}
+                    <strong>GitHub:</strong> {{ profile.github_username }}<br>
+                    {% endif %}
+                    <strong>Joined:</strong> {{ user.date_joined|date:"F j, Y" }}
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                Welcome to GradeBench
+            </div>
+            <div class="card-body">
+                <h5 class="card-title">Getting Started</h5>
+                <p class="card-text">
+                    GradeBench is a platform for grading code submissions. Here you can:
+                </p>
+                <ul>
+                    <li>Submit code for evaluation</li>
+                    <li>View your past submissions</li>
+                    <li>See detailed grading reports</li>
+                    <li>Track your progress over time</li>
+                </ul>
+                
+                <div class="mt-4">
+                    <h5>GitHub Integration</h5>
+                    <p>
+                        Your account is connected to GitHub, allowing you to:
+                    </p>
+                    <ul>
+                        <li>Submit code directly from your repositories</li>
+                        <li>Automatically sync your progress</li>
+                        <li>Share your achievements with your GitHub profile</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Fetch GitHub profile data
+    async function fetchGitHubProfile() {
+        try {
+            const response = await fetch('/api/github-profile/');
+            const data = await response.json();
+            
+            if (data.error) {
+                console.error('Error fetching GitHub profile:', data.error);
+            } else {
+                console.log('GitHub profile data:', data);
+                // Update UI with GitHub data if needed
+            }
+        } catch (error) {
+            console.error('Failed to fetch GitHub profile:', error);
+        }
+    }
+    
+    // Call the function when the page loads
+    document.addEventListener('DOMContentLoaded', fetchGitHubProfile);
+</script>
+{% endblock %} 
