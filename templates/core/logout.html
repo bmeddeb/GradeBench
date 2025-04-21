@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block title %}Logout Confirmation - GradeBench{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6 mx-auto">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h2 class="mb-0">Logout Confirmation</h2>
+            </div>
+            <div class="card-body">
+                <p class="lead">Are you sure you want to logout?</p>
+                
+                <div class="d-flex gap-2 mt-4">
+                    <form method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-box-arrow-right me-2"></i>Yes, Logout
+                        </button>
+                    </form>
+                    <a href="{% url 'home' %}" class="btn btn-secondary">
+                        <i class="bi bi-x-circle me-2"></i>Cancel
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
