@@ -54,6 +54,15 @@ INSTALLED_APPS = [
     'core',
 ]
 
+# Jazzmin settings
+JAZZMIN_SETTINGS = {
+    # Use CDN for jQuery and Bootstrap instead of local static files
+    "use_jquery_cdn": True,
+    "jquery_cdn": "https://code.jquery.com/jquery-3.7.1.min.js",
+    "use_bootstrap_cdn": True,
+    "bootstrap_cdn": "https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css",
+}
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
