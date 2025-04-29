@@ -18,14 +18,30 @@
     <style>
         /* Custom styles to fix Bootstrap 5 compatibility issues */
         .profile-dropdown-item {
-            display: block;
+            display: flex !important;
+            align-items: center !important;
             padding: 0.5rem 1rem;
             color: inherit;
-            text-transform: none !important;
-            font-weight: normal !important;
+            text-transform: none;
+            font-weight: normal;
         }
         .profile-dropdown-item:hover {
             background-color: rgba(0,0,0,0.05);
+            text-decoration: none;
+        }
+        .profile-dropdown-item i {
+            font-size: 1.2em;
+            width: 1.5em;
+            text-align: center;
+        }
+        .text-uppercase {
+            text-transform: uppercase !important;
+        }
+        .fw-bold {
+            font-weight: bold !important;
+        }
+        .me-2 {
+            margin-right: 0.5rem !important;
         }
         .sidebar-normal {
             text-transform: none !important;
@@ -70,14 +86,14 @@
                             <ul class="nav">
                                 <li>
                                     <a href="{% url 'profile' %}" class="profile-dropdown-item">
-                                        <span class="d-none sidebar-mini-icon">MP</span>
-                                        <span class="sidebar-normal">My Profile</span>
+                                        <i class="fa fa-user-circle text-primary me-2"></i>
+                                        <span class="sidebar-normal text-uppercase fw-bold">Profile</span>
                                     </a>
                                 </li>
                                 <li>
                                     <a href="{% url 'logout' %}" class="profile-dropdown-item">
-                                        <span class="d-none sidebar-mini-icon">LO</span>
-                                        <span class="sidebar-normal">Logout</span>
+                                        <i class="fa fa-sign-out text-danger me-2"></i>
+                                        <span class="sidebar-normal text-uppercase fw-bold">Logout</span>
                                     </a>
                                 </li>
                             </ul>
