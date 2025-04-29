@@ -52,6 +52,12 @@ fi
 
 echo ".env file updated with SECRET_KEY."
 
+# Export Django settings module and load env variables for migrate command
+export DJANGO_SETTINGS_MODULE=gradebench.settings
+if [ -f .env ]; then
+  export $(grep -v '^#' .env | xargs)
+fi
+
 # Run migrations
 echo "Running Django migrations..."
 python manage.py migrate

@@ -1,12 +1,15 @@
 #!/bin/bash
 
-# Activate your virtual environment if needed
-source .venv/bin/python activate
+# Activate your virtual environment
+source .venv/bin/activate
 
-# Set environment variables from .env file
+# Export Django settings module
+export DJANGO_SETTINGS_MODULE=gradebench.settings
+
+# Load environment variables from .env
 if [ -f .env ]; then
   export $(grep -v '^#' .env | xargs)
 fi
 
 # Run Django’s ASGI app with uvicorn
-uvicorn gradebench.asgi:application --host 0.0.0.0 --port 8000 --reload
+uvicorn gradebench.asgi:application --host 127.0.0.1 --port 8000 --reload
