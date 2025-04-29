@@ -1,7 +1,8 @@
 from django.shortcuts import render, redirect
+from django.contrib.auth import logout as auth_logout
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.contrib import messages
 from django.urls import reverse
 from social_django.models import UserSocialAuth
@@ -10,6 +11,7 @@ import httpx
 import json
 from asgiref.sync import sync_to_async
 from django.core.exceptions import SynchronousOnlyOperation
+from core.db import async_save
 
 # Create your views here.
 
@@ -54,6 +56,28 @@ def profile(request):
             github_username = profile.github_username
     except UserProfile.DoesNotExist:
         profile = UserProfile.objects.create(user=user)
+
+    # Handle profile update form submission
+    if request.method == 'POST':
+        # Update user information
+        user.first_name = request.POST.get('first_name', user.first_name)
+        user.last_name = request.POST.get('last_name', user.last_name)
+        email = request.POST.get('email')
+        if email and email != user.email:
+            user.email = email
+
+        # Update profile information
+        profile.bio = request.POST.get('bio', profile.bio)
+        phone_number = request.POST.get('phone_number')
+        if phone_number:
+            profile.phone_number = phone_number
+
+        # Save changes
+        user.save()
+        profile.save()
+
+        # Redirect to avoid form resubmission
+        return redirect('profile')
 
     return render(request, 'core/profile.html', {
         'user': user,
@@ -134,8 +158,45 @@ def logout_view(request):
     Shows a confirmation page on GET and logs out on POST.
     """
     if request.method == 'POST':
-        from django.contrib.auth import logout
-        logout(request)
+        auth_logout(request)
         messages.success(request, "You have been successfully logged out.")
         return redirect('login')
     return render(request, 'core/logout.html')
+
+
+# Add new async profile update view for use with async API
+@login_required
+async def update_profile_async(request):
+    """Async view for updating user profile."""
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
+
+    try:
+        # Get the user and profile
+        user = request.user
+        profile = await sync_to_async(getattr)(user, 'profile')
+
+        # Parse JSON data from request
+        data = json.loads(request.body)
+
+        # Update user information
+        if 'first_name' in data:
+            user.first_name = data['first_name']
+        if 'last_name' in data:
+            user.last_name = data['last_name']
+        if 'email' in data:
+            user.email = data['email']
+
+        # Update profile information
+        if 'bio' in data:
+            profile.bio = data['bio']
+        if 'phone_number' in data:
+            profile.phone_number = data['phone_number']
+
+        # Save changes using async helpers
+        await async_save(user)
+        await async_save(profile)
+
+        return JsonResponse({'status': 'success'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
