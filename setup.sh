@@ -8,6 +8,26 @@ generate_secret_key() {
     python3 -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
 }
 
+# Check if uv is installed, install if missing
+if ! command -v uv &> /dev/null
+then
+    echo "'uv' command not found. Installing uv package globally..."
+    python3 -m pip install uv
+fi
+
+# Create a virtual environment using uv if not exists
+if [ ! -d ".venv" ]; then
+    echo "Creating virtual environment using uv..."
+    uv venv
+fi
+
+# Activate virtual environment python
+source .venv/bin/activate
+
+# Sync dependencies from pyproject.toml using uv
+echo "Installing dependencies using uv..."
+uv sync
+
 # Check if .env exists
 if [ ! -f "$ENV_FILE" ]; then
     echo "$ENV_FILE not found. Creating from $ENV_EXAMPLE"
@@ -34,14 +54,14 @@ echo ".env file updated with SECRET_KEY."
 
 # Run migrations
 echo "Running Django migrations..."
-python3 manage.py migrate
+python manage.py migrate
 
 # Prompt to create superuser
 echo "Would you like to create a superuser? [y/N]"
 read -r CREATE_SUPERUSER
 
 if [[ "$CREATE_SUPERUSER" =~ ^([yY][eE][sS]|[yY])$ ]]; then
-    python3 manage.py createsuperuser
+    python manage.py createsuperuser
 fi
 
 echo "Setup complete."
