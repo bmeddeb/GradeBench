@@ -6,11 +6,12 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "django>=5.2",
-    "social-auth-app-django>=5.4.0",  # For GitHub authentication
-    "django-environ>=0.11.2",  # For environment variables
-    "databases[sqlite]>=0.8.0",  # Async database support
-    "asgiref>=3.7.2",  # ASGI utilities
-    "httpx>=0.25.2",  # Async HTTP client
+    "social-auth-app-django>=5.4.0", # For GitHub authentication
+    "django-environ>=0.11.2", # For environment variables
+    "databases[sqlite]>=0.8.0", # Async database support
+    "asgiref>=3.7.2", # ASGI utilities
+    "httpx>=0.25.2", # Async HTTP client
+    "uvicorn>=0.34.2",
 ]
 
 [build-system]
