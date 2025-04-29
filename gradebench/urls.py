@@ -23,11 +23,11 @@ from core import views as core_views
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('core.urls')),
-    path('users/', include('users.urls')),
     path('social-auth/', include('social_django.urls', namespace='social')),
     path('logout/', core_views.logout_view, name='logout'),
 ]
 
 # Serve media files during development
 if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.MEDIA_URL,
+                          document_root=settings.MEDIA_ROOT)
