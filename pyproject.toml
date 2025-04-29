@@ -15,6 +15,8 @@ dependencies = [
     "pillow>=11.2.1",
     "starlette>=0.46.2",
     "pyclean>=3.1.0",
+    "django-jazzmin>=3.0.1",
+    "cleanpy>=0.5.1",
 ]
 
 [build-system]
