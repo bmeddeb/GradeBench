@@ -7,14 +7,30 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
     <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, shrink-to-fit=no" name="viewport" />
     <title>{% block title %}GradeBench{% endblock %}</title>
-    
+
     <!-- Fonts and icons -->
     <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700,200" rel="stylesheet" />
     <link href="https://maxcdn.bootstrapcdn.com/font-awesome/latest/css/font-awesome.min.css" rel="stylesheet">
-    
+
     <!-- CSS Files -->
-    <link href="/static/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="/static/css/paper-dashboard.css" rel="stylesheet" />
+    <style>
+        /* Custom styles to fix Bootstrap 5 compatibility issues */
+        .profile-dropdown-item {
+            display: block;
+            padding: 0.5rem 1rem;
+            color: inherit;
+            text-transform: none !important;
+            font-weight: normal !important;
+        }
+        .profile-dropdown-item:hover {
+            background-color: rgba(0,0,0,0.05);
+        }
+        .sidebar-normal {
+            text-transform: none !important;
+        }
+    </style>
     {% block extra_css %}{% endblock %}
 </head>
 
@@ -31,7 +47,7 @@
                     GradeBench
                 </a>
             </div>
-            
+
             <div class="sidebar-wrapper">
                 {% if user.is_authenticated %}
                 <div class="user">
@@ -39,7 +55,7 @@
                         <img src="/static/img/default-avatar.png" />
                     </div>
                     <div class="info">
-                        <a data-toggle="collapse" href="#collapseExample" class="collapsed">
+                        <a data-bs-toggle="collapse" href="#collapseExample" class="collapsed">
                             <span>
                                 {{ user.get_full_name|default:user.username }}
                                 <b class="caret"></b>
@@ -49,14 +65,14 @@
                         <div class="collapse" id="collapseExample">
                             <ul class="nav">
                                 <li>
-                                    <a href="{% url 'profile' %}">
-                                        <span class="sidebar-mini-icon">MP</span>
+                                    <a href="{% url 'profile' %}" class="profile-dropdown-item">
+                                        <span class="d-none sidebar-mini-icon">MP</span>
                                         <span class="sidebar-normal">My Profile</span>
                                     </a>
                                 </li>
                                 <li>
-                                    <a href="{% url 'logout' %}">
-                                        <span class="sidebar-mini-icon">LO</span>
+                                    <a href="{% url 'logout' %}" class="profile-dropdown-item">
+                                        <span class="d-none sidebar-mini-icon">LO</span>
                                         <span class="sidebar-normal">Logout</span>
                                     </a>
                                 </li>
@@ -74,7 +90,7 @@
                         </a>
                     </li>
                     <li class="{% block nav_repos %}{% endblock %}">
-                        <a href="#reposExamples" data-toggle="collapse" aria-expanded="true">
+                        <a href="#reposExamples" data-bs-toggle="collapse" aria-expanded="true">
                             <i class="nc-icon nc-single-copy-04"></i>
                             <p>
                                 Repositories <b class="caret"></b>
@@ -126,7 +142,7 @@
                 </ul>
             </div>
         </div>
-        
+
         <div class="main-panel">
             <!-- Navbar -->
             <nav class="navbar navbar-expand-lg navbar-absolute fixed-top navbar-transparent">
@@ -147,7 +163,7 @@
                         </div>
                         <a class="navbar-brand" href="javascript:;">{% block page_title %}GradeBench{% endblock %}</a>
                     </div>
-                    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navigation" aria-controls="navigation-index" aria-expanded="false" aria-label="Toggle navigation">
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navigation" aria-controls="navigation-index" aria-expanded="false" aria-label="Toggle navigation">
                         <span class="navbar-toggler-bar navbar-kebab"></span>
                         <span class="navbar-toggler-bar navbar-kebab"></span>
                         <span class="navbar-toggler-bar navbar-kebab"></span>
@@ -166,7 +182,7 @@
                         <ul class="navbar-nav">
                             {% if user.is_authenticated %}
                             <li class="nav-item btn-rotate dropdown">
-                                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                     <i class="nc-icon nc-bell-55"></i>
                                     <p>
                                         <span class="d-lg-none d-md-block">Notifications</span>
@@ -200,13 +216,13 @@
                 </div>
             </nav>
             <!-- End Navbar -->
-            
+
             <div class="content">
                 {% if messages %}
                 <div class="messages">
                     {% for message in messages %}
                     <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
-                        <button type="button" aria-hidden="true" class="close" data-dismiss="alert" aria-label="Close">
+                        <button type="button" aria-hidden="true" class="close" data-bs-dismiss="alert" aria-label="Close">
                             <i class="nc-icon nc-simple-remove"></i>
                         </button>
                         <span>{{ message }}</span>
@@ -214,10 +230,10 @@
                     {% endfor %}
                 </div>
                 {% endif %}
-                
+
                 {% block content %}{% endblock %}
             </div>
-            
+
             <footer class="footer footer-black footer-white">
                 <div class="container-fluid">
                     <div class="row">
@@ -238,19 +254,56 @@
             </footer>
         </div>
     </div>
-    
+
     <!-- Core JS Files -->
-    <script src="/static/js/core/jquery.min.js"></script>
-    <script src="/static/js/core/popper.min.js"></script>
-    <script src="/static/js/core/bootstrap.min.js"></script>
-    <script src="/static/js/plugins/perfect-scrollbar.jquery.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/perfect-scrollbar@1.5.5/dist/perfect-scrollbar.min.js"></script>
     <!-- Chart JS -->
-    <script src="/static/js/plugins/chartjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <!-- Notifications Plugin -->
-    <script src="/static/js/plugins/bootstrap-notify.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap-notify@3.1.3/bootstrap-notify.min.js"></script>
     <!-- Control Center for Paper Dashboard: parallax effects, scripts for the example pages etc -->
     <script src="/static/js/paper-dashboard.min.js"></script>
-    
+
+    <!-- Bootstrap 5 initialization -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize all dropdowns
+            var dropdownElementList = [].slice.call(document.querySelectorAll('.dropdown-toggle'));
+            dropdownElementList.map(function(dropdownToggleEl) {
+                return new bootstrap.Dropdown(dropdownToggleEl);
+            });
+
+            // Initialize all collapses
+            var collapseElementList = [].slice.call(document.querySelectorAll('.collapse'));
+            collapseElementList.map(function(collapseEl) {
+                return new bootstrap.Collapse(collapseEl, {
+                    toggle: false
+                });
+            });
+
+            // Fix for sidebar toggling
+            var sidebarCollapseElements = document.querySelectorAll('[data-bs-toggle="collapse"]');
+            sidebarCollapseElements.forEach(function(element) {
+                element.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    var target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        var collapse = bootstrap.Collapse.getInstance(target);
+                        if (!collapse) {
+                            collapse = new bootstrap.Collapse(target, {
+                                toggle: false
+                            });
+                        }
+                        collapse.toggle();
+                    }
+                });
+            });
+        });
+    </script>
+
     {% block extra_js %}{% endblock %}
 </body>
 </html>
