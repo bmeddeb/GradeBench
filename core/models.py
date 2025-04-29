@@ -113,28 +113,6 @@ class Team(models.Model):
         return self.name
 
 
-class Repository(models.Model):
-    """
-    GitHub repository model
-    """
-    name = models.CharField(max_length=100)
-    description = models.TextField(blank=True, null=True)
-    github_repo_id = models.CharField(max_length=100)
-    github_full_name = models.CharField(max_length=200)
-    github_clone_url = models.URLField(max_length=500)
-    team = models.ForeignKey(
-        Team, on_delete=models.CASCADE, related_name='repositories')
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        verbose_name = 'Repository'
-        verbose_name_plural = 'Repositories'
-
-
 class TAProfile(StaffProfile):
     """
     Teaching Assistant specific profile
