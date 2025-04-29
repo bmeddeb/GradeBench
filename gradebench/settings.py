@@ -19,7 +19,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Initialize environ
 env = environ.Env()
-environ.Env.read_env(os.path.join(BASE_DIR, '.env'))  # Explicitly provide path to .env file
+# Explicitly provide path to .env file
+environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
 
 # Quick-start development settings - unsuitable for production
@@ -43,13 +44,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    
+
     # Third-party apps
     'social_django',
-    
+
     # Project apps
     'core',
-    'users',
 ]
 
 MIDDLEWARE = [
