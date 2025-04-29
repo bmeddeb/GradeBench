@@ -94,45 +94,37 @@ def disconnect_github(request):
 
 async def async_github_profile(request):
     """Fetch GitHub profile data asynchronously."""
-    # Use sync_to_async to safely access request.user in async context
-    user = await sync_to_async(lambda: request.user)()
-    if not user.is_authenticated:
-        return HttpResponse(json.dumps({'error': 'Authentication required'}),
-                            content_type='application/json')
-    try:
-        # Get user profile in a sync_to_async context to avoid SynchronousOnlyOperation
-        @sync_to_async
-        def get_profile():
-            return UserProfile.objects.get(user=user)
-        profile = await get_profile()
-        if not profile.github_access_token:
-            return HttpResponse(json.dumps({'error': 'No GitHub token found'}),
-                                content_type='application/json')
-        async with httpx.AsyncClient() as client:
-            headers = {
-                'Authorization': f'token {profile.github_access_token}',
-                'Accept': 'application/vnd.github.v3+json'
-            }
-            response = await client.get('https://api.github.com/user', headers=headers)
-            if response.status_code == 200:
-                return HttpResponse(response.text, content_type='application/json')
-            else:
-                return HttpResponse(
-                    json.dumps(
-                        {'error': f'GitHub API error: {response.status_code}'}),
-                    content_type='application/json'
-                )
-    except SynchronousOnlyOperation:
-        return HttpResponse(
-            json.dumps(
-                {'error': 'This operation cannot be performed asynchronously'}),
-            content_type='application/json'
-        )
-    except Exception as e:
-        return HttpResponse(
-            json.dumps({'error': f'Error fetching GitHub profile: {str(e)}'}),
-            content_type='application/json'
-        )
+    def get_profile_and_token():
+        user = request.user
+        if not user.is_authenticated:
+            return None, None, 'Authentication required'
+        try:
+            profile = UserProfile.objects.get(user=user)
+            if not profile.github_access_token:
+                return None, None, 'No GitHub token found'
+            return user, profile, None
+        except UserProfile.DoesNotExist:
+            return None, None, 'Profile does not exist'
+
+    user, profile, error = await sync_to_async(get_profile_and_token)()
+    if error:
+        return HttpResponse(json.dumps({'error': error}), content_type='application/json')
+
+    # Now do the async HTTP call
+    async with httpx.AsyncClient() as client:
+        headers = {
+            'Authorization': f'token {profile.github_access_token}',
+            'Accept': 'application/vnd.github.v3+json'
+        }
+        response = await client.get('https://api.github.com/user', headers=headers)
+        if response.status_code == 200:
+            return HttpResponse(response.text, content_type='application/json')
+        else:
+            return HttpResponse(
+                json.dumps(
+                    {'error': f'GitHub API error: {response.status_code}'}),
+                content_type='application/json'
+            )
 
 
 @login_required
