@@ -12,6 +12,7 @@ dependencies = [
     "asgiref>=3.7.2", # ASGI utilities
     "httpx>=0.25.2", # Async HTTP client
     "uvicorn>=0.34.2",
+    "pillow>=11.2.1",
 ]
 
 [build-system]
