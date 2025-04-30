@@ -52,6 +52,9 @@ INSTALLED_APPS = [
 
     # Project apps
     'core',
+    'github',
+    'taiga',
+    'canvas',
 ]
 
 # Jazzmin settings

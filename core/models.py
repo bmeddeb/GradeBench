@@ -4,21 +4,23 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils import timezone
 
-
 class UserProfile(models.Model):
     """
     Base user profile with common fields for all users
     """
     user = models.OneToOneField(
-        User, on_delete=models.CASCADE, related_name='profile')
-    # Fields from original UserProfile
+        User, on_delete=models.CASCADE, related_name='profile'
+    )
     github_username = models.CharField(max_length=100, blank=True, null=True)
     github_access_token = models.CharField(
-        max_length=255, blank=True, null=True)
-    github_avatar_url = models.URLField(max_length=500, blank=True, null=True)
-    # Fields from BaseUserProfile
+        max_length=255, blank=True, null=True
+    )
+    github_avatar_url = models.URLField(
+        max_length=500, blank=True, null=True
+    )
     profile_picture = models.ImageField(
-        upload_to='profile_pictures/', blank=True, null=True)
+        upload_to='profile_pictures/', blank=True, null=True
+    )
     phone_number = models.CharField(max_length=20, blank=True, null=True)
     bio = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -36,19 +38,13 @@ class UserProfile(models.Model):
     def is_student(self):
         return hasattr(self, 'student_profile')
 
-    class Meta:
-        verbose_name = 'User Profile'
-        verbose_name_plural = 'User Profiles'
-
-
 class GitHubToken(models.Model):
     """
     Model to store multiple GitHub tokens for professors and TAs
     """
-    name = models.CharField(max_length=100)  # Name/label for this token
+    name = models.CharField(max_length=100)
     token = models.CharField(max_length=255)
-    scope = models.CharField(max_length=255, blank=True,
-                             null=True)  # Scopes of the token
+    scope = models.CharField(max_length=255, blank=True, null=True)
     last_used = models.DateTimeField(blank=True, null=True)
     rate_limit_remaining = models.IntegerField(default=5000)
     rate_limit_reset = models.DateTimeField(blank=True, null=True)
@@ -59,18 +55,18 @@ class GitHubToken(models.Model):
         return f"{self.name} - {self.scope}"
 
     def is_rate_limited(self):
-        """Check if this token is currently rate limited"""
-        if self.rate_limit_remaining <= 10:  # Low threshold
+        if self.rate_limit_remaining <= 10:
             if self.rate_limit_reset and self.rate_limit_reset > timezone.now():
                 return True
         return False
-
 
 class StaffProfile(models.Model):
     """
     Base model for Professor and TA profiles with shared fields
     """
-    user_profile = models.OneToOneField(UserProfile, on_delete=models.CASCADE)
+    user_profile = models.OneToOneField(
+        UserProfile, on_delete=models.CASCADE
+    )
     github_tokens = models.ManyToManyField(GitHubToken, blank=True)
     lms_access_token = models.CharField(max_length=255, blank=True, null=True)
     lms_refresh_token = models.CharField(max_length=255, blank=True, null=True)
@@ -79,11 +75,7 @@ class StaffProfile(models.Model):
     class Meta:
         abstract = True
 
-
 class ProfessorProfile(StaffProfile):
-    """
-    Professor specific profile
-    """
     department = models.CharField(max_length=100, blank=True, null=True)
     office_location = models.CharField(max_length=100, blank=True, null=True)
     office_hours = models.TextField(blank=True, null=True)
@@ -91,70 +83,53 @@ class ProfessorProfile(StaffProfile):
     def __str__(self):
         return f"Professor: {self.user_profile.user.get_full_name()}"
 
-    class Meta:
-        verbose_name = 'Professor Profile'
-        verbose_name_plural = 'Professor Profiles'
-
-
-class Team(models.Model):
-    """
-    Student team model
-    """
-    name = models.CharField(max_length=100)
-    description = models.TextField(blank=True, null=True)
-    github_organization = models.CharField(
-        max_length=100, blank=True, null=True)
-    github_team_id = models.CharField(max_length=100, blank=True, null=True)
-    taiga_project_id = models.CharField(max_length=100, blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return self.name
-
-
 class TAProfile(StaffProfile):
-    """
-    Teaching Assistant specific profile
-    """
     supervisor = models.ForeignKey(
-        ProfessorProfile, on_delete=models.SET_NULL, blank=True, null=True)
+        ProfessorProfile, on_delete=models.SET_NULL,
+        blank=True, null=True
+    )
     hours_per_week = models.PositiveIntegerField(default=20)
     expertise_areas = models.TextField(blank=True, null=True)
 
     def __str__(self):
         return f"TA: {self.user_profile.user.get_full_name()}"
 
-    class Meta:
-        verbose_name = 'TA Profile'
-        verbose_name_plural = 'TA Profiles'
+class Team(models.Model):
+    "Student team model"
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True, null=True)
+    github_organization = models.CharField(
+        max_length=100, blank=True, null=True
+    )
+    github_team_id = models.CharField(max_length=100, blank=True, null=True)
+    taiga_project_id = models.CharField(
+        max_length=100, blank=True, null=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
+    def __str__(self):
+        return self.name
 
 class StudentProfile(models.Model):
-    """
-    Student specific profile
-    """
-    user_profile = models.OneToOneField(UserProfile, on_delete=models.CASCADE)
+    user_profile = models.OneToOneField(
+        UserProfile, on_delete=models.CASCADE
+    )
     student_id = models.CharField(max_length=20, blank=True, null=True)
     team = models.ForeignKey(
-        Team, on_delete=models.SET_NULL, blank=True, null=True, related_name='members')
+        Team, on_delete=models.SET_NULL,
+        blank=True, null=True, related_name='members'
+    )
     github_username = models.CharField(max_length=100, blank=True, null=True)
     taiga_username = models.CharField(max_length=100, blank=True, null=True)
 
     def __str__(self):
         return f"Student: {self.user_profile.user.get_full_name()}"
 
-    class Meta:
-        verbose_name = 'Student Profile'
-        verbose_name_plural = 'Student Profiles'
-
-
-# Create user profile when a new user is created
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):
     if created:
         UserProfile.objects.create(user=instance)
-
 
 @receiver(post_save, sender=User)
 def save_user_profile(sender, instance, **kwargs):
