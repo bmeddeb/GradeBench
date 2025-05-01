@@ -1,5 +1,5 @@
 from social_core.pipeline.partial import partial
-from core.models import UserProfile, StudentProfile, set_as_student
+from core.models import UserProfile, Student
 from django.contrib.auth.models import Group, User
 import logging
 
@@ -58,21 +58,23 @@ def save_profile(backend, user, response, *args, **kwargs):
             profile.save()
             logger.info(f"User profile saved for {user.username}")
 
-            # If the user is a student (default for new users), update their GitHub info
+            # If the user is a student (default for new users), add to student group
             if Group.objects.filter(name="Students").exists() and not user.groups.all().exists():
                 student_group = Group.objects.get(name="Students")
                 user.groups.add(student_group)
-
-            if user.groups.filter(name="Students").exists() and hasattr(profile, 'student_profile'):
-                student_profile = profile.student_profile
-                student_profile.github_username = profile.github_username
-                student_profile.save()
-                logger.info(
-                    f"Updated student profile GitHub info for {user.username}")
-            elif user.groups.filter(name="Students").exists():
-                # Create a student profile
-                set_as_student(user, github_username=profile.github_username)
-                logger.info(f"Created student profile for {user.username}")
+                logger.info(f"Added {user.username} to Students group")
+                
+                # Check if we need to create a Student record
+                if not Student.objects.filter(email=user.email).exists():
+                    # Create a new Student record
+                    student = Student.objects.create(
+                        first_name=user.first_name,
+                        last_name=user.last_name,
+                        email=user.email,
+                        github_username=profile.github_username,
+                        created_by=user
+                    )
+                    logger.info(f"Created Student record for {user.username}")
 
             return {'user': user, 'profile': profile}
         except Exception as e:

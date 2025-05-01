@@ -1,3 +1,4 @@
+# core/models.py
 from django.db import models
 from django.contrib.auth.models import User, Group
 from django.db.models.signals import post_save
@@ -36,9 +37,6 @@ class UserProfile(models.Model, AsyncModelMixin):
 
     def is_ta(self):
         return hasattr(self, 'ta_profile')
-        
-    def is_student(self):
-        return hasattr(self, 'student_profile')
 
 
 class GitHubToken(models.Model, AsyncModelMixin):
@@ -119,7 +117,7 @@ class Team(models.Model, AsyncModelMixin):
         return self.name
 
 
-# New decoupled Student model
+# Central Student model
 class Student(models.Model, AsyncModelMixin):
     """
     Central student entity that links identities across platforms.
@@ -215,13 +213,26 @@ class Student(models.Model, AsyncModelMixin):
 
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):
-    if created:
+    from django.db import connection
+    
+    # Check if the UserProfile table exists
+    with connection.cursor() as cursor:
+        table_name = UserProfile._meta.db_table
+        try:
+            cursor.execute(f"SELECT 1 FROM sqlite_master WHERE type='table' AND name='{table_name}';")
+            table_exists = cursor.fetchone() is not None
+        except:
+            table_exists = False
+    
+    if created and table_exists:
         UserProfile.objects.create(user=instance)
 
 
 @receiver(post_save, sender=User)
 def save_user_profile(sender, instance, **kwargs):
-    instance.profile.save()
+    # Check if the profile field exists before saving
+    if hasattr(instance, 'profile'):
+        instance.profile.save()
 
 
 # Define functions to assign users to groups and create appropriate profiles
@@ -259,48 +270,3 @@ def set_as_ta(user, supervisor=None, hours_per_week=20, expertise_areas=None):
         )
         return ta_profile
     return user.profile.ta_profile
-
-
-class StudentProfile(models.Model, AsyncModelMixin):
-    """
-    Legacy student profile model - maintained temporarily for backward compatibility.
-    Will be phased out in favor of the new Student model.
-    """
-    user_profile = models.OneToOneField(
-        UserProfile, on_delete=models.CASCADE,
-        related_name='student_profile'
-    )
-    student_id = models.CharField(max_length=20, blank=True, null=True)
-    team = models.ForeignKey(
-        Team, on_delete=models.SET_NULL,
-        blank=True, null=True, related_name='members'
-    )
-    github_username = models.CharField(max_length=100, blank=True, null=True)
-    taiga_username = models.CharField(max_length=100, blank=True, null=True)
-
-    def __str__(self):
-        return f"Student: {self.user_profile.user.get_full_name()}"
-
-
-def set_as_student(user, student_id=None, team=None, github_username=None, taiga_username=None):
-    """Set a user as a student (legacy method)"""
-    # Add to student group
-    student_group, _ = Group.objects.get_or_create(name='Students')
-    user.groups.add(student_group)
-
-    # Create student profile if it doesn't exist
-    if not hasattr(user.profile, 'student_profile'):
-        # Update github_username in the main profile if provided
-        if github_username and not user.profile.github_username:
-            user.profile.github_username = github_username
-            user.profile.save()
-
-        student_profile = StudentProfile.objects.create(
-            user_profile=user.profile,
-            student_id=student_id,
-            team=team,
-            github_username=github_username,
-            taiga_username=taiga_username
-        )
-        return student_profile
-    return user.profile.student_profile
