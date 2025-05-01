@@ -1,8 +1,8 @@
 from django.db import models
-from core.models import Team, StudentProfile, UserProfile, Student
+from core.models_redesign import Student, Team, UserProfile
 from core.async_utils import AsyncModelMixin
 
-class CanvasCourse(models.Model):
+class CanvasCourse(models.Model, AsyncModelMixin):
     """
     Mirrors a Canvas course
     """
@@ -25,32 +25,18 @@ class CanvasEnrollment(models.Model, AsyncModelMixin):
     course = models.ForeignKey(
         CanvasCourse, on_delete=models.CASCADE, related_name='enrollments'
     )
-    
-    # Legacy relationship - will be removed after migration
-    student_profile = models.ForeignKey(
-        StudentProfile, on_delete=models.CASCADE, 
-        related_name='canvas_enrollments_legacy', null=True, blank=True
-    )
-    
-    # New relationship to Student model
     student = models.ForeignKey(
-        Student, on_delete=models.CASCADE,
-        related_name='canvas_enrollments', null=True, blank=True
+        Student, on_delete=models.CASCADE, related_name='canvas_enrollments'
     )
-    
     role = models.CharField(max_length=30)  # e.g. 'StudentEnrollment', 'TeacherEnrollment'
 
     class Meta:
-        unique_together = ('course', 'student_profile')
+        unique_together = ('course', 'student')
 
     def __str__(self):
-        if self.student:
-            return f"{self.student.full_name} in {self.course.name} as {self.role}"
-        elif self.student_profile:
-            return f"{self.student_profile.user_profile.user.username} in {self.course.name} as {self.role}"
-        return f"Unknown student in {self.course.name} as {self.role}"
+        return f"{self.student.full_name} in {self.course.name} as {self.role}"
 
-class CanvasAssignment(models.Model):
+class CanvasAssignment(models.Model, AsyncModelMixin):
     """
     Mirrors a Canvas assignment
     """
@@ -67,7 +53,7 @@ class CanvasAssignment(models.Model):
     def __str__(self):
         return f"{self.name} ({self.assignment_id})"
 
-class Rubric(models.Model):
+class Rubric(models.Model, AsyncModelMixin):
     # Mirrors Canvas Rubric
     rubric_id = models.IntegerField(unique=True)
     title = models.CharField(max_length=255)
@@ -82,7 +68,7 @@ class Rubric(models.Model):
     def __str__(self):
         return f"Rubric {self.rubric_id}: {self.title}"
 
-class RubricCriterion(models.Model):
+class RubricCriterion(models.Model, AsyncModelMixin):
     # Each criterion (row) in a Rubric
     rubric = models.ForeignKey(
         Rubric, on_delete=models.CASCADE, related_name='criteria'
@@ -96,7 +82,7 @@ class RubricCriterion(models.Model):
     def __str__(self):
         return f"{self.rubric.title} - {self.description[:20]}..."
 
-class RubricRating(models.Model):
+class RubricRating(models.Model, AsyncModelMixin):
     # Possible rating levels per criterion
     criterion = models.ForeignKey(
         RubricCriterion, on_delete=models.CASCADE, related_name='ratings'
@@ -109,7 +95,7 @@ class RubricRating(models.Model):
     def __str__(self):
         return f"{self.criterion.description[:15]} - {self.description}"
 
-class RubricAssociation(models.Model):
+class RubricAssociation(models.Model, AsyncModelMixin):
     # Links a rubric to a course or assignment
     rubric = models.ForeignKey(
         Rubric, on_delete=models.CASCADE, related_name='associations'
@@ -148,30 +134,16 @@ class RubricAssessment(models.Model, AsyncModelMixin):
     assessor = models.ForeignKey(
         UserProfile, on_delete=models.SET_NULL, null=True, related_name='rubric_assessments'
     )
-    
-    # Legacy relationship - will be removed after migration
-    student_profile = models.ForeignKey(
-        StudentProfile, on_delete=models.CASCADE, 
-        related_name='rubric_assessments_legacy', null=True, blank=True
-    )
-    
-    # New relationship to Student model
     student = models.ForeignKey(
-        Student, on_delete=models.CASCADE,
-        related_name='rubric_assessments', null=True, blank=True
+        Student, on_delete=models.CASCADE, related_name='rubric_assessments'
     )
-    
     score = models.DecimalField(max_digits=8, decimal_places=2)
     data = models.JSONField()      # Store full criterion-level data
     comments = models.JSONField()  # Comment-only view
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ('association', 'student_profile', 'assessor')
+        unique_together = ('association', 'student', 'assessor')
 
     def __str__(self):
-        if self.student:
-            return f"Assessment for {self.student.full_name} on {self.association}"
-        elif self.student_profile:
-            return f"Assessment for {self.student_profile.user_profile.user.username} on {self.association}"
-        return f"Assessment for unknown student on {self.association}"
+        return f"Assessment for {self.student.full_name} on {self.association}"
