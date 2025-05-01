@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, include
 from . import views
 
 urlpatterns = [
@@ -9,4 +9,5 @@ urlpatterns = [
     path('api/github-profile/', views.async_github_profile, name='github_profile'),
     path('api/update-profile/', views.update_profile_ajax,
          name='update_profile_async'),
+    path('canvas/', include('lms.canvas.urls')),
 ]

@@ -1,0 +1,319 @@
+{% extends 'canvas/base.html' %}
+{% load static %}
+
+{% block title %}{{ assignment.name }} | {{ course.course_code }} | GradeBench Canvas{% endblock %}
+{% block page_title %}{{ assignment.name }}{% endblock %}
+{% block nav_dashboard_active %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+    .rubric-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .rubric-table th, .rubric-table td {
+        border: 1px solid #ddd;
+        padding: 8px;
+    }
+    .rubric-table th {
+        background-color: #f5f5f5;
+    }
+    .criterion-name {
+        font-weight: bold;
+    }
+    .rating-description {
+        margin-bottom: 5px;
+    }
+    .rating-points {
+        font-weight: bold;
+        color: #68B3C8;
+    }
+    .assignment-description {
+        padding: 15px;
+        background-color: #f9f9f9;
+        border-radius: 4px;
+        margin-bottom: 15px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title">Assignment Details</h4>
+                <p class="card-category">{{ course.course_code }}: {{ assignment.name }}</p>
+            </div>
+            <div class="card-content">
+                {% if assignment.description %}
+                <div class="assignment-description">
+                    {{ assignment.description|safe }}
+                </div>
+                {% endif %}
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>Assignment Information</h5>
+                        <table class="table">
+                            <tbody>
+                                <tr>
+                                    <th>Points</th>
+                                    <td>{{ assignment.points_possible }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Due Date</th>
+                                    <td>
+                                        {% if assignment.due_at %}
+                                        {{ assignment.due_at|date:"F d, Y, h:i a" }}
+                                        {% else %}
+                                        No due date
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Available From</th>
+                                    <td>
+                                        {% if assignment.unlock_at %}
+                                        {{ assignment.unlock_at|date:"F d, Y, h:i a" }}
+                                        {% else %}
+                                        Always available
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Available Until</th>
+                                    <td>
+                                        {% if assignment.lock_at %}
+                                        {{ assignment.lock_at|date:"F d, Y, h:i a" }}
+                                        {% else %}
+                                        No lock date
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Submission Types</th>
+                                    <td>
+                                        {% for type in assignment.submission_types %}
+                                            {% if type == 'online_text_entry' %}
+                                                Text Entry
+                                            {% elif type == 'online_url' %}
+                                                Website URL
+                                            {% elif type == 'online_upload' %}
+                                                File Upload
+                                            {% elif type == 'media_recording' %}
+                                                Media Recording
+                                            {% elif type == 'discussion_topic' %}
+                                                Discussion
+                                            {% elif type == 'external_tool' %}
+                                                External Tool
+                                            {% else %}
+                                                {{ type|title }}
+                                            {% endif %}
+                                            {% if not forloop.last %}, {% endif %}
+                                        {% empty %}
+                                            No submission
+                                        {% endfor %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Grading Type</th>
+                                    <td>
+                                        {% if assignment.grading_type == 'points' %}
+                                            Points
+                                        {% elif assignment.grading_type == 'percent' %}
+                                            Percentage
+                                        {% elif assignment.grading_type == 'letter_grade' %}
+                                            Letter Grade
+                                        {% elif assignment.grading_type == 'gpa_scale' %}
+                                            GPA Scale
+                                        {% elif assignment.grading_type == 'pass_fail' %}
+                                            Pass/Fail
+                                        {% else %}
+                                            {{ assignment.grading_type|title }}
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Status</th>
+                                    <td>
+                                        {% if assignment.published %}
+                                        <span class="badge bg-success">Published</span>
+                                        {% else %}
+                                        <span class="badge bg-warning">Unpublished</span>
+                                        {% endif %}
+
+                                        {% if assignment.muted %}
+                                        <span class="badge bg-info">Muted</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="col-md-6">
+                        <h5>Submission Statistics</h5>
+                        <div class="row text-center">
+                            <div class="col-xs-6">
+                                <div class="card">
+                                    <div class="card-content">
+                                        <h3>{{ submitted_count }} / {{ submissions|length }}</h3>
+                                        <p>Submitted</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-xs-6">
+                                <div class="card">
+                                    <div class="card-content">
+                                        <h3>{{ graded_count }} / {{ submissions|length }}</h3>
+                                        <p>Graded</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row text-center">
+                            <div class="col-xs-6">
+                                <div class="card">
+                                    <div class="card-content">
+                                        <h3>{{ late_count }}</h3>
+                                        <p>Late</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-xs-6">
+                                <div class="card">
+                                    <div class="card-content">
+                                        <h3>{{ missing_count }}</h3>
+                                        <p>Missing</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-center" style="margin-top: 20px;">
+                            <a href="{{ assignment.html_url }}" target="_blank" class="btn btn-primary btn-fill">
+                                <i class="fa fa-external-link"></i> View in Canvas
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if has_rubric %}
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title">Assignment Rubric</h4>
+            </div>
+            <div class="card-content">
+                <table class="rubric-table">
+                    <thead>
+                        <tr>
+                            <th>Criteria</th>
+                            <th>Ratings</th>
+                            <th>Points</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for criterion in rubric.criteria %}
+                        <tr>
+                            <td class="criterion-name">
+                                {{ criterion.description }}
+                                {% if criterion.long_description %}
+                                <p><small>{{ criterion.long_description }}</small></p>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% for rating in criterion.ratings.all %}
+                                <div class="rating">
+                                    <div class="rating-description">{{ rating.description }}</div>
+                                    <div class="rating-points">{{ rating.points }} pts</div>
+                                </div>
+                                {% if not forloop.last %}<hr style="margin: 5px 0;">{% endif %}
+                                {% endfor %}
+                            </td>
+                            <td>
+                                {{ criterion.points }} pts
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title">Student Submissions</h4>
+                <p class="card-category">
+                    {{ submitted_count }} of {{ submissions|length }} submitted
+                </p>
+            </div>
+            <div class="card-content">
+                <div class="progress">
+                    <div class="progress-bar progress-bar-info" role="progressbar"
+                         aria-valuenow="{{ submitted_count }}" aria-valuemin="0" aria-valuemax="{{ submissions|length }}"
+                         style="width: {% widthratio submitted_count submissions|length 100 %}%">
+                    </div>
+                </div>
+
+                {% if submissions %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>Status</th>
+                                <th>Score</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for submission in submissions %}
+                            <tr>
+                                <td>{{ submission.enrollment.user_name }}</td>
+                                <td>
+                                    {% if submission.workflow_state == 'submitted' %}
+                                    <span class="badge bg-info">Submitted</span>
+                                    {% elif submission.workflow_state == 'graded' %}
+                                    <span class="badge bg-success">Graded</span>
+                                    {% elif submission.workflow_state == 'unsubmitted' %}
+                                    <span class="badge bg-warning">Not Submitted</span>
+                                    {% else %}
+                                    <span class="badge">{{ submission.workflow_state|title }}</span>
+                                    {% endif %}
+
+                                    {% if submission.late %}
+                                    <span class="badge bg-danger">Late</span>
+                                    {% endif %}
+
+                                    {% if submission.missing %}
+                                    <span class="badge bg-danger">Missing</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if submission.score != None %}
+                                    {{ submission.score }} / {{ assignment.points_possible }}
+                                    {% else %}
+                                    --
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center">
+                    <p>No submissions found for this assignment.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

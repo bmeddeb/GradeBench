@@ -1,0 +1,195 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="GradeBench Canvas Integration">
+    <meta name="author" content="GradeBench Team">
+    <title>{% block title %}GradeBench Canvas{% endblock %}</title>
+
+    <!-- Fonts and icons -->
+    <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700,200" rel="stylesheet" />
+    <link href="https://maxcdn.bootstrapcdn.com/font-awesome/latest/css/font-awesome.min.css" rel="stylesheet">
+
+    <!-- CSS Files -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/css/paper-dashboard.css" rel="stylesheet" />
+
+    <!-- Custom CSS -->
+    <style>
+        .card {
+            margin-bottom: 20px;
+        }
+        .table > tbody > tr > td {
+            vertical-align: middle;
+        }
+        .btn-xs {
+            padding: 1px 5px;
+            font-size: 12px;
+            line-height: 1.5;
+            border-radius: 3px;
+        }
+        .badge {
+            padding: 5px 10px;
+            border-radius: 10px;
+        }
+        .bg-success {
+            background-color: #7AC29A !important;
+            color: white;
+        }
+        .bg-warning {
+            background-color: #F3BB45 !important;
+            color: white;
+        }
+        .bg-danger {
+            background-color: #EB5E28 !important;
+            color: white;
+        }
+        .bg-info {
+            background-color: #68B3C8 !important;
+            color: white;
+        }
+        .progress {
+            height: 10px;
+            margin-bottom: 10px;
+        }
+        /* Bootstrap 5 compatibility fixes */
+        .profile-dropdown-item {
+            display: flex !important;
+            align-items: center !important;
+            padding: 0.5rem 1rem;
+            color: inherit;
+            text-transform: none;
+            font-weight: normal;
+        }
+        .profile-dropdown-item:hover {
+            background-color: rgba(0,0,0,0.05);
+            text-decoration: none;
+        }
+        .profile-dropdown-item i {
+            font-size: 1.2em;
+            width: 1.5em;
+            text-align: center;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="wrapper">
+        <div class="sidebar" data-background-color="white" data-active-color="danger">
+            <div class="sidebar-wrapper">
+                <div class="logo">
+                    <a href="{% url 'canvas_dashboard' %}" class="simple-text">
+                        GradeBench
+                    </a>
+                </div>
+
+                <ul class="nav">
+                    <li class="{% block nav_dashboard_active %}{% endblock %}">
+                        <a href="{% url 'canvas_dashboard' %}">
+                            <i class="fa fa-dashboard"></i>
+                            <p>Canvas Dashboard</p>
+                        </a>
+                    </li>
+                    <li class="{% block nav_setup_active %}{% endblock %}">
+                        <a href="{% url 'canvas_setup' %}">
+                            <i class="fa fa-cog"></i>
+                            <p>Canvas Setup</p>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'canvas_sync' %}">
+                            <i class="fa fa-refresh"></i>
+                            <p>Sync Canvas Data</p>
+                        </a>
+                    </li>
+                    <li class="divider"></li>
+                    <!-- Add project-specific links here -->
+                </ul>
+            </div>
+        </div>
+
+        <div class="main-panel">
+            <nav class="navbar navbar-expand-lg navbar-absolute fixed-top navbar-transparent">
+                <div class="container-fluid">
+                    <div class="navbar-wrapper">
+                        <div class="navbar-toggle">
+                            <button type="button" class="navbar-toggler">
+                                <span class="navbar-toggler-bar bar1"></span>
+                                <span class="navbar-toggler-bar bar2"></span>
+                                <span class="navbar-toggler-bar bar3"></span>
+                            </button>
+                        </div>
+                        <a class="navbar-brand" href="#">{% block page_title %}Canvas Integration{% endblock %}</a>
+                    </div>
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navigation" aria-controls="navigation-index" aria-expanded="false" aria-label="Toggle navigation">
+                        <span class="navbar-toggler-bar navbar-kebab"></span>
+                        <span class="navbar-toggler-bar navbar-kebab"></span>
+                        <span class="navbar-toggler-bar navbar-kebab"></span>
+                    </button>
+                    <div class="collapse navbar-collapse justify-content-end" id="navigation">
+                        <ul class="navbar-nav">
+                            <li class="nav-item">
+                                <a class="nav-link" href="#">
+                                    <i class="fa fa-user"></i>
+                                    <p>{{ request.user.username }}</p>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+
+            <div class="content">
+                <div class="container-fluid">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    {% block content %}{% endblock %}
+                </div>
+            </div>
+
+            <footer class="footer">
+                <div class="container-fluid">
+                    <div class="copyright pull-right">
+                        &copy; {% now "Y" %} <a href="#">GradeBench</a>
+                    </div>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Core JS Files -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Paper Dashboard Core -->
+    <script src="/static/js/paper-dashboard.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            // Initialize tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl)
+            });
+
+            // Auto-hide alerts after 5 seconds
+            window.setTimeout(function() {
+                $(".alert").fadeTo(500, 0).slideUp(500, function(){
+                    $(this).remove();
+                });
+            }, 5000);
+        });
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

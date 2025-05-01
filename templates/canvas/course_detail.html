@@ -1,0 +1,342 @@
+{% extends 'canvas/base.html' %}
+{% load static %}
+
+{% block title %}{{ course.name }} | GradeBench Canvas{% endblock %}
+{% block page_title %}{{ course.course_code }}: {{ course.name }}{% endblock %}
+{% block nav_dashboard_active %}active{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-3 col-sm-6">
+        <div class="card">
+            <div class="card-content">
+                <div class="row">
+                    <div class="col-xs-5">
+                        <div class="icon-big icon-warning text-center">
+                            <i class="fa fa-users"></i>
+                        </div>
+                    </div>
+                    <div class="col-xs-7">
+                        <div class="numbers">
+                            <p>Students</p>
+                            {{ student_count }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer">
+                <hr>
+                <div class="stats">
+                    <i class="fa fa-graduation-cap"></i> Enrolled Students
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-sm-6">
+        <div class="card">
+            <div class="card-content">
+                <div class="row">
+                    <div class="col-xs-5">
+                        <div class="icon-big icon-success text-center">
+                            <i class="fa fa-clipboard"></i>
+                        </div>
+                    </div>
+                    <div class="col-xs-7">
+                        <div class="numbers">
+                            <p>Assignments</p>
+                            {{ assignments|length }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer">
+                <hr>
+                <div class="stats">
+                    <i class="fa fa-calendar-o"></i> Total Assignments
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-sm-6">
+        <div class="card">
+            <div class="card-content">
+                <div class="row">
+                    <div class="col-xs-5">
+                        <div class="icon-big icon-info text-center">
+                            <i class="fa fa-university"></i>
+                        </div>
+                    </div>
+                    <div class="col-xs-7">
+                        <div class="numbers">
+                            <p>Instructors</p>
+                            {{ instructor_count }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer">
+                <hr>
+                <div class="stats">
+                    <i class="fa fa-user"></i> Teachers & TAs
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-sm-6">
+        <div class="card">
+            <div class="card-content">
+                <div class="row">
+                    <div class="col-xs-5">
+                        <div class="icon-big icon-danger text-center">
+                            <i class="fa fa-refresh"></i>
+                        </div>
+                    </div>
+                    <div class="col-xs-7">
+                        <div class="numbers">
+                            <p>Sync</p>
+                            <a href="{% url 'canvas_sync_course' course_id=course.canvas_id %}" class="btn btn-xs btn-fill">Sync Now</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer">
+                <hr>
+                <div class="stats">
+                    <i class="fa fa-clock-o"></i>
+                    {% if course.updated_at %}
+                        Last update: {{ course.updated_at|date:"M d, H:i" }}
+                    {% else %}
+                        Never synced
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title">Assignments</h4>
+                <p class="card-category">All assignments in this course</p>
+            </div>
+            <div class="card-content table-responsive">
+                {% if assignments %}
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Due Date</th>
+                            <th>Points</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for assignment in assignments %}
+                        <tr>
+                            <td>{{ assignment.name }}</td>
+                            <td>
+                                {% if assignment.due_at %}
+                                {{ assignment.due_at|date:"M d, Y" }}
+                                {% else %}
+                                No due date
+                                {% endif %}
+                            </td>
+                            <td>{{ assignment.points_possible }}</td>
+                            <td>
+                                {% if assignment.published %}
+                                <span class="badge bg-success">Published</span>
+                                {% else %}
+                                <span class="badge bg-warning">Unpublished</span>
+                                {% endif %}
+
+                                {% if assignment.muted %}
+                                <span class="badge bg-info">Muted</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'canvas_assignment_detail' course_id=course.canvas_id assignment_id=assignment.canvas_id %}" class="btn btn-info btn-xs">
+                                    <i class="fa fa-eye"></i> View
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="text-center">
+                    <p>No assignments found for this course.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title">Course Information</h4>
+                <p class="card-category">Details from Canvas</p>
+            </div>
+            <div class="card-content">
+                <div class="table-responsive">
+                    <table class="table">
+                        <tbody>
+                            <tr>
+                                <th>Course Code</th>
+                                <td>{{ course.course_code }}</td>
+                            </tr>
+                            <tr>
+                                <th>Status</th>
+                                <td>
+                                    <span class="badge {% if course.workflow_state == 'available' %}bg-success{% elif course.workflow_state == 'unpublished' %}bg-warning{% else %}bg-info{% endif %}">
+                                        {{ course.workflow_state|title }}
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Time Zone</th>
+                                <td>{{ course.time_zone|default:"Not specified" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Start Date</th>
+                                <td>
+                                    {% if course.start_at %}
+                                    {{ course.start_at|date:"F d, Y" }}
+                                    {% else %}
+                                    Not specified
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>End Date</th>
+                                <td>
+                                    {% if course.end_at %}
+                                    {{ course.end_at|date:"F d, Y" }}
+                                    {% else %}
+                                    Not specified
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Canvas ID</th>
+                                <td>{{ course.canvas_id }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="text-center">
+                    <a href="{{ course.integration.canvas_url }}/courses/{{ course.canvas_id }}" target="_blank" class="btn btn-primary btn-fill">
+                        <i class="fa fa-external-link"></i> Open in Canvas
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title">Enrollments</h4>
+                <p class="card-category">All users enrolled in this course</p>
+            </div>
+            <div class="card-content table-responsive">
+                {% if enrollments %}
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Last Activity</th>
+                            <th>Score</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for enrollment in enrollments %}
+                        <tr>
+                            <td>{{ enrollment.user_name }}</td>
+                            <td>
+                                {% if enrollment.role == 'StudentEnrollment' %}
+                                Student
+                                {% elif enrollment.role == 'TeacherEnrollment' %}
+                                Teacher
+                                {% elif enrollment.role == 'TaEnrollment' %}
+                                Teaching Assistant
+                                {% elif enrollment.role == 'DesignerEnrollment' %}
+                                Designer
+                                {% elif enrollment.role == 'ObserverEnrollment' %}
+                                Observer
+                                {% elif enrollment.role == 'StudentViewEnrollment' %}
+                                Test Student
+                                {% else %}
+                                {{ enrollment.role }}
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge {% if enrollment.enrollment_state == 'active' %}bg-success{% elif enrollment.enrollment_state == 'invited' %}bg-warning{% else %}bg-danger{% endif %}">
+                                    {{ enrollment.enrollment_state|title }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if enrollment.last_activity_at %}
+                                {{ enrollment.last_activity_at|date:"M d, Y" }}
+                                {% else %}
+                                Never
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if enrollment.grades.final_score != None %}
+                                {{ enrollment.grades.final_score }}%
+                                {% else %}
+                                --
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if enrollment.role == 'StudentEnrollment' %}
+                                <a href="{% url 'canvas_student_detail' course_id=course.canvas_id user_id=enrollment.user_id %}" class="btn btn-info btn-xs">
+                                    <i class="fa fa-eye"></i> View
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="text-center">
+                    <p>No enrollments found for this course.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if course.syllabus_body %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title">Syllabus</h4>
+                <p class="card-category">Course syllabus from Canvas</p>
+            </div>
+            <div class="card-content">
+                <div class="syllabus-content">
+                    {{ course.syllabus_body|safe }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
