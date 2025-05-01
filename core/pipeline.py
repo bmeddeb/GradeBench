@@ -1,9 +1,28 @@
 from social_core.pipeline.partial import partial
 from core.models import UserProfile, StudentProfile, set_as_student
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import Group, User
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+def username_from_email(strategy, details, backend, user=None, *args, **kwargs):
+    """
+    Set username to email during user creation with social auth.
+    This should be placed before create_user in the pipeline.
+    """
+    if user:
+        return {'is_new': False}  # Skip if user already exists
+    
+    email = details.get('email')
+    if not email:
+        # GitHub requires a verified email to get the email
+        return None
+    
+    # Use email as username
+    details['username'] = email
+    
+    return {'username': email, 'details': details}
 
 
 def save_profile(backend, user, response, *args, **kwargs):

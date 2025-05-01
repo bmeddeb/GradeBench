@@ -181,8 +181,9 @@ SOCIAL_AUTH_GITHUB_SECRET = env('GITHUB_SECRET')
 SOCIAL_AUTH_GITHUB_SCOPE = ['user:email']
 SOCIAL_AUTH_GITHUB_GET_ALL_EXTRA_DATA = True
 SOCIAL_AUTH_USERNAME_IS_FULL_EMAIL = True
-SOCIAL_AUTH_SLUGIFY_USERNAMES = True
+SOCIAL_AUTH_SLUGIFY_USERNAMES = False  # Don't slugify since we're using email directly
 SOCIAL_AUTH_CLEAN_USERNAMES = True
+SOCIAL_AUTH_USER_FIELDS = ['username', 'email', 'first_name', 'last_name']
 
 # Skip the intermediate form for choosing username if the email already exists
 SOCIAL_AUTH_PIPELINE_RESUME = True
@@ -207,9 +208,8 @@ SOCIAL_AUTH_PIPELINE = (
     # Checks if the current social-account is already associated in the site.
     'social_core.pipeline.social_auth.social_user',
 
-    # Make up a username for this person, appends a random string at the end if
-    # there's any collision.
-    'social_core.pipeline.user.get_username',
+    # Custom function to set username as email
+    'core.pipeline.username_from_email',
 
     # Associate the current details with a user account having a similar email
     # address, if any. This is critical for linking GitHub to existing accounts.
