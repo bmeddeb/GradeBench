@@ -32,6 +32,41 @@ def get_integration_for_user(user):
 # Synchronous views
 
 
+def canvas_courses_list(request):
+    """View listing all Canvas courses"""
+    if not request.user.is_authenticated:
+        return redirect('login')
+
+    integration = get_integration_for_user(request.user)
+
+    if not integration:
+        return redirect('canvas_setup')
+
+    # Get courses from database
+    courses = list(CanvasCourse.objects.filter(integration=integration))
+
+    # For each course, fetch enrollment and assignment counts
+    course_data = []
+    for course in courses:
+        enrollment_count = CanvasEnrollment.objects.filter(
+            course=course, role='StudentEnrollment').count()
+        assignment_count = CanvasAssignment.objects.filter(
+            course=course).count()
+
+        course_data.append({
+            'course': course,
+            'enrollment_count': enrollment_count,
+            'assignment_count': assignment_count
+        })
+
+    context = {
+        'integration': integration,
+        'course_data': course_data,
+    }
+
+    return render(request, 'canvas/courses_list.html', context)
+
+
 def canvas_dashboard(request):
     """Dashboard showing Canvas courses and related information"""
     if not request.user.is_authenticated:

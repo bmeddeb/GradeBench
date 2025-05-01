@@ -11,6 +11,9 @@ urlpatterns = [
     # Sync all courses
     path('sync/', views.canvas_sync, name='canvas_sync'),
 
+    # Courses list
+    path('course/', views.canvas_courses_list, name='canvas_courses_list'),
+
     # Course detail
     path('course/<int:course_id>/', views.course_detail,
          name='canvas_course_detail'),
