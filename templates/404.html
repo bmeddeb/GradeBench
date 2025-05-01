@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Page Not Found | GradeBench{% endblock %}
+
+{% block page_title %}404 - Page Not Found{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-8 mx-auto">
+      <div class="card">
+        <div class="card-header">
+          <h4 class="card-title text-center">404 - Page Not Found</h4>
+        </div>
+        <div class="card-body text-center">
+          <div class="error-page">
+            <div class="error-code">
+              <h1 class="display-1" style="font-size: 8rem; color: #ef8157;">404</h1>
+            </div>
+            <div class="error-message mt-4">
+              <h3>Oops! We couldn't find the page you're looking for.</h3>
+              <p class="text-muted">The page you requested might have been removed, had its name changed, or is temporarily unavailable.</p>
+            </div>
+            <div class="error-buttons mt-5">
+              <a href="{% url 'home' %}" class="btn btn-primary btn-lg">
+                <i class="nc-icon nc-minimal-left"></i> Go Back Home
+              </a>
+              <button onclick="history.back()" class="btn btn-outline-primary btn-lg">
+                Return to Previous Page <i class="nc-icon nc-minimal-right"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Paper dashboard specific initialization
+  $(document).ready(function() {
+    // Initialize tooltips
+    $('[data-bs-toggle="tooltip"]').tooltip();
+  });
+</script>
+{% endblock %}
