@@ -1,8 +1,8 @@
 from django.db import models
-from core.models import Team, StudentProfile, Student
+from core.models_redesign import Student, Team
 from core.async_utils import AsyncModelMixin
 
-class Project(models.Model):  # Taiga Project
+class Project(models.Model, AsyncModelMixin):  # Taiga Project
     name = models.CharField(max_length=255)
     slug = models.SlugField(unique=True)
     team = models.ForeignKey(
@@ -15,18 +15,10 @@ class Project(models.Model):  # Taiga Project
         return self.name
 
 class Member(models.Model, AsyncModelMixin):  # Taiga Member
-    # Legacy relationship - will be removed after migration
-    student_profile = models.OneToOneField(
-        StudentProfile, on_delete=models.CASCADE,
-        related_name='taiga_member', null=True, blank=True
-    )
-    
-    # New relationship to Student model
     student = models.OneToOneField(
         Student, on_delete=models.CASCADE,
-        related_name='taiga_member', null=True, blank=True
+        related_name='taiga_member'
     )
-    
     project = models.ForeignKey(
         Project, on_delete=models.CASCADE, related_name='members'
     )
@@ -36,16 +28,12 @@ class Member(models.Model, AsyncModelMixin):  # Taiga Member
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ('student_profile', 'project')
+        unique_together = ('student', 'project')
 
     def __str__(self):
-        if self.student:
-            return f"{self.student.full_name} as {self.role_name}"
-        elif self.student_profile:
-            return f"{self.student_profile.user_profile.user.get_full_name()} as {self.role_name}"
-        return f"Unknown member as {self.role_name}"
+        return f"{self.student.full_name} as {self.role_name}"
 
-class Sprint(models.Model):
+class Sprint(models.Model, AsyncModelMixin):
     name = models.CharField(max_length=255)
     created_date = models.DateTimeField()
     start_date = models.DateTimeField()
@@ -61,7 +49,7 @@ class Sprint(models.Model):
     def __str__(self):
         return self.name
 
-class UserStory(models.Model):
+class UserStory(models.Model, AsyncModelMixin):
     ref = models.CharField(max_length=50)
     name = models.CharField(max_length=255)
     description = models.TextField()
@@ -79,14 +67,15 @@ class UserStory(models.Model):
     def __str__(self):
         return f"{self.ref} - {self.name}"
 
-class Task(models.Model):
+class Task(models.Model, AsyncModelMixin):
     ref = models.CharField(max_length=50)
     name = models.TextField()
     created_date = models.DateTimeField()
     finished_date = models.DateTimeField(null=True, blank=True)
     is_closed = models.BooleanField(default=False)
     assigned_to = models.ForeignKey(
-        Member, on_delete=models.SET_NULL, null=True, blank=True
+        Member, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='assigned_tasks'
     )
     user_story = models.ForeignKey(
         UserStory, on_delete=models.CASCADE, related_name='tasks'
@@ -97,7 +86,7 @@ class Task(models.Model):
     def __str__(self):
         return self.name
 
-class TaskEvent(models.Model):
+class TaskEvent(models.Model, AsyncModelMixin):
     task = models.ForeignKey(
         Task, on_delete=models.CASCADE, related_name='events'
     )
@@ -108,7 +97,7 @@ class TaskEvent(models.Model):
     in_testing_time = models.IntegerField()
     recorded_at = models.DateTimeField(auto_now_add=True)
 
-class TaskAssignmentEvent(models.Model):
+class TaskAssignmentEvent(models.Model, AsyncModelMixin):
     task = models.ForeignKey(
         Task, on_delete=models.CASCADE, related_name='assignment_events'
     )

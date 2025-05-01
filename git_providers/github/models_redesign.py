@@ -1,20 +1,12 @@
 from django.db import models
-from core.models import Team, StudentProfile, Student
+from core.models_redesign import Student, Team
 from core.async_utils import AsyncModelMixin
 
 class Collaborator(models.Model, AsyncModelMixin):
-    # Legacy relationship - will be removed after migration
-    student_profile = models.OneToOneField(
-        StudentProfile, on_delete=models.CASCADE,
-        related_name='github_profile', null=True, blank=True
-    )
-    
-    # New relationship to Student model
     student = models.OneToOneField(
         Student, on_delete=models.CASCADE,
-        related_name='github_collaborator', null=True, blank=True
+        related_name='github_collaborator'
     )
-    
     github_id = models.IntegerField(unique=True)
     username = models.CharField(max_length=255)
     email = models.EmailField(blank=True)
@@ -24,7 +16,7 @@ class Collaborator(models.Model, AsyncModelMixin):
     def __str__(self):
         return self.username
 
-class Repository(models.Model):
+class Repository(models.Model, AsyncModelMixin):
     name = models.CharField(max_length=255)
     description = models.TextField()
     created_at = models.DateTimeField()
@@ -37,7 +29,7 @@ class Repository(models.Model):
     def __str__(self):
         return self.name
 
-class Branch(models.Model):
+class Branch(models.Model, AsyncModelMixin):
     name = models.CharField(max_length=255)
     repository = models.ForeignKey(
         Repository, on_delete=models.CASCADE, related_name='branches'
@@ -48,7 +40,7 @@ class Branch(models.Model):
     def __str__(self):
         return self.name
 
-class Commit(models.Model):
+class Commit(models.Model, AsyncModelMixin):
     sha = models.CharField(max_length=255, unique=True, db_index=True)
     message = models.TextField()
     date = models.DateTimeField()
@@ -77,7 +69,7 @@ class PullRequestState(models.TextChoices):
     CLOSED = 'closed', 'Closed'
     MERGED = 'merged', 'Merged'
 
-class PullRequest(models.Model):
+class PullRequest(models.Model, AsyncModelMixin):
     title = models.CharField(max_length=255)
     state = models.CharField(
         max_length=20, choices=PullRequestState.choices,
@@ -100,7 +92,7 @@ class PullRequest(models.Model):
     def __str__(self):
         return self.title
 
-class CodeReview(models.Model):
+class CodeReview(models.Model, AsyncModelMixin):
     state = models.CharField(max_length=50)
     body = models.TextField(blank=True)
     submitted_at = models.DateTimeField()
@@ -116,7 +108,7 @@ class IssueState(models.TextChoices):
     OPEN = 'open', 'Open'
     CLOSED = 'closed', 'Closed'
 
-class Issue(models.Model):
+class Issue(models.Model, AsyncModelMixin):
     title = models.CharField(max_length=255)
     state = models.CharField(
         max_length=20, choices=IssueState.choices,
@@ -134,7 +126,7 @@ class Issue(models.Model):
     def __str__(self):
         return self.title
 
-class Comment(models.Model):
+class Comment(models.Model, AsyncModelMixin):
     body = models.TextField()
     created_at = models.DateTimeField()
     comment_type = models.CharField(max_length=50)
