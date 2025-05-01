@@ -1,65 +1,84 @@
 # GradeBench
 
-A Django application for grading code submissions with GitHub authentication and async database support.
+GradeBench is a platform that integrates different service providers (Git platforms, project management tools, and learning management systems) to simplify the grading process for programming courses.
 
-## Setup and Installation
+## Project Structure
 
-1. Clone the repository
-```
-git clone <repository-url>
-cd GradeBench
-```
+GradeBench uses a domain-based structure organized by provider type:
 
-2. Set up a virtual environment using UV
 ```
-python -m pip install uv
-uv venv
-uv pip install -e .
-```
-
-3. Configure environment variables
-- Copy `.env.example` to `.env` (if not already done)
-- Update GitHub credentials in the `.env` file:
-  ```
-  GITHUB_KEY=your-github-client-id
-  GITHUB_SECRET=your-github-client-secret
-  ```
-
-4. Run migrations
-```
-python manage.py migrate
+gradebench/
+├─ core/                      # Core functionality and shared components
+├─ git_providers/             # Git repository platform integrations
+│  ├─ common/                 # Shared code for all git providers
+│  ├─ github/                 # GitHub specific implementation
+│  └─ ...                     # Other git platforms
+├─ project_mgmt/              # Project management tool integrations
+│  ├─ common/                 # Shared code for all project management tools
+│  ├─ taiga/                  # Taiga specific implementation
+│  └─ ...                     # Other project management tools
+├─ lms/                       # Learning Management System integrations
+│  ├─ common/                 # Shared code for all LMS platforms
+│  ├─ canvas/                 # Canvas specific implementation
+│  └─ ...                     # Other LMS platforms
+├─ integrations/              # Cross-domain integrations and connections
 ```
 
-5. Create a superuser (optional)
-```
-python manage.py createsuperuser
-```
+For detailed documentation on the structure, see [dev_docs/structure.md](dev_docs/structure.md).
 
-6. Run the development server
-```
-python manage.py runserver
-```
+## Setup
 
-## GitHub Authentication
+1. Clone the repository:
+   ```
+   git clone https://github.com/yourusername/gradebench.git
+   cd gradebench
+   ```
 
-To enable GitHub login:
+2. Create a virtual environment and install dependencies:
+   ```
+   python -m venv venv
+   source venv/bin/activate  # On Windows, use: venv\Scripts\activate
+   pip install -r requirements.txt
+   ```
 
-1. Create a GitHub OAuth app at https://github.com/settings/developers
-2. Set the Authorization callback URL to: `http://localhost:8000/social-auth/complete/github/`
-3. Copy the Client ID and Client Secret to your `.env` file
+3. Configure your database in `settings.py`
+
+4. Apply migrations:
+   ```
+   python manage.py migrate
+   ```
+
+5. Create a superuser:
+   ```
+   python manage.py createsuperuser
+   ```
+
+6. Run the development server:
+   ```
+   python manage.py runserver
+   ```
+
+## Configuration
+
+See [dev_docs/settings_update.md](dev_docs/settings_update.md) for details on configuring the application.
 
 ## Features
 
-- GitHub authentication
-- Async database operations
-- User profile with GitHub integration
-- Modern Bootstrap 5 UI
+- Integration with multiple Git platforms (GitHub, etc.)
+- Integration with project management tools (Taiga, etc.)
+- Integration with learning management systems (Canvas, etc.)
+- Unified interface for grading student work
+- Asynchronous processing for better performance
 
-## Technology Stack
+## Contributing
 
-- Django 5.2+
-- Python 3.13+
-- UV for package management
-- Databases[sqlite] for async database operations
-- Social Auth App for GitHub authentication
-- Bootstrap 5 for UI
+If you'd like to contribute to GradeBench, please:
+
+1. Fork the repository
+2. Create a feature branch
+3. Add your changes
+4. Submit a pull request
+
+## License
+
+This project is licensed under the MIT License.
