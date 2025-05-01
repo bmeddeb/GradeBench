@@ -50,11 +50,12 @@ INSTALLED_APPS = [
     # Third-party apps
     'social_django',
 
-    # Project apps
+    # Project apps - domain-based structure
     'core',
-    'github',
-    'taiga',
-    'canvas',
+    'git_providers',
+    'project_mgmt',
+    'lms',
+    'integrations',
 ]
 
 # Jazzmin settings
@@ -64,6 +65,60 @@ JAZZMIN_SETTINGS = {
     "jquery_cdn": "https://code.jquery.com/jquery-3.7.1.min.js",
     "use_bootstrap_cdn": True,
     "bootstrap_cdn": "https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css",
+    
+    # Title and branding
+    "site_title": "GradeBench Admin",
+    "site_header": "GradeBench Administration",
+    "site_brand": "GradeBench",
+    
+    # Custom icons for side menu apps/models
+    "icons": {
+        "auth": "fas fa-users-cog",
+        "auth.user": "fas fa-user",
+        "auth.Group": "fas fa-users",
+        "git_providers.github": "fab fa-github",
+        "lms.canvas": "fas fa-graduation-cap",
+        "project_mgmt.taiga": "fas fa-tasks",
+        "core": "fas fa-cogs",
+    },
+    
+    # Order apps and models on the side menu
+    "order_with_respect_to": [
+        "auth",
+        "git_providers",
+        "lms",
+        "project_mgmt",
+        "social_django",
+        "core",
+    ],
+    
+    # Custom links to put in the side menu
+    "custom_links": {
+        "auth": [{
+            "name": "User Profiles",
+            "url": "admin:core_userprofile_changelist",
+            "icon": "fas fa-id-card"
+        }],
+    },
+    
+    # Hide models from the side menu
+    "hide_models": [
+        # Social Django models
+        "social_django.Association",
+        "social_django.Nonce",
+        "social_django.UserSocialAuth",
+        "social_django.Code",
+        "social_django.Partial",
+        
+        # Integrations models - Grade Link and Provider Association
+        "integrations.GradeLink",
+        "integrations.ProviderAssociation",
+    ],
+    
+    # UI Customizations
+    "show_ui_builder": True,
+    "changeform_format": "horizontal_tabs",
+    "related_modal_active": True,
 }
 
 MIDDLEWARE = [
@@ -126,8 +181,9 @@ SOCIAL_AUTH_GITHUB_SECRET = env('GITHUB_SECRET')
 SOCIAL_AUTH_GITHUB_SCOPE = ['user:email']
 SOCIAL_AUTH_GITHUB_GET_ALL_EXTRA_DATA = True
 SOCIAL_AUTH_USERNAME_IS_FULL_EMAIL = True
-SOCIAL_AUTH_SLUGIFY_USERNAMES = True
+SOCIAL_AUTH_SLUGIFY_USERNAMES = False  # Don't slugify since we're using email directly
 SOCIAL_AUTH_CLEAN_USERNAMES = True
+SOCIAL_AUTH_USER_FIELDS = ['username', 'email', 'first_name', 'last_name']
 
 # Skip the intermediate form for choosing username if the email already exists
 SOCIAL_AUTH_PIPELINE_RESUME = True
@@ -152,9 +208,8 @@ SOCIAL_AUTH_PIPELINE = (
     # Checks if the current social-account is already associated in the site.
     'social_core.pipeline.social_auth.social_user',
 
-    # Make up a username for this person, appends a random string at the end if
-    # there's any collision.
-    'social_core.pipeline.user.get_username',
+    # Custom function to set username as email
+    'core.pipeline.username_from_email',
 
     # Associate the current details with a user account having a similar email
     # address, if any. This is critical for linking GitHub to existing accounts.
