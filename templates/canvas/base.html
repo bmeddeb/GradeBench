@@ -81,12 +81,18 @@
         <div class="sidebar" data-background-color="white" data-active-color="danger">
             <div class="sidebar-wrapper">
                 <div class="logo">
-                    <a href="{% url 'canvas_dashboard' %}" class="simple-text">
+                    <a href="{% url 'home' %}" class="simple-text">
                         GradeBench
                     </a>
                 </div>
 
                 <ul class="nav">
+                    <li>
+                        <a href="{% url 'home' %}">
+                            <i class="fa fa-home"></i>
+                            <p>Main Dashboard</p>
+                        </a>
+                    </li>
                     <li class="{% block nav_dashboard_active %}{% endblock %}">
                         <a href="{% url 'canvas_dashboard' %}">
                             <i class="fa fa-dashboard"></i>
@@ -131,6 +137,12 @@
                     </button>
                     <div class="collapse navbar-collapse justify-content-end" id="navigation">
                         <ul class="navbar-nav">
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'home' %}">
+                                    <i class="fa fa-home"></i>
+                                    <p>Back to Main</p>
+                                </a>
+                            </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="#">
                                     <i class="fa fa-user"></i>
