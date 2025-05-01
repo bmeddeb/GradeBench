@@ -20,11 +20,13 @@ from django.conf import settings
 from django.conf.urls.static import static
 from core import views as core_views
 
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('core.urls')),
     path('social-auth/', include('social_django.urls', namespace='social')),
     path('logout/', core_views.logout_view, name='logout'),
+    path('canvas/', include('lms.canvas.urls')),
 ]
 
 # Serve media files during development
