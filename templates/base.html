@@ -109,6 +109,36 @@
                             <p>Dashboard</p>
                         </a>
                     </li>
+                    <li class="{% block nav_canvas %}{% endblock %}">
+                        <a href="#canvasExamples" data-bs-toggle="collapse" aria-expanded="true">
+                            <i class="nc-icon nc-ruler-pencil"></i>
+                            <p>
+                                Canvas <b class="caret"></b>
+                            </p>
+                        </a>
+                        <div class="collapse {% block nav_canvas_show %}{% endblock %}" id="canvasExamples">
+                            <ul class="nav">
+                                <li class="{% block nav_canvas_dashboard %}{% endblock %}">
+                                    <a href="{% url 'canvas_dashboard' %}">
+                                        <span class="sidebar-mini-icon">CD</span>
+                                        <span class="sidebar-normal">Canvas Dashboard</span>
+                                    </a>
+                                </li>
+                                <li class="{% block nav_canvas_setup %}{% endblock %}">
+                                    <a href="{% url 'canvas_setup' %}">
+                                        <span class="sidebar-mini-icon">CS</span>
+                                        <span class="sidebar-normal">Setup Canvas</span>
+                                    </a>
+                                </li>
+                                <li class="{% block nav_canvas_sync %}{% endblock %}">
+                                    <a href="{% url 'canvas_sync' %}">
+                                        <span class="sidebar-mini-icon">SY</span>
+                                        <span class="sidebar-normal">Sync Canvas</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
                     <li class="{% block nav_repos %}{% endblock %}">
                         <a href="#reposExamples" data-bs-toggle="collapse" aria-expanded="true">
                             <i class="nc-icon nc-single-copy-04"></i>

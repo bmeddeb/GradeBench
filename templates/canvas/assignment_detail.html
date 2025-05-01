@@ -3,7 +3,7 @@
 
 {% block title %}{{ assignment.name }} | {{ course.course_code }} | GradeBench Canvas{% endblock %}
 {% block page_title %}{{ assignment.name }}{% endblock %}
-{% block nav_dashboard_active %}active{% endblock %}
+{% block nav_canvas_dashboard %}active{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -37,7 +37,7 @@
 </style>
 {% endblock %}
 
-{% block content %}
+{% block canvas_content %}
 <div class="row">
     <div class="col-md-8">
         <div class="card">
