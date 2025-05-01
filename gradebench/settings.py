@@ -103,11 +103,16 @@ JAZZMIN_SETTINGS = {
     
     # Hide models from the side menu
     "hide_models": [
+        # Social Django models
         "social_django.Association",
         "social_django.Nonce",
         "social_django.UserSocialAuth",
         "social_django.Code",
         "social_django.Partial",
+        
+        # Integrations models - Grade Link and Provider Association
+        "integrations.GradeLink",
+        "integrations.ProviderAssociation",
     ],
     
     # UI Customizations
