@@ -116,19 +116,31 @@
                             <ul class="nav">
                                 <li class="{% block nav_canvas_dashboard %}{% endblock %}">
                                     <a href="{% url 'canvas_dashboard' %}">
-                                        <span class="sidebar-mini-icon">CD</span>
+                                        <span class="sidebar-mini-icon"><i class="fa fa-tachometer"></i></span>
                                         <span class="sidebar-normal">Canvas Dashboard</span>
                                     </a>
                                 </li>
                                 <li class="{% block nav_canvas_courses %}{% endblock %}">
                                     <a href="{% url 'canvas_courses_list' %}">
-                                        <span class="sidebar-mini-icon">CC</span>
+                                        <span class="sidebar-mini-icon"><i class="fa fa-book"></i></span>
                                         <span class="sidebar-normal">Canvas Courses</span>
+                                    </a>
+                                </li>
+                                <li class="{% block nav_canvas_students %}{% endblock %}">
+                                    <a href="{% url 'canvas_students_list' %}">
+                                        <span class="sidebar-mini-icon"><i class="fa fa-users"></i></span>
+                                        <span class="sidebar-normal">Canvas Students</span>
+                                    </a>
+                                </li>
+                                <li class="{% block nav_canvas_assignments %}{% endblock %}">
+                                    <a href="{% url 'canvas_assignments_list' %}">
+                                        <span class="sidebar-mini-icon"><i class="fa fa-tasks"></i></span>
+                                        <span class="sidebar-normal">Canvas Assignments</span>
                                     </a>
                                 </li>
                                 <li class="{% block nav_canvas_setup %}{% endblock %}">
                                     <a href="{% url 'canvas_setup' %}">
-                                        <span class="sidebar-mini-icon">CS</span>
+                                        <span class="sidebar-mini-icon"><i class="fa fa-cog"></i></span>
                                         <span class="sidebar-normal">Setup Canvas</span>
                                     </a>
                                 </li>

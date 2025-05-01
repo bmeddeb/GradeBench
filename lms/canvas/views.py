@@ -32,6 +32,79 @@ def get_integration_for_user(user):
 # Synchronous views
 
 
+def canvas_students_list(request):
+    """View listing all Canvas students across all courses"""
+    if not request.user.is_authenticated:
+        return redirect('login')
+
+    integration = get_integration_for_user(request.user)
+
+    if not integration:
+        return redirect('canvas_setup')
+
+    # Get all enrollments that are students from all courses
+    enrollments = CanvasEnrollment.objects.filter(
+        course__integration=integration,
+        role='StudentEnrollment'
+    ).select_related('course')
+
+    # Group by student
+    students_by_id = {}
+    for enrollment in enrollments:
+        if enrollment.user_id not in students_by_id:
+            students_by_id[enrollment.user_id] = {
+                'user_id': enrollment.user_id,
+                'name': enrollment.user_name,
+                'email': enrollment.email,
+                'courses': []
+            }
+        students_by_id[enrollment.user_id]['courses'].append({
+            'course': enrollment.course,
+            'enrollment': enrollment
+        })
+
+    context = {
+        'integration': integration,
+        'students': list(students_by_id.values()),
+    }
+
+    return render(request, 'canvas/students_list.html', context)
+
+
+def canvas_assignments_list(request):
+    """View listing all Canvas assignments across all courses"""
+    if not request.user.is_authenticated:
+        return redirect('login')
+
+    integration = get_integration_for_user(request.user)
+
+    if not integration:
+        return redirect('canvas_setup')
+
+    # Get all assignments from all courses
+    assignments = CanvasAssignment.objects.filter(
+        course__integration=integration
+    ).select_related('course')
+
+    # Group by course
+    assignments_by_course = {}
+    for assignment in assignments:
+        course_id = assignment.course.id
+        if course_id not in assignments_by_course:
+            assignments_by_course[course_id] = {
+                'course': assignment.course,
+                'assignments': []
+            }
+        assignments_by_course[course_id]['assignments'].append(assignment)
+
+    context = {
+        'integration': integration,
+        'assignments_by_course': list(assignments_by_course.values()),
+    }
+
+    return render(request, 'canvas/assignments_list.html', context)
+
+
 def canvas_courses_list(request):
     """View listing all Canvas courses"""
     if not request.user.is_authenticated:

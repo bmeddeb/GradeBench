@@ -14,6 +14,12 @@ urlpatterns = [
     # Courses list
     path('course/', views.canvas_courses_list, name='canvas_courses_list'),
 
+    # Students list
+    path('student/', views.canvas_students_list, name='canvas_students_list'),
+
+    # Assignments list
+    path('assignment/', views.canvas_assignments_list, name='canvas_assignments_list'),
+
     # Course detail
     path('course/<int:course_id>/', views.course_detail,
          name='canvas_course_detail'),
