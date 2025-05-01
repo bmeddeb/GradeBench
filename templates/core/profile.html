@@ -56,7 +56,7 @@
                 <h4 class="card-title">Profile Information</h4>
             </div>
             <div class="card-body">
-                <form method="POST" action="{% url 'profile' %}">
+                <form id="profile-form" method="POST" action="{% url 'profile' %}">
                     {% csrf_token %}
                     <div class="row">
                         <div class="col-md-6 pr-1">
@@ -230,9 +230,51 @@
         .then(response => response.json())
         .then(result => {
             if (result.status === 'success') {
-                alert('Profile updated successfully!');
+                // Create a success notification
+                let alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-success alert-dismissible fade show';
+                alertDiv.setAttribute('role', 'alert');
+                
+                // Add close button
+                let closeButton = document.createElement('button');
+                closeButton.className = 'close';
+                closeButton.setAttribute('type', 'button');
+                closeButton.setAttribute('data-bs-dismiss', 'alert');
+                closeButton.setAttribute('aria-label', 'Close');
+                closeButton.innerHTML = '<i class="nc-icon nc-simple-remove"></i>';
+                
+                // Add message
+                let message = document.createElement('span');
+                message.textContent = result.message || 'Profile updated successfully!';
+                
+                // Add elements to alert
+                alertDiv.appendChild(closeButton);
+                alertDiv.appendChild(message);
+                
+                // Add alert to page
+                let messagesContainer = document.querySelector('.messages');
+                if (!messagesContainer) {
+                    messagesContainer = document.createElement('div');
+                    messagesContainer.className = 'messages';
+                    document.querySelector('.content').prepend(messagesContainer);
+                }
+                messagesContainer.appendChild(alertDiv);
+                
+                // Initialize the Bootstrap alert for dismissal
+                new bootstrap.Alert(alertDiv);
+                
+                // Auto-dismiss after 5 seconds
+                setTimeout(() => {
+                    let alert = bootstrap.Alert.getInstance(alertDiv);
+                    if (alert) {
+                        alert.close();
+                    } else {
+                        alertDiv.remove();
+                    }
+                }, 5000);
             } else {
-                alert('Error updating profile: ' + result.message);
+                // Show error message
+                alert(result.message || 'Error updating profile.');
             }
         })
         .catch(error => {
@@ -244,9 +286,9 @@
     }
 
     // You can use this instead of the form submission if you prefer the async approach
-    // document.querySelector('form').addEventListener('submit', function(e) {
-    //     e.preventDefault();
-    //     updateProfileAsync();
-    // });
+    document.querySelector('#profile-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        updateProfileAsync();
+    });
 </script>
 {% endblock %}

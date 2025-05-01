@@ -7,6 +7,6 @@ urlpatterns = [
     path('profile/', views.profile, name='profile'),
     path('disconnect-github/', views.disconnect_github, name='disconnect_github'),
     path('api/github-profile/', views.async_github_profile, name='github_profile'),
-    path('api/update-profile/', views.update_profile_async,
+    path('api/update-profile/', views.update_profile_ajax,
          name='update_profile_async'),
 ]
