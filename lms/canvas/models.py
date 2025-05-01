@@ -1,5 +1,6 @@
 from django.db import models
-from core.models import Team, StudentProfile, UserProfile
+from core.models import Team, StudentProfile, UserProfile, Student
+from core.async_utils import AsyncModelMixin
 
 class CanvasCourse(models.Model):
     """
@@ -17,23 +18,37 @@ class CanvasCourse(models.Model):
     def __str__(self):
         return f"{self.name} ({self.course_id})"
 
-class CanvasEnrollment(models.Model):
+class CanvasEnrollment(models.Model, AsyncModelMixin):
     """
     Links a student to a Canvas course with a specific role
     """
     course = models.ForeignKey(
         CanvasCourse, on_delete=models.CASCADE, related_name='enrollments'
     )
-    student = models.ForeignKey(
-        StudentProfile, on_delete=models.CASCADE, related_name='canvas_enrollments'
+    
+    # Legacy relationship - will be removed after migration
+    student_profile = models.ForeignKey(
+        StudentProfile, on_delete=models.CASCADE, 
+        related_name='canvas_enrollments_legacy', null=True, blank=True
     )
+    
+    # New relationship to Student model
+    student = models.ForeignKey(
+        Student, on_delete=models.CASCADE,
+        related_name='canvas_enrollments', null=True, blank=True
+    )
+    
     role = models.CharField(max_length=30)  # e.g. 'StudentEnrollment', 'TeacherEnrollment'
 
     class Meta:
-        unique_together = ('course', 'student')
+        unique_together = ('course', 'student_profile')
 
     def __str__(self):
-        return f"{self.student.user_profile.user.username} in {self.course.name} as {self.role}"
+        if self.student:
+            return f"{self.student.full_name} in {self.course.name} as {self.role}"
+        elif self.student_profile:
+            return f"{self.student_profile.user_profile.user.username} in {self.course.name} as {self.role}"
+        return f"Unknown student in {self.course.name} as {self.role}"
 
 class CanvasAssignment(models.Model):
     """
@@ -118,7 +133,7 @@ class RubricAssociation(models.Model):
         target = self.assignment or self.course
         return f"Rubric {self.rubric.rubric_id} on {target}"
 
-class RubricAssessment(models.Model):
+class RubricAssessment(models.Model, AsyncModelMixin):
     # Student's scored rubric submission
     rubric = models.ForeignKey(
         Rubric, on_delete=models.CASCADE, related_name='assessments'
@@ -133,16 +148,30 @@ class RubricAssessment(models.Model):
     assessor = models.ForeignKey(
         UserProfile, on_delete=models.SET_NULL, null=True, related_name='rubric_assessments'
     )
-    student = models.ForeignKey(
-        StudentProfile, on_delete=models.CASCADE, related_name='rubric_assessments'
+    
+    # Legacy relationship - will be removed after migration
+    student_profile = models.ForeignKey(
+        StudentProfile, on_delete=models.CASCADE, 
+        related_name='rubric_assessments_legacy', null=True, blank=True
     )
+    
+    # New relationship to Student model
+    student = models.ForeignKey(
+        Student, on_delete=models.CASCADE,
+        related_name='rubric_assessments', null=True, blank=True
+    )
+    
     score = models.DecimalField(max_digits=8, decimal_places=2)
     data = models.JSONField()      # Store full criterion-level data
     comments = models.JSONField()  # Comment-only view
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ('association', 'student', 'assessor')
+        unique_together = ('association', 'student_profile', 'assessor')
 
     def __str__(self):
-        return f"Assessment for {self.student.user_profile.user.username} on {self.association}"
+        if self.student:
+            return f"Assessment for {self.student.full_name} on {self.association}"
+        elif self.student_profile:
+            return f"Assessment for {self.student_profile.user_profile.user.username} on {self.association}"
+        return f"Assessment for unknown student on {self.association}"
