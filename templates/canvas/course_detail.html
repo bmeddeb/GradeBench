@@ -235,6 +235,9 @@
                     <a href="{{ course.integration.canvas_url }}/courses/{{ course.canvas_id }}" target="_blank" class="btn btn-primary btn-fill">
                         <i class="fa fa-external-link"></i> Open in Canvas
                     </a>
+                    <a href="{% url 'canvas_delete_course' course_id=course.canvas_id %}" class="btn btn-danger btn-fill mt-2">
+                        <i class="fa fa-trash"></i> Delete Course
+                    </a>
                 </div>
             </div>
         </div>

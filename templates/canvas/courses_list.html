@@ -45,6 +45,9 @@
                                 <a href="{% url 'canvas_sync_course' course_id=item.course.canvas_id %}" class="btn btn-default btn-xs">
                                     <i class="fa fa-refresh"></i> Sync
                                 </a>
+                                <a href="{% url 'canvas_delete_course' course_id=item.course.canvas_id %}" class="btn btn-danger btn-xs">
+                                    <i class="fa fa-trash"></i> Delete
+                                </a>
                             </td>
                         </tr>
                         {% endfor %}

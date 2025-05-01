@@ -24,9 +24,13 @@ urlpatterns = [
     path('course/<int:course_id>/', views.course_detail,
          name='canvas_course_detail'),
 
+    # Delete course
+    path('course/<int:course_id>/delete/',
+         views.canvas_delete_course, name='canvas_delete_course'),
+
     # Sync single course
     path('course/<int:course_id>/sync/',
-         views.sync_single_course, name='canvas_sync_course'),
+         views.canvas_sync_single_course, name='canvas_sync_course'),
 
     # Assignment detail
     path('course/<int:course_id>/assignment/<int:assignment_id>/',

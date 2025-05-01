@@ -395,7 +395,35 @@ def student_detail(request, course_id, user_id):
     return render(request, 'canvas/student_detail.html', context)
 
 
-def sync_single_course(request, course_id):
+def canvas_delete_course(request, course_id):
+    """Delete a Canvas course and all related data"""
+    if not request.user.is_authenticated:
+        return redirect('login')
+
+    integration = get_integration_for_user(request.user)
+    if not integration:
+        return redirect('canvas_setup')
+
+    # Get the course
+    course = get_object_or_404(CanvasCourse, canvas_id=course_id, integration=integration)
+    
+    if request.method == 'POST':
+        # Get the course name for the success message
+        course_name = f"{course.course_code}: {course.name}"
+        
+        # Delete the course (this will cascade delete related objects)
+        course.delete()
+        
+        messages.success(request, f'Successfully removed course "{course_name}" from GradeBench.')
+        return redirect('canvas_courses_list')
+    
+    # If it's a GET request, show confirmation page
+    return render(request, 'canvas/confirm_delete_course.html', {
+        'course': course,
+    })
+
+
+def canvas_sync_single_course(request, course_id):
     """Sync a single course from Canvas"""
     if not request.user.is_authenticated:
         return redirect('login')
