@@ -1,0 +1,19 @@
+<h1>Calendar for {{ course.name }}</h1>
+<ul>
+  {% for ev in events %}
+    <li>
+      <strong>{{ ev.title }}</strong><br>
+      {% if ev.all_day %}
+        All day on {{ ev.start_at|date:"M j, Y" }}
+      {% else %}
+        {{ ev.start_at|date:"M j, Y, P" }} – {{ ev.end_at|date:"P" }}
+      {% endif %}
+      {% if ev.description %}
+        <p>{{ ev.description|safe }}</p>
+      {% endif %}
+      <a href="{{ ev.html_url }}">View in Canvas</a>
+    </li>
+  {% empty %}
+    <li>No events found.</li>
+  {% endfor %}
+</ul>

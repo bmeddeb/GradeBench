@@ -17,6 +17,7 @@ dependencies = [
     "pyclean>=3.1.0",
     "django-jazzmin>=3.0.1",
     "cleanpy>=0.5.1",
+    "python-dotenv>=1.1.0",
 ]
 
 [build-system]

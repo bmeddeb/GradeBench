@@ -2,6 +2,10 @@
 from django.db import models
 from core.models import Team, UserProfile, Student
 from core.async_utils import AsyncModelMixin
+from django.db import models
+from django.utils import timezone
+from core.models import Team
+
 
 class CanvasCourse(models.Model, AsyncModelMixin):
     """
@@ -186,3 +190,44 @@ class RubricAssessment(models.Model, AsyncModelMixin):
 
     def __str__(self):
         return f"Assessment for {self.student.full_name} on {self.association}"
+
+
+class CalendarEvent(models.Model):
+    """
+    An event from the Canvas course calendar ICS feed.
+    """
+    # The ICS UID (e.g. "event-assignment-54963244"), not the Canvas-internal integer ID
+    uid = models.CharField(max_length=255, unique=True, null=True, blank=True)
+
+    course = models.ForeignKey(
+        'CanvasCourse',
+        on_delete=models.CASCADE,
+        related_name='calendar_events'
+    )
+
+    # Standard VEVENT props
+    title       = models.CharField(max_length=255)       # SUMMARY
+    description = models.TextField(blank=True)           # DESCRIPTION
+    location    = models.CharField(max_length=255, blank=True)  # LOCATION
+
+    start       = models.DateTimeField()                 # DTSTART
+    end         = models.DateTimeField(null=True, blank=True)  # DTEND, if present
+    all_day     = models.BooleanField(default=False)     # if DTSTART is VALUE=DATE
+
+    # If you want to render links back into Canvas
+    html_url    = models.URLField(blank=True)            # URL property in the feed
+
+    # Recurrence rule (if any) – e.g. {"FREQ": ["WEEKLY"], "BYDAY": ["MO", "WE", "FR"]}
+    rrule       = models.JSONField(null=True, blank=True)
+
+    # Raw chunk of the VEVENT in case you need additional props later
+    raw_ics     = models.TextField(blank=True)
+
+    # When you last pulled/parsed this event
+    synced_at   = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ('start',)
+
+    def __str__(self):
+        return f"{self.title} @ {self.start:%Y-%m-%d %H:%M}"
