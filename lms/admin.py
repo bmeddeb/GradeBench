@@ -4,19 +4,21 @@ from django.utils.html import format_html
 from django.template.response import TemplateResponse
 
 from lms.canvas.models import (
-    CanvasCourse, CanvasEnrollment, CanvasAssignment, Rubric, 
-    RubricCriterion, RubricRating, RubricAssociation, RubricAssessment
+    CanvasCourse, CanvasEnrollment, CanvasAssignment, CanvasRubric,
+    CanvasRubricCriterion, CanvasRubricRating
 )
 from lms.canvas.admin.models import Canvas
 
 # Register Canvas as the main model
+
+
 @admin.register(Canvas)
 class CanvasAdmin(admin.ModelAdmin):
     model = Canvas
-    
+
     # Override the changelist template
     change_list_template = 'admin/lms/canvas/change_list.html'
-    
+
     # Override changelist view to not query the database
     def changelist_view(self, request, extra_context=None):
         extra_context = extra_context or {}
@@ -35,23 +37,15 @@ class CanvasAdmin(admin.ModelAdmin):
             },
             {
                 'name': 'Rubrics',
-                'url': reverse('admin:lms_rubric_changelist')
+                'url': reverse('admin:lms_canvasrubric_changelist')
             },
             {
                 'name': 'Rubric Criteria',
-                'url': reverse('admin:lms_rubriccriterion_changelist')
+                'url': reverse('admin:lms_canvasrubriccriterion_changelist')
             },
             {
                 'name': 'Rubric Ratings',
-                'url': reverse('admin:lms_rubricrating_changelist')
-            },
-            {
-                'name': 'Rubric Associations',
-                'url': reverse('admin:lms_rubricassociation_changelist')
-            },
-            {
-                'name': 'Rubric Assessments',
-                'url': reverse('admin:lms_rubricassessment_changelist')
+                'url': reverse('admin:lms_canvasrubricrating_changelist')
             },
         ]
         context = dict(
@@ -69,103 +63,86 @@ class CanvasAdmin(admin.ModelAdmin):
 
     def has_change_permission(self, request, obj=None):
         return False
-    
+
     def has_delete_permission(self, request, obj=None):
         return False
 
 # Register models with standard ModelAdmin classes
+
+
 @admin.register(CanvasCourse)
 class CanvasCourseAdmin(admin.ModelAdmin):
-    list_display = ('name', 'course_id', 'term', 'team', 'created_at')
-    list_filter = ('team', 'term')
-    search_fields = ('name', 'course_id')
-    
+    list_display = ('name', 'course_code', 'canvas_id', 'created_at')
+    list_filter = ('is_public', 'workflow_state')
+    search_fields = ('name', 'course_code', 'canvas_id')
+
     def get_model_perms(self, request):
         """
         Hide this model from the main admin index page
         """
         return {}
+
 
 @admin.register(CanvasEnrollment)
 class CanvasEnrollmentAdmin(admin.ModelAdmin):
-    list_display = ('student', 'course', 'role')
-    list_filter = ('role', 'course')
-    search_fields = ('student__user_profile__user__username',)
-    
+    list_display = ('user_name', 'course', 'role', 'enrollment_state')
+    list_filter = ('role', 'enrollment_state', 'course')
+    search_fields = ('user_name', 'email', 'canvas_id')
+
     def get_model_perms(self, request):
         """
         Hide this model from the main admin index page
         """
         return {}
+
 
 @admin.register(CanvasAssignment)
 class CanvasAssignmentAdmin(admin.ModelAdmin):
-    list_display = ('name', 'assignment_id', 'course', 'due_at', 'max_score')
-    list_filter = ('course',)
-    search_fields = ('name', 'assignment_id')
+    list_display = ('name', 'canvas_id', 'course', 'due_at',
+                    'points_possible', 'grading_type')
+    list_filter = ('course', 'grading_type', 'published')
+    search_fields = ('name', 'canvas_id')
     date_hierarchy = 'due_at'
-    
+
     def get_model_perms(self, request):
         """
         Hide this model from the main admin index page
         """
         return {}
 
-@admin.register(Rubric)
-class RubricAdmin(admin.ModelAdmin):
-    list_display = ('title', 'rubric_id', 'points_possible', 'reusable', 'created_at')
-    list_filter = ('reusable', 'read_only')
-    search_fields = ('title', 'rubric_id')
-    
+
+@admin.register(CanvasRubric)
+class CanvasRubricAdmin(admin.ModelAdmin):
+    list_display = ('title', 'canvas_id', 'points_possible', 'created_at')
+    search_fields = ('title', 'canvas_id')
+
     def get_model_perms(self, request):
         """
         Hide this model from the main admin index page
         """
         return {}
 
-@admin.register(RubricCriterion)
-class RubricCriterionAdmin(admin.ModelAdmin):
-    list_display = ('description', 'rubric', 'points', 'criterion_use_range')
+
+@admin.register(CanvasRubricCriterion)
+class CanvasRubricCriterionAdmin(admin.ModelAdmin):
+    list_display = ('description', 'rubric', 'points',
+                    'criterion_use_range', 'canvas_id')
     list_filter = ('rubric', 'criterion_use_range')
-    search_fields = ('description', 'criterion_id')
-    
+    search_fields = ('description', 'canvas_id')
+
     def get_model_perms(self, request):
         """
         Hide this model from the main admin index page
         """
         return {}
 
-@admin.register(RubricRating)
-class RubricRatingAdmin(admin.ModelAdmin):
-    list_display = ('description', 'criterion', 'points')
+
+@admin.register(CanvasRubricRating)
+class CanvasRubricRatingAdmin(admin.ModelAdmin):
+    list_display = ('description', 'criterion', 'points', 'canvas_id')
     list_filter = ('criterion',)
-    search_fields = ('description', 'rating_id')
-    
-    def get_model_perms(self, request):
-        """
-        Hide this model from the main admin index page
-        """
-        return {}
+    search_fields = ('description', 'canvas_id')
 
-@admin.register(RubricAssociation)
-class RubricAssociationAdmin(admin.ModelAdmin):
-    list_display = ('rubric', 'course', 'assignment', 'use_for_grading', 'purpose')
-    list_filter = ('use_for_grading', 'purpose')
-    search_fields = ('rubric__title',)
-    
-    def get_model_perms(self, request):
-        """
-        Hide this model from the main admin index page
-        """
-        return {}
-
-@admin.register(RubricAssessment)
-class RubricAssessmentAdmin(admin.ModelAdmin):
-    list_display = ('student', 'rubric', 'assessor', 'score', 'created_at')
-    list_filter = ('assessment_type',)
-    search_fields = ('student__user_profile__user__username',)
-    date_hierarchy = 'created_at'
-    
     def get_model_perms(self, request):
         """
         Hide this model from the main admin index page

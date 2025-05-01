@@ -1,0 +1,314 @@
+{% extends 'canvas/base.html' %}
+{% load static %}
+
+{% block title %}{{ enrollment.user_name }} | {{ course.course_code }} | GradeBench Canvas{% endblock %}
+{% block page_title %}{{ enrollment.user_name }}{% endblock %}
+{% block nav_dashboard_active %}active{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-3 col-md-6">
+        <div class="card">
+            <div class="card-content">
+                <div class="row">
+                    <div class="col-xs-5">
+                        <div class="icon-big icon-primary text-center">
+                            <i class="fa fa-user"></i>
+                        </div>
+                    </div>
+                    <div class="col-xs-7">
+                        <div class="numbers">
+                            <p>Role</p>
+                            {% if enrollment.role == 'StudentEnrollment' %}
+                            Student
+                            {% elif enrollment.role == 'TeacherEnrollment' %}
+                            Teacher
+                            {% elif enrollment.role == 'TaEnrollment' %}
+                            Teaching Assistant
+                            {% else %}
+                            {{ enrollment.role }}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer">
+                <hr>
+                <div class="stats">
+                    <i class="fa fa-info-circle"></i> Enrollment Role
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6">
+        <div class="card">
+            <div class="card-content">
+                <div class="row">
+                    <div class="col-xs-5">
+                        <div class="icon-big icon-success text-center">
+                            <i class="fa fa-check-square-o"></i>
+                        </div>
+                    </div>
+                    <div class="col-xs-7">
+                        <div class="numbers">
+                            <p>Submitted</p>
+                            {{ submitted_count }} / {{ assignment_count }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer">
+                <hr>
+                <div class="stats">
+                    <i class="fa fa-calendar-o"></i> Assignment Submissions
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6">
+        <div class="card">
+            <div class="card-content">
+                <div class="row">
+                    <div class="col-xs-5">
+                        <div class="icon-big icon-warning text-center">
+                            <i class="fa fa-exclamation-triangle"></i>
+                        </div>
+                    </div>
+                    <div class="col-xs-7">
+                        <div class="numbers">
+                            <p>Missing</p>
+                            {{ missing_count }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer">
+                <hr>
+                <div class="stats">
+                    <i class="fa fa-calendar-times-o"></i> Missing Assignments
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6">
+        <div class="card">
+            <div class="card-content">
+                <div class="row">
+                    <div class="col-xs-5">
+                        <div class="icon-big icon-info text-center">
+                            <i class="fa fa-percent"></i>
+                        </div>
+                    </div>
+                    <div class="col-xs-7">
+                        <div class="numbers">
+                            <p>Overall</p>
+                            {% if final_score != None %}
+                            {{ final_score }}%
+                            {% else %}
+                            --
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer">
+                <hr>
+                <div class="stats">
+                    <i class="fa fa-trophy"></i> Final Grade
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title">Assignment Submissions</h4>
+                <p class="card-category">
+                    {{ course.course_code }}: {{ enrollment.user_name }}
+                </p>
+            </div>
+            <div class="card-content table-responsive">
+                {% if submissions %}
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Assignment</th>
+                            <th>Status</th>
+                            <th>Submitted</th>
+                            <th>Score</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for submission in submissions %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'canvas_assignment_detail' course_id=course.canvas_id assignment_id=submission.assignment.canvas_id %}">
+                                    {{ submission.assignment.name }}
+                                </a>
+                            </td>
+                            <td>
+                                {% if submission.workflow_state == 'submitted' %}
+                                <span class="badge bg-info">Submitted</span>
+                                {% elif submission.workflow_state == 'graded' %}
+                                <span class="badge bg-success">Graded</span>
+                                {% elif submission.workflow_state == 'unsubmitted' %}
+                                <span class="badge bg-warning">Not Submitted</span>
+                                {% else %}
+                                <span class="badge">{{ submission.workflow_state|title }}</span>
+                                {% endif %}
+
+                                {% if submission.late %}
+                                <span class="badge bg-danger">Late</span>
+                                {% endif %}
+
+                                {% if submission.missing %}
+                                <span class="badge bg-danger">Missing</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if submission.submitted_at %}
+                                {{ submission.submitted_at|date:"M d, Y H:i" }}
+                                {% else %}
+                                --
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if submission.score != None %}
+                                {{ submission.score }} / {{ submission.assignment.points_possible }}
+                                {% else %}
+                                --
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="text-center">
+                    <p>No submissions found for this student.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title">Student Information</h4>
+                <p class="card-category">Details from Canvas</p>
+            </div>
+            <div class="card-content">
+                <div class="table-responsive">
+                    <table class="table">
+                        <tbody>
+                            <tr>
+                                <th>Full Name</th>
+                                <td>{{ enrollment.user_name }}</td>
+                            </tr>
+                            <tr>
+                                <th>Sortable Name</th>
+                                <td>{{ enrollment.sortable_name|default:enrollment.user_name }}</td>
+                            </tr>
+                            <tr>
+                                <th>Email</th>
+                                <td>{{ enrollment.email|default:"Not available" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Status</th>
+                                <td>
+                                    <span class="badge {% if enrollment.enrollment_state == 'active' %}bg-success{% elif enrollment.enrollment_state == 'invited' %}bg-warning{% else %}bg-danger{% endif %}">
+                                        {{ enrollment.enrollment_state|title }}
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Last Activity</th>
+                                <td>
+                                    {% if enrollment.last_activity_at %}
+                                    {{ enrollment.last_activity_at|date:"F d, Y H:i" }}
+                                    {% else %}
+                                    Never
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Section</th>
+                                <td>Default Section</td>
+                            </tr>
+                            <tr>
+                                <th>Canvas ID</th>
+                                <td>{{ enrollment.user_id }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="text-center">
+                    <a href="{{ course.integration.canvas_url }}/courses/{{ course.canvas_id }}/users/{{ enrollment.user_id }}" target="_blank" class="btn btn-primary btn-fill">
+                        <i class="fa fa-external-link"></i> View in Canvas
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title">Grade Summary</h4>
+                <p class="card-category">
+                    Current Scores and Progress
+                </p>
+            </div>
+            <div class="card-content">
+                <div class="row text-center">
+                    <div class="col-xs-6">
+                        <div class="card">
+                            <div class="card-content">
+                                <h3>
+                                    {% if current_score != None %}
+                                    {{ current_score }}%
+                                    {% else %}
+                                    --
+                                    {% endif %}
+                                </h3>
+                                <p>Current Score</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xs-6">
+                        <div class="card">
+                            <div class="card-content">
+                                <h3>
+                                    {% if final_score != None %}
+                                    {{ final_score }}%
+                                    {% else %}
+                                    --
+                                    {% endif %}
+                                </h3>
+                                <p>Final Score</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center">
+                    <h5>Assignment Completion</h5>
+                    <div class="progress">
+                        <div class="progress-bar progress-bar-success" role="progressbar"
+                             aria-valuenow="{{ submitted_count }}" aria-valuemin="0" aria-valuemax="{{ assignment_count }}"
+                             style="width: {% widthratio submitted_count assignment_count 100 %}%">
+                        </div>
+                    </div>
+                    <p>{{ submitted_count }} of {{ assignment_count }} completed</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

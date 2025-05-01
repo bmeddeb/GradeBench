@@ -1,0 +1,178 @@
+{% extends 'canvas/base.html' %}
+{% load static %}
+
+{% block title %}Canvas Dashboard | GradeBench{% endblock %}
+{% block page_title %}Canvas Dashboard{% endblock %}
+{% block nav_dashboard_active %}active{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title">Canvas Integration Status</h4>
+                <p class="card-category">
+                    {% if integration.last_sync %}
+                    Last synchronized: {{ integration.last_sync|date:"F d, Y H:i" }}
+                    {% else %}
+                    Never synchronized
+                    {% endif %}
+                </p>
+            </div>
+            <div class="card-content">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <h3>{{ course_data|length }}</h3>
+                            <p>Courses</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <h3>{{ integration.courses.count }}</h3>
+                            <p>Total Courses</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <a href="{% url 'canvas_sync' %}" class="btn btn-primary btn-fill">
+                                <i class="fa fa-refresh"></i> Synchronize Now
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title">Canvas Courses</h4>
+                <p class="card-category">All courses synced from Canvas</p>
+            </div>
+            <div class="card-content table-responsive">
+                {% if course_data %}
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Course Code</th>
+                            <th>Course Name</th>
+                            <th>Students</th>
+                            <th>Assignments</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in course_data %}
+                        <tr>
+                            <td>{{ item.course.course_code }}</td>
+                            <td>{{ item.course.name }}</td>
+                            <td>{{ item.enrollment_count }}</td>
+                            <td>{{ item.assignment_count }}</td>
+                            <td>
+                                <span class="badge {% if item.course.workflow_state == 'available' %}bg-success{% elif item.course.workflow_state == 'unpublished' %}bg-warning{% else %}bg-info{% endif %}">
+                                    {{ item.course.workflow_state|title }}
+                                </span>
+                            </td>
+                            <td>
+                                <a href="{% url 'canvas_course_detail' course_id=item.course.canvas_id %}" class="btn btn-info btn-xs">
+                                    <i class="fa fa-eye"></i> View
+                                </a>
+                                <a href="{% url 'canvas_sync_course' course_id=item.course.canvas_id %}" class="btn btn-default btn-xs">
+                                    <i class="fa fa-refresh"></i> Sync
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="text-center">
+                    <h3>No courses found</h3>
+                    <p>Click the 'Synchronize Now' button to fetch courses from Canvas.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if course_data %}
+<div class="row">
+    <div class="col-lg-6 col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title">Recent Courses</h4>
+                <p class="card-category">Courses with recent activity</p>
+            </div>
+            <div class="card-content">
+                <div class="list-group">
+                    {% for item in course_data|slice:":5" %}
+                    <a href="{% url 'canvas_course_detail' course_id=item.course.canvas_id %}" class="list-group-item">
+                        <h4 class="list-group-item-heading">{{ item.course.course_code }}: {{ item.course.name }}</h4>
+                        <p class="list-group-item-text">
+                            <span class="badge bg-info">{{ item.enrollment_count }} Students</span>
+                            <span class="badge bg-warning">{{ item.assignment_count }} Assignments</span>
+                        </p>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6 col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title">Canvas Integration</h4>
+                <p class="card-category">API Connection Information</p>
+            </div>
+            <div class="card-content">
+                <div class="row">
+                    <div class="col-xs-5 text-right">
+                        <strong>Canvas Instance:</strong>
+                    </div>
+                    <div class="col-xs-7">
+                        {{ integration.canvas_url }}
+                    </div>
+                </div>
+                <hr>
+                <div class="row">
+                    <div class="col-xs-5 text-right">
+                        <strong>API Key:</strong>
+                    </div>
+                    <div class="col-xs-7">
+                        •••••••••••••••••{{ integration.api_key|slice:"-4:" }}
+                    </div>
+                </div>
+                <hr>
+                <div class="row">
+                    <div class="col-xs-5 text-right">
+                        <strong>Last Sync:</strong>
+                    </div>
+                    <div class="col-xs-7">
+                        {% if integration.last_sync %}
+                        {{ integration.last_sync|date:"F d, Y H:i" }}
+                        {% else %}
+                        Never synchronized
+                        {% endif %}
+                    </div>
+                </div>
+                <hr>
+                <div class="row">
+                    <div class="col-xs-12 text-center">
+                        <a href="{% url 'canvas_setup' %}" class="btn btn-primary btn-fill">
+                            <i class="fa fa-cog"></i> Update Configuration
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

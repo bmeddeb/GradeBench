@@ -58,6 +58,9 @@ if [ -f .env ]; then
   export $(grep -v '^#' .env | xargs)
 fi
 
+# Run makemigrations for all apps
+python manage.py makemigrations
+
 # Run migrations
 echo "Running Django migrations..."
 python manage.py migrate

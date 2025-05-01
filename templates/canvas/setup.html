@@ -1,0 +1,72 @@
+{% extends 'canvas/base.html' %}
+{% load static %}
+
+{% block title %}Canvas Setup | GradeBench{% endblock %}
+{% block page_title %}Canvas API Setup{% endblock %}
+{% block nav_setup_active %}active{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 col-md-offset-2">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title">Canvas API Configuration</h4>
+                <p class="card-category">Set up your Canvas API access token</p>
+            </div>
+            <div class="card-content">
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label>Canvas URL</label>
+                                <input type="url" class="form-control border-input" name="canvas_url"
+                                    placeholder="https://canvas.instructure.com" value="{{ integration.canvas_url|default:'https://canvas.instructure.com' }}">
+                                <p class="help-block">The URL of your Canvas instance. Default is https://canvas.instructure.com</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label>Canvas API Key</label>
+                                <input type="text" class="form-control border-input" name="api_key"
+                                    placeholder="Enter your Canvas API key" value="{{ integration.api_key|default:'' }}">
+                                <p class="help-block">
+                                    You can generate an API key in your Canvas account settings under "Approved Integrations".
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="alert alert-info">
+                                <h4>How to Generate a Canvas API Key</h4>
+                                <ol>
+                                    <li>Log in to your Canvas account</li>
+                                    <li>Go to Account &gt; Settings</li>
+                                    <li>Scroll down to "Approved Integrations"</li>
+                                    <li>Click "New Access Token"</li>
+                                    <li>Enter a purpose (e.g., "GradeBench Integration")</li>
+                                    <li>Set an expiration date (or leave blank for no expiration)</li>
+                                    <li>Click "Generate Token"</li>
+                                    <li>Copy the token and paste it here</li>
+                                </ol>
+                                <p>Note: The token will only be displayed once. If you lose it, you'll need to generate a new one.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="text-center">
+                        <button type="submit" class="btn btn-info btn-fill btn-wd">Save Configuration</button>
+                    </div>
+                    <div class="clearfix"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

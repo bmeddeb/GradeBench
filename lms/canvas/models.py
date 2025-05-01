@@ -1,233 +1,208 @@
-# lms/canvas/models.py
 from django.db import models
-from core.models import Team, UserProfile, Student
-from core.async_utils import AsyncModelMixin
-from django.db import models
+from django.contrib.auth.models import User
 from django.utils import timezone
-from core.models import Team
 
 
-class CanvasCourse(models.Model, AsyncModelMixin):
-    """
-    Mirrors a Canvas course
-    """
-    course_id = models.IntegerField(unique=True)
+class CanvasIntegration(models.Model):
+    """Configuration for Canvas API integration"""
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='canvas_integrations')
+    canvas_url = models.URLField(default="https://canvas.instructure.com")
+    api_key = models.CharField(max_length=255)
+    refresh_token = models.CharField(max_length=255, blank=True, null=True)
+    last_sync = models.DateTimeField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Canvas integration for {self.user.username}"
+
+
+class CanvasCourse(models.Model):
+    """Canvas Course Information"""
+    integration = models.ForeignKey(
+        CanvasIntegration, on_delete=models.CASCADE, related_name='courses', null=True, blank=True)
+    canvas_id = models.PositiveIntegerField(unique=True, default=0)
     name = models.CharField(max_length=255)
-    course_code = models.CharField(max_length=100, blank=True)
-    term = models.CharField(max_length=100, blank=True)
-    team = models.ForeignKey(
-        Team, on_delete=models.CASCADE, related_name='canvas_courses'
-    )
+    course_code = models.CharField(max_length=255)
     start_at = models.DateTimeField(null=True, blank=True)
     end_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    is_public = models.BooleanField(default=False)
+    syllabus_body = models.TextField(blank=True, null=True)
+    workflow_state = models.CharField(max_length=50, default='unpublished')
+    time_zone = models.CharField(max_length=100, blank=True, null=True)
+    uuid = models.CharField(max_length=255, blank=True, null=True)
 
-    def __str__(self):
-        return f"{self.name} ({self.course_id})"
-
-class CanvasEnrollment(models.Model, AsyncModelMixin):
-    """
-    Links a student to a Canvas course with a specific role
-    """
-    enrollment_id = models.IntegerField(unique=True)
-    course = models.ForeignKey(
-        CanvasCourse, on_delete=models.CASCADE, related_name='enrollments'
-    )
-    
-    # New relationship to Student model
-    student = models.ForeignKey(
-        Student, on_delete=models.CASCADE,
-        related_name='canvas_enrollments'
-    )
-    
-    role = models.CharField(max_length=30)  # e.g. 'StudentEnrollment', 'TeacherEnrollment'
-    course_section_id = models.IntegerField(null=True, blank=True)
-    
     class Meta:
-        unique_together = ('course', 'student')
+        ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.student.full_name} in {self.course.name} as {self.role}"
+        return f"{self.course_code}: {self.name}"
 
-class CanvasAssignment(models.Model, AsyncModelMixin):
-    """
-    Mirrors a Canvas assignment
-    """
-    assignment_id = models.IntegerField(unique=True)
-    course = models.ForeignKey(
-        CanvasCourse, on_delete=models.CASCADE, related_name='assignments'
+
+class CanvasEnrollment(models.Model):
+    """Canvas Enrollment (Student or Teacher in a Course)"""
+    ENROLLMENT_TYPES = (
+        ('StudentEnrollment', 'Student'),
+        ('TeacherEnrollment', 'Teacher'),
+        ('TaEnrollment', 'Teaching Assistant'),
+        ('DesignerEnrollment', 'Designer'),
+        ('ObserverEnrollment', 'Observer'),
+        ('StudentViewEnrollment', 'Test Student'),
     )
+
+    ENROLLMENT_STATES = (
+        ('active', 'Active'),
+        ('invited', 'Invited'),
+        ('rejected', 'Rejected'),
+        ('completed', 'Completed'),
+        ('inactive', 'Inactive'),
+    )
+
+    canvas_id = models.PositiveIntegerField(unique=True, default=0)
+    course = models.ForeignKey(
+        CanvasCourse, on_delete=models.CASCADE, related_name='enrollments')
+    user_id = models.PositiveIntegerField()
+    user_name = models.CharField(max_length=255)
+    sortable_name = models.CharField(max_length=255, blank=True, null=True)
+    short_name = models.CharField(max_length=255, blank=True, null=True)
+    email = models.EmailField(blank=True, null=True)
+    role = models.CharField(
+        max_length=50, choices=ENROLLMENT_TYPES, default='StudentEnrollment')
+    enrollment_state = models.CharField(
+        max_length=20, choices=ENROLLMENT_STATES, default='active')
+    last_activity_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    grades = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        ordering = ['sortable_name']
+        unique_together = ('course', 'user_id')
+
+    def __str__(self):
+        return f"{self.user_name} in {self.course}"
+
+
+class CanvasAssignment(models.Model):
+    """Canvas Assignment Information"""
+    GRADING_TYPES = (
+        ('points', 'Points'),
+        ('percent', 'Percentage'),
+        ('letter_grade', 'Letter Grade'),
+        ('gpa_scale', 'GPA Scale'),
+        ('pass_fail', 'Pass/Fail'),
+        ('not_graded', 'Not Graded'),
+    )
+
+    canvas_id = models.PositiveIntegerField(unique=True, default=0)
+    course = models.ForeignKey(
+        CanvasCourse, on_delete=models.CASCADE, related_name='assignments')
     name = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True)
+    points_possible = models.FloatField(default=0.0)
     due_at = models.DateTimeField(null=True, blank=True)
-    max_score = models.DecimalField(max_digits=6, decimal_places=2)
-    grading_type = models.CharField(max_length=20, default='points')
-    rubric_used = models.BooleanField(default=False)
+    unlock_at = models.DateTimeField(null=True, blank=True)
+    lock_at = models.DateTimeField(null=True, blank=True)
+    position = models.IntegerField(default=0)
+    grading_type = models.CharField(
+        max_length=20, choices=GRADING_TYPES, default='points')
+    published = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    submission_types = models.JSONField(default=list, blank=True)
+    has_submitted_submissions = models.BooleanField(default=False)
+    muted = models.BooleanField(default=False)
+    html_url = models.URLField(blank=True, null=True)
+    has_overrides = models.BooleanField(default=False)
+    needs_grading_count = models.IntegerField(default=0)
+    is_quiz_assignment = models.BooleanField(default=False)
 
-    def __str__(self):
-        return f"{self.name} ({self.assignment_id})"
-
-class Grade(models.Model, AsyncModelMixin):
-    """
-    Stores a student's grade for an assignment
-    """
-    student = models.ForeignKey(
-        Student, on_delete=models.CASCADE, related_name='grades'
-    )
-    assignment = models.ForeignKey(
-        CanvasAssignment, on_delete=models.CASCADE, related_name='grades'
-    )
-    score = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
-    comment = models.TextField(blank=True, null=True)
-    synced_at = models.DateTimeField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    
     class Meta:
-        unique_together = ('student', 'assignment')
-        
-    def __str__(self):
-        return f"{self.student.full_name} - {self.assignment.name}: {self.score}"
+        ordering = ['position']
 
-class Rubric(models.Model, AsyncModelMixin):
-    # Mirrors Canvas Rubric
-    rubric_id = models.IntegerField(unique=True)
+    def __str__(self):
+        return f"{self.name} ({self.course})"
+
+
+class CanvasSubmission(models.Model):
+    """Canvas Assignment Submission"""
+    SUBMISSION_STATES = (
+        ('submitted', 'Submitted'),
+        ('graded', 'Graded'),
+        ('pending_review', 'Pending Review'),
+        ('unsubmitted', 'Unsubmitted'),
+    )
+
+    canvas_id = models.PositiveIntegerField(unique=True)
+    assignment = models.ForeignKey(
+        CanvasAssignment, on_delete=models.CASCADE, related_name='submissions')
+    enrollment = models.ForeignKey(
+        CanvasEnrollment, on_delete=models.CASCADE, related_name='submissions')
+    submitted_at = models.DateTimeField(null=True, blank=True)
+    grade = models.CharField(max_length=50, blank=True, null=True)
+    score = models.FloatField(null=True, blank=True)
+    workflow_state = models.CharField(
+        max_length=20, choices=SUBMISSION_STATES, default='unsubmitted')
+    late = models.BooleanField(default=False)
+    excused = models.BooleanField(default=False)
+    missing = models.BooleanField(default=False)
+    submission_type = models.CharField(max_length=50, blank=True, null=True)
+    url = models.URLField(blank=True, null=True)
+    body = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-submitted_at']
+        unique_together = ('assignment', 'enrollment')
+
+    def __str__(self):
+        return f"Submission by {self.enrollment.user_name} for {self.assignment.name}"
+
+
+class CanvasRubric(models.Model):
+    """Canvas Rubric for Assessment"""
+    canvas_id = models.CharField(max_length=255, unique=True)
     title = models.CharField(max_length=255)
-    points_possible = models.DecimalField(max_digits=8, decimal_places=2)
-    reusable = models.BooleanField(default=False)
-    read_only = models.BooleanField(default=False)
-    free_form_criterion_comments = models.BooleanField(default=True)
-    hide_score_total = models.BooleanField(default=False)
+    points_possible = models.FloatField(default=0.0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Rubric {self.rubric_id}: {self.title}"
+        return self.title
 
-class RubricCriterion(models.Model, AsyncModelMixin):
-    # Each criterion (row) in a Rubric
+
+class CanvasRubricCriterion(models.Model):
+    """Individual criteria within a rubric"""
     rubric = models.ForeignKey(
-        Rubric, on_delete=models.CASCADE, related_name='criteria'
-    )
-    criterion_id = models.CharField(max_length=50)
-    description = models.TextField()
-    long_description = models.TextField(blank=True, null=True)
-    points = models.DecimalField(max_digits=8, decimal_places=2)
-    criterion_use_range = models.BooleanField(default=False)
-
-    def __str__(self):
-        return f"{self.rubric.title} - {self.description[:20]}..."
-
-class RubricRating(models.Model, AsyncModelMixin):
-    # Possible rating levels per criterion
-    criterion = models.ForeignKey(
-        RubricCriterion, on_delete=models.CASCADE, related_name='ratings'
-    )
-    rating_id = models.CharField(max_length=50)
+        CanvasRubric, on_delete=models.CASCADE, related_name='criteria')
+    canvas_id = models.CharField(max_length=255)
     description = models.CharField(max_length=255)
     long_description = models.TextField(blank=True, null=True)
-    points = models.DecimalField(max_digits=8, decimal_places=2)
-
-    def __str__(self):
-        return f"{self.criterion.description[:15]} - {self.description}"
-
-class RubricAssociation(models.Model, AsyncModelMixin):
-    # Links a rubric to a course or assignment
-    rubric = models.ForeignKey(
-        Rubric, on_delete=models.CASCADE, related_name='associations'
-    )
-    course = models.ForeignKey(
-        CanvasCourse, on_delete=models.CASCADE, related_name='rubric_associations', blank=True, null=True
-    )
-    assignment = models.ForeignKey(
-        CanvasAssignment, on_delete=models.CASCADE, related_name='rubric_associations', blank=True, null=True
-    )
-    use_for_grading = models.BooleanField(default=True)
-    purpose = models.CharField(max_length=50, default='grading')  # grading | bookmark
-    hide_score_total = models.BooleanField(default=False)
-    hide_points = models.BooleanField(default=False)
-    hide_outcome_results = models.BooleanField(default=False)
+    points = models.FloatField(default=0.0)
+    criterion_use_range = models.BooleanField(default=False)
 
     class Meta:
-        unique_together = ('rubric', 'course', 'assignment')
+        unique_together = ('rubric', 'canvas_id')
 
     def __str__(self):
-        target = self.assignment or self.course
-        return f"Rubric {self.rubric.rubric_id} on {target}"
+        return f"{self.description} ({self.points} pts)"
 
-class RubricAssessment(models.Model, AsyncModelMixin):
-    # Student's scored rubric submission
-    rubric = models.ForeignKey(
-        Rubric, on_delete=models.CASCADE, related_name='assessments'
-    )
-    association = models.ForeignKey(
-        RubricAssociation, on_delete=models.CASCADE, related_name='assessments'
-    )
-    artifact_type = models.CharField(max_length=50, default='Submission')  # Submission | etc.
-    artifact_id = models.IntegerField()
-    artifact_attempt = models.IntegerField(default=1)
-    assessment_type = models.CharField(max_length=50, default='grading')  # grading | peer_review | provisional
-    assessor = models.ForeignKey(
-        UserProfile, on_delete=models.SET_NULL, null=True, related_name='rubric_assessments'
-    )
-    
-    # New relationship to Student model
-    student = models.ForeignKey(
-        Student, on_delete=models.CASCADE,
-        related_name='rubric_assessments'
-    )
-    
-    score = models.DecimalField(max_digits=8, decimal_places=2)
-    data = models.JSONField()      # Store full criterion-level data
-    comments = models.JSONField()  # Comment-only view
-    synced_at = models.DateTimeField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+
+class CanvasRubricRating(models.Model):
+    """Rating levels for a rubric criterion"""
+    criterion = models.ForeignKey(
+        CanvasRubricCriterion, on_delete=models.CASCADE, related_name='ratings')
+    canvas_id = models.CharField(max_length=255)
+    description = models.CharField(max_length=255)
+    long_description = models.TextField(blank=True, null=True)
+    points = models.FloatField(default=0.0)
 
     class Meta:
-        unique_together = ('association', 'student', 'assessor')
+        unique_together = ('criterion', 'canvas_id')
 
     def __str__(self):
-        return f"Assessment for {self.student.full_name} on {self.association}"
-
-
-class CalendarEvent(models.Model):
-    """
-    An event from the Canvas course calendar ICS feed.
-    """
-    # The ICS UID (e.g. "event-assignment-54963244"), not the Canvas-internal integer ID
-    uid = models.CharField(max_length=255, unique=True, null=True, blank=True)
-
-    course = models.ForeignKey(
-        'CanvasCourse',
-        on_delete=models.CASCADE,
-        related_name='calendar_events'
-    )
-
-    # Standard VEVENT props
-    title       = models.CharField(max_length=255)       # SUMMARY
-    description = models.TextField(blank=True)           # DESCRIPTION
-    location    = models.CharField(max_length=255, blank=True)  # LOCATION
-
-    start       = models.DateTimeField()                 # DTSTART
-    end         = models.DateTimeField(null=True, blank=True)  # DTEND, if present
-    all_day     = models.BooleanField(default=False)     # if DTSTART is VALUE=DATE
-
-    # If you want to render links back into Canvas
-    html_url    = models.URLField(blank=True)            # URL property in the feed
-
-    # Recurrence rule (if any) – e.g. {"FREQ": ["WEEKLY"], "BYDAY": ["MO", "WE", "FR"]}
-    rrule       = models.JSONField(null=True, blank=True)
-
-    # Raw chunk of the VEVENT in case you need additional props later
-    raw_ics     = models.TextField(blank=True)
-
-    # When you last pulled/parsed this event
-    synced_at   = models.DateTimeField(default=timezone.now)
-
-    class Meta:
-        ordering = ('start',)
-
-    def __str__(self):
-        return f"{self.title} @ {self.start:%Y-%m-%d %H:%M}"
+        return f"{self.description} ({self.points} pts)"
