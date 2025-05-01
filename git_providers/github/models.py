@@ -1,18 +1,12 @@
 from django.db import models
-from core.models import Team, StudentProfile, Student
+from core.models import Team, Student
 from core.async_utils import AsyncModelMixin
 
 class Collaborator(models.Model, AsyncModelMixin):
-    # Legacy relationship - will be removed after migration
-    student_profile = models.OneToOneField(
-        StudentProfile, on_delete=models.CASCADE,
-        related_name='github_profile', null=True, blank=True
-    )
-    
-    # New relationship to Student model
+    # Relationship to Student model
     student = models.OneToOneField(
         Student, on_delete=models.CASCADE,
-        related_name='github_collaborator', null=True, blank=True
+        related_name='github_collaborator'
     )
     
     github_id = models.IntegerField(unique=True)

@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User, Group
-from core.models import UserProfile, StudentProfile, ProfessorProfile, TAProfile
+from core.models import UserProfile, ProfessorProfile, TAProfile, Student
 
 
 class Command(BaseCommand):
@@ -33,18 +33,6 @@ class Command(BaseCommand):
             # Check if they have a role profile
             has_role = False
 
-            # Check for StudentProfile
-            try:
-                StudentProfile.objects.get(user_profile=profile)
-                self.stdout.write(f"  - Has StudentProfile")
-                has_role = True
-                # Ensure they're in the Students group
-                if not user.groups.filter(name='Students').exists():
-                    user.groups.add(student_group)
-                    self.stdout.write(f"  - Added to Students group")
-            except StudentProfile.DoesNotExist:
-                self.stdout.write(f"  - No StudentProfile")
-
             # Check for ProfessorProfile
             try:
                 ProfessorProfile.objects.get(user_profile=profile)
@@ -69,20 +57,31 @@ class Command(BaseCommand):
             except TAProfile.DoesNotExist:
                 self.stdout.write(f"  - No TAProfile")
 
-            # If they have no role, make them a student
+            # If they have no role, add them to Students group
             if not has_role:
-                self.stdout.write(
-                    f"  - No role profile found, creating StudentProfile")
-                try:
-                    student_profile = StudentProfile.objects.create(
-                        user_profile=profile)
-                    # Add to Students group
+                # Add to Students group
+                if not user.groups.filter(name='Students').exists():
                     user.groups.add(student_group)
-                    self.stdout.write(
-                        f"  - Created StudentProfile and added to Students group")
-                except Exception as e:
-                    self.stdout.write(self.style.ERROR(
-                        f"  - Error creating StudentProfile: {str(e)}"))
+                    self.stdout.write(f"  - Added to Students group")
+                
+                # Check if there's a corresponding Student record
+                try:
+                    student = Student.objects.get(email=user.email)
+                    self.stdout.write(f"  - Corresponding Student record exists")
+                except Student.DoesNotExist:
+                    self.stdout.write(f"  - Creating Student record")
+                    try:
+                        student = Student.objects.create(
+                            first_name=user.first_name or "Unknown",
+                            last_name=user.last_name or "User",
+                            email=user.email,
+                            github_username=profile.github_username,
+                            created_by=user
+                        )
+                        self.stdout.write(f"  - Created Student record")
+                    except Exception as e:
+                        self.stdout.write(self.style.ERROR(
+                            f"  - Error creating Student record: {str(e)}"))
 
         self.stdout.write(self.style.SUCCESS(
             "Profile check and fix completed"))

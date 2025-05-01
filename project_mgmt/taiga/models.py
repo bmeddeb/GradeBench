@@ -1,5 +1,5 @@
 from django.db import models
-from core.models import Team, StudentProfile, Student
+from core.models import Team, Student
 from core.async_utils import AsyncModelMixin
 
 class Project(models.Model):  # Taiga Project
@@ -15,16 +15,10 @@ class Project(models.Model):  # Taiga Project
         return self.name
 
 class Member(models.Model, AsyncModelMixin):  # Taiga Member
-    # Legacy relationship - will be removed after migration
-    student_profile = models.OneToOneField(
-        StudentProfile, on_delete=models.CASCADE,
-        related_name='taiga_member', null=True, blank=True
-    )
-    
-    # New relationship to Student model
+    # Relationship to Student model
     student = models.OneToOneField(
         Student, on_delete=models.CASCADE,
-        related_name='taiga_member', null=True, blank=True
+        related_name='taiga_member'
     )
     
     project = models.ForeignKey(
@@ -36,14 +30,10 @@ class Member(models.Model, AsyncModelMixin):  # Taiga Member
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ('student_profile', 'project')
+        unique_together = ('student', 'project')
 
     def __str__(self):
-        if self.student:
-            return f"{self.student.full_name} as {self.role_name}"
-        elif self.student_profile:
-            return f"{self.student_profile.user_profile.user.get_full_name()} as {self.role_name}"
-        return f"Unknown member as {self.role_name}"
+        return f"{self.student.full_name} as {self.role_name}"
 
 class Sprint(models.Model):
     name = models.CharField(max_length=255)
