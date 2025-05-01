@@ -60,9 +60,17 @@ def profile(request):
 
     # Handle profile update form submission
     if request.method == 'POST':
+        # Track if any changes were made
+        changes_made = False
+        
         # Update user information
-        user.first_name = request.POST.get('first_name', user.first_name)
-        user.last_name = request.POST.get('last_name', user.last_name)
+        if user.first_name != request.POST.get('first_name', user.first_name):
+            user.first_name = request.POST.get('first_name', user.first_name)
+            changes_made = True
+            
+        if user.last_name != request.POST.get('last_name', user.last_name):
+            user.last_name = request.POST.get('last_name', user.last_name)
+            changes_made = True
         
         # Handle username change
         new_username = request.POST.get('username')
@@ -73,20 +81,30 @@ def profile(request):
             else:
                 user.username = new_username
                 messages.success(request, "Username updated successfully.")
+                changes_made = True
         
         email = request.POST.get('email')
         if email and email != user.email:
             user.email = email
-
+            changes_made = True
+        
         # Update profile information
-        profile.bio = request.POST.get('bio', profile.bio)
+        if profile.bio != request.POST.get('bio', profile.bio):
+            profile.bio = request.POST.get('bio', profile.bio)
+            changes_made = True
+            
         phone_number = request.POST.get('phone_number')
-        if phone_number:
+        if phone_number and phone_number != profile.phone_number:
             profile.phone_number = phone_number
+            changes_made = True
 
         # Save changes
         user.save()
         profile.save()
+        
+        # Show success message if changes were made (and not already shown for username)
+        if changes_made and not messages.get_messages(request):
+            messages.success(request, "Profile updated successfully.")
 
         # Redirect to avoid form resubmission
         return redirect('profile')
@@ -177,52 +195,75 @@ def logout_view(request):
 
 
 # Add new async profile update view for use with async API
+# Update profile view for use with AJAX
 @login_required
-async def update_profile_async(request):
-    """Async view for updating user profile."""
-    if request.method != 'POST':
-        return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
-
+@require_http_methods(["POST"])
+def update_profile_ajax(request):
+    """AJAX view for updating user profile."""
     try:
         # Get the user and profile
         user = request.user
-        profile = await sync_to_async(getattr)(user, 'profile')
+        profile = user.profile
 
         # Parse JSON data from request
         data = json.loads(request.body)
 
+        # Track if any changes were made
+        changes_made = False
+
         # Update user information
-        if 'first_name' in data:
+        if 'first_name' in data and data['first_name'] != user.first_name:
             user.first_name = data['first_name']
-        if 'last_name' in data:
+            changes_made = True
+            
+        if 'last_name' in data and data['last_name'] != user.last_name:
             user.last_name = data['last_name']
+            changes_made = True
         
         # Handle username change
         if 'username' in data and data['username'] != user.username:
             # Check if username is already taken
-            username_exists = await sync_to_async(
-                lambda: User.objects.filter(username=data['username']).exclude(id=user.id).exists()
-            )()
+            username_exists = User.objects.filter(username=data['username']).exclude(id=user.id).exists()
             if username_exists:
                 return JsonResponse({
                     'status': 'error', 
                     'message': 'That username is already taken'
                 }, status=400)
             user.username = data['username']
+            changes_made = True
             
-        if 'email' in data:
+        if 'email' in data and data['email'] != user.email:
             user.email = data['email']
+            changes_made = True
 
         # Update profile information
-        if 'bio' in data:
+        if 'bio' in data and data['bio'] != profile.bio:
             profile.bio = data['bio']
-        if 'phone_number' in data:
+            changes_made = True
+            
+        if 'phone_number' in data and data['phone_number'] != profile.phone_number:
             profile.phone_number = data['phone_number']
+            changes_made = True
 
-        # Save changes using async helpers
-        await async_save(user)
-        await async_save(profile)
-
-        return JsonResponse({'status': 'success'})
+        # Only save if changes were made
+        if changes_made:
+            # Save changes
+            user.save()
+            profile.save()
+            
+            # Return success with a message about what was updated
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Profile updated successfully'
+            })
+        else:
+            # No changes were made
+            return JsonResponse({
+                'status': 'info',
+                'message': 'No changes were made to your profile'
+            })
+            
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
