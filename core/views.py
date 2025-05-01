@@ -6,6 +6,7 @@ from django.http import HttpResponse, JsonResponse
 from django.contrib import messages
 from django.urls import reverse
 from social_django.models import UserSocialAuth
+from django.contrib.auth.models import User
 from .models import UserProfile
 import httpx
 import json
@@ -62,6 +63,17 @@ def profile(request):
         # Update user information
         user.first_name = request.POST.get('first_name', user.first_name)
         user.last_name = request.POST.get('last_name', user.last_name)
+        
+        # Handle username change
+        new_username = request.POST.get('username')
+        if new_username and new_username != user.username:
+            # Check if username is already taken
+            if User.objects.filter(username=new_username).exclude(id=user.id).exists():
+                messages.error(request, "That username is already taken.")
+            else:
+                user.username = new_username
+                messages.success(request, "Username updated successfully.")
+        
         email = request.POST.get('email')
         if email and email != user.email:
             user.email = email
@@ -184,6 +196,20 @@ async def update_profile_async(request):
             user.first_name = data['first_name']
         if 'last_name' in data:
             user.last_name = data['last_name']
+        
+        # Handle username change
+        if 'username' in data and data['username'] != user.username:
+            # Check if username is already taken
+            username_exists = await sync_to_async(
+                lambda: User.objects.filter(username=data['username']).exclude(id=user.id).exists()
+            )()
+            if username_exists:
+                return JsonResponse({
+                    'status': 'error', 
+                    'message': 'That username is already taken'
+                }, status=400)
+            user.username = data['username']
+            
         if 'email' in data:
             user.email = data['email']
 
