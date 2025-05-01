@@ -1,15 +1,15 @@
 from django.apps import AppConfig
 
 
-class CoreConfig(AppConfig):
+class IntegrationsConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'core'
-    verbose_name = 'Core'
+    name = 'integrations'
+    verbose_name = 'Integrations'
 
     def ready(self):
         """
         Initialize signals or other configurations when the app is ready.
         """
         # Import signals here to avoid circular imports
-        # import core.signals
+        # import integrations.signals
         pass

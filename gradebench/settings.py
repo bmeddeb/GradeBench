@@ -50,11 +50,12 @@ INSTALLED_APPS = [
     # Third-party apps
     'social_django',
 
-    # Project apps
+    # Project apps - domain-based structure
     'core',
-    'github',
-    'taiga',
-    'canvas',
+    'git_providers',
+    'project_mgmt',
+    'lms',
+    'integrations',
 ]
 
 # Jazzmin settings
