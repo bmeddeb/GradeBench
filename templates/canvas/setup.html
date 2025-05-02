@@ -32,10 +32,18 @@
                         <div class="col-md-12">
                             <div class="form-group">
                                 <label>Canvas API Key</label>
-                                <input type="text" class="form-control" name="api_key"
-                                    placeholder="Enter your Canvas API key" value="{{ integration.api_key|default:'' }}">
+                                <div class="input-group">
+                                    <input type="password" class="form-control" name="api_key" id="apiKeyInput"
+                                        placeholder="Enter your Canvas API key" value="{{ integration.api_key|default:'' }}">
+                                    <button class="btn btn-outline-secondary" type="button" id="toggleApiKey">
+                                        <i class="fa fa-eye"></i>
+                                    </button>
+                                </div>
                                 <small class="form-text text-muted">
                                     You can generate an API key in your Canvas account settings under "Approved Integrations".
+                                    {% if integration.api_key %}
+                                    <span class="text-info">Current key: •••••••••••••••••{{ integration.api_key|slice:"-4:" }}</span>
+                                    {% endif %}
                                 </small>
                             </div>
                         </div>
@@ -69,4 +77,26 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block canvas_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const toggleApiKeyBtn = document.getElementById('toggleApiKey');
+        const apiKeyInput = document.getElementById('apiKeyInput');
+        
+        if (toggleApiKeyBtn && apiKeyInput) {
+            toggleApiKeyBtn.addEventListener('click', function() {
+                // Toggle between password and text
+                if (apiKeyInput.type === 'password') {
+                    apiKeyInput.type = 'text';
+                    toggleApiKeyBtn.innerHTML = '<i class="fa fa-eye-slash"></i>';
+                } else {
+                    apiKeyInput.type = 'password';
+                    toggleApiKeyBtn.innerHTML = '<i class="fa fa-eye"></i>';
+                }
+            });
+        }
+    });
+</script>
 {% endblock %}
