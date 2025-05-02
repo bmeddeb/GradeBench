@@ -6,6 +6,9 @@ from django.dispatch import receiver
 from django.utils import timezone
 from core.async_utils import AsyncModelMixin
 from encrypted_model_fields.fields import EncryptedCharField
+from icalendar import Calendar, Event as ICalEvent
+from datetime import datetime
+import pytz
 
 
 class UserProfile(models.Model, AsyncModelMixin):
@@ -213,6 +216,131 @@ class Student(models.Model, AsyncModelMixin):
             'taiga': taiga_member,
             'canvas_enrollments': canvas_enrollments,
         }
+
+
+class CalendarEvent(models.Model, AsyncModelMixin):
+    """
+    Calendar event model that can be imported from iCalendar (.ics) files
+    and displayed in a calendar view on the dashboard.
+    """
+    # Core fields
+    uid = models.CharField(max_length=255, unique=True)  # Unique ID from .ics
+    summary = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True)
+    location = models.CharField(max_length=255, blank=True, null=True)
+    
+    # Time fields
+    dtstart = models.DateTimeField()  # Start time
+    dtend = models.DateTimeField(null=True, blank=True)  # End time (optional)
+    all_day = models.BooleanField(default=False)  # True if no time component
+    
+    # Recurrence (if event repeats)
+    rrule = models.TextField(blank=True, null=True)  # Stored as iCalendar RRULE string
+    
+    # Metadata
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    last_modified = models.DateTimeField(null=True, blank=True)  # From .ics
+    
+    # Calendar source
+    source = models.CharField(max_length=100, blank=True, null=True)  # e.g., 'canvas', 'github', 'custom'
+    
+    # User association (optional) - if calendar is user-specific
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, 
+        null=True, blank=True, related_name='calendar_events'
+    )
+    
+    def __str__(self):
+        return self.summary
+
+    def to_dict(self):
+        """Convert to dictionary for JSON serialization (for FullCalendar)"""
+        event_dict = {
+            'id': self.id,
+            'title': self.summary,
+            'start': self.dtstart.isoformat(),
+            'allDay': self.all_day,
+        }
+        
+        if self.dtend:
+            event_dict['end'] = self.dtend.isoformat()
+        
+        if self.description:
+            event_dict['description'] = self.description
+            
+        if self.location:
+            event_dict['location'] = self.location
+            
+        return event_dict
+
+    @classmethod
+    def from_ics(cls, ics_file, source=None, user=None):
+        """Parses an .ics file and creates/updates events in the database."""
+        cal = Calendar.from_ical(ics_file.read())
+        events_created = 0
+        
+        for component in cal.walk():
+            if component.name == "VEVENT":
+                uid = str(component.get("UID", ""))
+                summary = str(component.get("SUMMARY", "Untitled Event"))
+                description = str(component.get("DESCRIPTION", ""))
+                location = str(component.get("LOCATION", ""))
+                
+                # Handle DTSTART (required)
+                dtstart = component.get("DTSTART").dt
+                if isinstance(dtstart, datetime) and dtstart.tzinfo is None:
+                    dtstart = timezone.make_aware(dtstart)  # Ensure timezone-aware
+                elif not isinstance(dtstart, datetime):
+                    # Convert date to datetime for all-day events
+                    dtstart = timezone.make_aware(datetime.combine(dtstart, datetime.min.time()))
+                
+                # Handle DTEND (optional)
+                dtend = component.get("DTEND")
+                if dtend:
+                    dtend = dtend.dt
+                    if isinstance(dtend, datetime) and dtend.tzinfo is None:
+                        dtend = timezone.make_aware(dtend)
+                    elif not isinstance(dtend, datetime):
+                        # Convert date to datetime for all-day events
+                        dtend = timezone.make_aware(datetime.combine(dtend, datetime.min.time()))
+                
+                # Check if all-day event (DATE instead of DATETIME)
+                all_day = not isinstance(component.get("DTSTART").dt, datetime)
+                
+                # Handle RRULE (recurrence)
+                rrule = component.get("RRULE")
+                if rrule:
+                    rrule = rrule.to_ical().decode("utf-8")  # Convert to string
+                
+                # Get last modified if available
+                last_modified = component.get("LAST-MODIFIED")
+                if last_modified:
+                    last_modified = last_modified.dt
+                    if last_modified.tzinfo is None:
+                        last_modified = timezone.make_aware(last_modified)
+                
+                # Create or update event
+                event, created = cls.objects.update_or_create(
+                    uid=uid,
+                    defaults={
+                        "summary": summary,
+                        "description": description,
+                        "location": location,
+                        "dtstart": dtstart,
+                        "dtend": dtend,
+                        "all_day": all_day,
+                        "rrule": rrule,
+                        "last_modified": last_modified,
+                        "source": source,
+                        "user": user,
+                    },
+                )
+                
+                if created:
+                    events_created += 1
+                    
+        return events_created
 
 
 @receiver(post_save, sender=User)
