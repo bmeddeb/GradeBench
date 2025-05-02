@@ -59,7 +59,6 @@ INSTALLED_APPS = [
     'git_providers',
     'project_mgmt',
     'lms',
-    'integrations',
 ]
 
 # Jazzmin settings
@@ -113,10 +112,6 @@ JAZZMIN_SETTINGS = {
         "social_django.UserSocialAuth",
         "social_django.Code",
         "social_django.Partial",
-
-        # Integrations models - Grade Link and Provider Association
-        "integrations.GradeLink",
-        "integrations.ProviderAssociation",
     ],
 
     # UI Customizations

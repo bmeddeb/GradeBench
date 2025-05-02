@@ -57,11 +57,6 @@ gradebench/
 │  │  ├─ models.py
 │  │  └─ ...
 │  └─ ...                     # Other LMS platforms (Blackboard, Moodle, etc.)
-├─ integrations/              # Cross-domain integrations and connections
-│  ├─ __init__.py
-│  ├─ models.py               # Models for linking different domains
-│  ├─ services.py             # Services that coordinate across domains
-│  └─ ...
 ```
 
 ## Rationale
@@ -117,13 +112,12 @@ Learning management systems must implement:
 - Grade recording
 - Student roster management
 
-## Integration Layer
+## Integration Approach
 
-The `integrations` package connects the different domains:
-- Links repositories to projects
-- Maps students to repositories and projects
-- Connects assignments to repositories and projects
-- Provides cross-domain services
+Integration between different domains is handled through the Student model:
+- The Student model serves as the central entity linking identities across platforms
+- Direct foreign keys connect related entities between domains
+- Platform-specific IDs (github_username, taiga_username, canvas_user_id) stored on Student model
 
 ## Adding New Providers
 
@@ -151,7 +145,6 @@ INSTALLED_APPS = [
     'gradebench.git_providers',
     'gradebench.project_mgmt',
     'gradebench.lms',
-    'gradebench.integrations',
 ]
 ```
 
@@ -163,7 +156,6 @@ Each domain has its own migrations directory:
 - `git_providers/migrations/`
 - `project_mgmt/migrations/`
 - `lms/migrations/`
-- `integrations/migrations/`
 
 ## Consistent URL Structure
 
@@ -171,7 +163,6 @@ URLs follow a consistent pattern:
 - `/git/{provider}/{resource}/`
 - `/project/{provider}/{resource}/`
 - `/lms/{provider}/{resource}/`
-- `/integrations/{resource}/`
 
 ## Future Considerations
 

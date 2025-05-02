@@ -200,9 +200,8 @@ erDiagram
     CanvasEnrollment ||--|| Student : enrolls
     Course }|--o{ CanvasEnrollment : has
     
-    %% Integrations App
-    GradeLink ||--|| Student : links
-    ProviderAssociation ||--|| Student : associates
+    %% Note: Integrations App has been removed
+    %% Student model now serves as the central integration point
     
     %% User Auth Model
     User {
@@ -919,62 +918,12 @@ erDiagram
                     </div>
                 </div>
 
-                <h2>Integrations App Models</h2>
+                <h2>Note: Integrations App Removed</h2>
                 <div class="app-container">
-                    <div class="model-box">
-                        <div class="model-name">GradeLink</div>
-                        <div class="field">
-                            <span class="field-name">student</span>: 
-                            <span class="field-type">ForeignKey(Student)</span>
-                            <span class="relationship">← Many-to-One with Student</span>
-                        </div>
-                        <div class="field">
-                            <span class="field-name">source_type</span>: 
-                            <span class="field-type">CharField</span>
-                        </div>
-                        <div class="field">
-                            <span class="field-name">source_id</span>: 
-                            <span class="field-type">CharField</span>
-                        </div>
-                        <div class="field">
-                            <span class="field-name">target_type</span>: 
-                            <span class="field-type">CharField</span>
-                        </div>
-                        <div class="field">
-                            <span class="field-name">target_id</span>: 
-                            <span class="field-type">CharField</span>
-                        </div>
-                        <div class="notes">
-                            Links different grading systems for a student.
-                        </div>
-                    </div>
-
-                    <div class="model-box">
-                        <div class="model-name">ProviderAssociation</div>
-                        <div class="field">
-                            <span class="field-name">student</span>: 
-                            <span class="field-type">ForeignKey(Student)</span>
-                            <span class="relationship">← Many-to-One with Student</span>
-                        </div>
-                        <div class="field">
-                            <span class="field-name">provider_type</span>: 
-                            <span class="field-type">CharField</span>
-                        </div>
-                        <div class="field">
-                            <span class="field-name">provider_id</span>: 
-                            <span class="field-type">CharField</span>
-                        </div>
-                        <div class="field">
-                            <span class="field-name">username</span>: 
-                            <span class="field-type">CharField</span>
-                        </div>
-                        <div class="field">
-                            <span class="field-name">data</span>: 
-                            <span class="field-type">JSONField</span>
-                        </div>
-                        <div class="notes">
-                            Links a student to various external service providers.
-                        </div>
+                    <div class="notes">
+                        The Integrations App has been removed. The Student model now serves as the central integration point 
+                        between different systems (Git, LMS, Project Management). Direct relationships are now used instead 
+                        of generic integration models.
                     </div>
                 </div>
             </div>
@@ -1000,7 +949,7 @@ erDiagram
                         <li><strong>Student → Collaborator</strong>: One-to-One relationship with Git Provider's Collaborator model.</li>
                         <li><strong>Student → Member</strong>: One-to-One relationship with Project Management's Member model.</li>
                         <li><strong>Student → CanvasEnrollment</strong>: One-to-Many relationship with LMS's CanvasEnrollment model.</li>
-                        <li><strong>Student → GradeLink/ProviderAssociation</strong>: One-to-Many relationships with Integrations models.</li>
+                        <!-- Integrations app reference removed -->
                     </ul>
 
                     <h3>Organization Hierarchies</h3>
@@ -1023,11 +972,11 @@ erDiagram
                         <li>Each platform identity can point back to the central Student entity</li>
                     </ul>
                     
-                    <h3>Composite Service Pattern</h3>
-                    <p>The Integrations app provides models that create composite relationships between different services:</p>
+                    <h3>Direct Relationship Pattern</h3>
+                    <p>The application uses direct relationships between domains, with the Student model serving as the central integration point:</p>
                     <ul>
-                        <li>GradeLink connects grading systems</li>
-                        <li>ProviderAssociation creates generic associations between the student and external providers</li>
+                        <li>Student entity contains fields like github_username, taiga_username, and canvas_user_id to link identities</li>
+                        <li>Direct foreign keys are used between related entities instead of generic associations</li>
                     </ul>
                 </div>
             </div>
