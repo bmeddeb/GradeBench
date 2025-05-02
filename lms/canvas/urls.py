@@ -11,6 +11,14 @@ urlpatterns = [
     # Sync all courses
     path('sync/', views.canvas_sync, name='canvas_sync'),
 
+    # List available courses for selection (AJAX)
+    path('list_available_courses/', views.canvas_list_available_courses,
+         name='canvas_list_available_courses'),
+
+    # Sync selected courses (AJAX)
+    path('sync_selected_courses/', views.canvas_sync_selected_courses,
+         name='canvas_sync_selected_courses'),
+
     # Courses list
     path('course/', views.canvas_courses_list, name='canvas_courses_list'),
 
@@ -18,7 +26,8 @@ urlpatterns = [
     path('student/', views.canvas_students_list, name='canvas_students_list'),
 
     # Assignments list
-    path('assignment/', views.canvas_assignments_list, name='canvas_assignments_list'),
+    path('assignment/', views.canvas_assignments_list,
+         name='canvas_assignments_list'),
 
     # Course detail
     path('course/<int:course_id>/', views.course_detail,

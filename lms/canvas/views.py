@@ -9,6 +9,7 @@ from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from asgiref.sync import sync_to_async
 from django.db.models import Q, Count
+import httpx
 
 from .models import (
     CanvasIntegration, CanvasCourse, CanvasEnrollment,
@@ -405,18 +406,20 @@ def canvas_delete_course(request, course_id):
         return redirect('canvas_setup')
 
     # Get the course
-    course = get_object_or_404(CanvasCourse, canvas_id=course_id, integration=integration)
-    
+    course = get_object_or_404(
+        CanvasCourse, canvas_id=course_id, integration=integration)
+
     if request.method == 'POST':
         # Get the course name for the success message
         course_name = f"{course.course_code}: {course.name}"
-        
+
         # Delete the course (this will cascade delete related objects)
         course.delete()
-        
-        messages.success(request, f'Successfully removed course "{course_name}" from GradeBench.')
+
+        messages.success(
+            request, f'Successfully removed course "{course_name}" from GradeBench.')
         return redirect('canvas_courses_list')
-    
+
     # If it's a GET request, show confirmation page
     return render(request, 'canvas/confirm_delete_course.html', {
         'course': course,
@@ -445,3 +448,85 @@ def canvas_sync_single_course(request, course_id):
         messages.error(request, f'Error syncing course: {str(e)}')
 
     return redirect('canvas_course_detail', course_id=course_id)
+
+
+@login_required
+def canvas_list_available_courses(request):
+    """
+    Fetches the list of available Canvas courses for the authenticated user (preview only).
+    """
+    integration = get_integration_for_user(request.user)
+    if not integration:
+        return JsonResponse({'error': 'Canvas integration not set up'}, status=400)
+
+    api_url = integration.canvas_url.rstrip(
+        '/') + '/api/v1/courses?per_page=100&enrollment_state=active'
+    headers = {
+        'Authorization': f'Bearer {integration.api_key}',
+    }
+    all_courses = []
+    url = api_url
+
+    while url:
+        resp = httpx.get(url, headers=headers)
+        if resp.status_code != 200:
+            return JsonResponse({'error': 'Failed to fetch courses from Canvas'}, status=resp.status_code)
+        courses = resp.json()
+        all_courses.extend(courses)
+        # Handle pagination
+        link = resp.headers.get('Link')
+        next_url = None
+        if link:
+            for part in link.split(','):
+                if 'rel="next"' in part:
+                    next_url = part.split(';')[0].strip()[1:-1]
+                    break
+        url = next_url
+
+    course_list = [
+        {
+            'id': c['id'],
+            'name': c['name'],
+            'course_code': c.get('course_code', ''),
+            'start_at': c.get('start_at', ''),
+            'end_at': c.get('end_at', ''),
+            'workflow_state': c.get('workflow_state', ''),
+        }
+        for c in all_courses
+    ]
+    return JsonResponse({'courses': course_list})
+
+
+@csrf_exempt
+@require_POST
+@login_required
+def canvas_sync_selected_courses(request):
+    """
+    Sync only the selected Canvas courses. Expects a POST with JSON: { "course_ids": [123, 456, ...] }
+    """
+    import json
+    integration = get_integration_for_user(request.user)
+    if not integration:
+        return JsonResponse({'error': 'Canvas integration not set up'}, status=400)
+
+    try:
+        data = json.loads(request.body)
+        course_ids = data.get('course_ids', [])
+        if not course_ids:
+            return JsonResponse({'error': 'No course IDs provided'}, status=400)
+    except Exception:
+        return JsonResponse({'error': 'Invalid request'}, status=400)
+
+    from .client import Client
+    import asyncio
+    client = Client(integration)
+    synced = []
+    errors = []
+    for course_id in course_ids:
+        try:
+            course = asyncio.run(client.sync_course(course_id))
+            synced.append(course_id)
+        except Exception as e:
+            errors.append({'course_id': course_id, 'error': str(e)})
+
+    return JsonResponse({'synced': synced, 'errors': errors})

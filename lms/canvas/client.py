@@ -235,6 +235,11 @@ class Client:
                 f"Enrollment not found for user {submission_data['user_id']} in course {assignment.course.canvas_id}")
             return None
 
+        # Ensure excused field is always defined with a default value if not in submission_data
+        excused = submission_data.get('excused')
+        if excused is None:
+            excused = False
+
         submission, created = CanvasSubmission.objects.update_or_create(
             canvas_id=submission_data['id'],
             assignment=assignment,
@@ -245,7 +250,7 @@ class Client:
                 'score': submission_data.get('score'),
                 'workflow_state': submission_data.get('workflow_state', 'unsubmitted'),
                 'late': submission_data.get('late', False),
-                'excused': submission_data.get('excused', False),
+                'excused': excused,  # Use the variable we explicitly set
                 'missing': submission_data.get('missing', False),
                 'submission_type': submission_data.get('submission_type'),
                 'url': submission_data.get('url'),

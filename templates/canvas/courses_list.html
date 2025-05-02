@@ -12,6 +12,13 @@
             <div class="card-header">
                 <h4 class="card-title">Canvas Courses</h4>
                 <p class="card-category">All courses synced from Canvas</p>
+                {% if course_data %}
+                <div class="float-end">
+                    <button class="btn btn-primary btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#syncCoursesModal">
+                        <i class="fa fa-plus"></i> Add More Courses
+                    </button>
+                </div>
+                {% endif %}
             </div>
             <div class="card-content table-responsive">
                 {% if course_data %}
@@ -56,11 +63,11 @@
                 {% else %}
                 <div class="text-center">
                     <h3>No courses found</h3>
-                    <p>Click the 'Synchronize Now' button to fetch courses from Canvas.</p>
+                    <p>Click the 'Add Courses from Canvas' button to fetch courses from Canvas.</p>
                     <p>
-                        <a href="{% url 'canvas_sync' %}" class="btn btn-primary btn-fill">
-                            <i class="fa fa-refresh"></i> Synchronize Now
-                        </a>
+                        <button id="openSyncModal" class="btn btn-primary btn-fill" type="button" data-bs-toggle="modal" data-bs-target="#syncCoursesModal">
+                            <i class="fa fa-plus"></i> Add Courses from Canvas
+                        </button>
                     </p>
                 </div>
                 {% endif %}
@@ -68,4 +75,139 @@
         </div>
     </div>
 </div>
+
+<!-- Modal for selecting Canvas courses to sync -->
+<div class="modal fade" id="syncCoursesModal" tabindex="-1" aria-labelledby="syncCoursesModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="syncCoursesModalLabel">Select Canvas Courses to Sync</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div id="coursesLoading">Loading courses...</div>
+        <div id="coursesList" style="display:none;">
+          <button class="btn btn-link" onclick="selectAllCourses(true)">Select All</button>
+          <button class="btn btn-link" onclick="selectAllCourses(false)">Deselect All</button>
+          <ul id="coursesCheckboxList" class="list-unstyled mt-2"></ul>
+        </div>
+        <div id="coursesError" class="alert alert-danger" style="display:none;"></div>
+      </div>
+      <div class="modal-footer">
+        <div id="syncProgressIndicator" style="display:none;" class="me-auto">
+          <div class="spinner-border spinner-border-sm text-primary" role="status">
+            <span class="visually-hidden">Syncing courses...</span>
+          </div>
+          <span class="ms-2">Syncing courses, please wait...</span>
+        </div>
+        <button id="syncSelectedBtn" class="btn btn-primary" onclick="syncSelectedCourses()">Sync Selected</button>
+        <button id="syncAllBtn" class="btn btn-secondary" onclick="syncAllCourses()">Sync All</button>
+        <button id="closeModalBtn" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block canvas_js %}
+<script>
+function showSyncProgress(show) {
+  const progressIndicator = document.getElementById('syncProgressIndicator');
+  const syncSelectedBtn = document.getElementById('syncSelectedBtn');
+  const syncAllBtn = document.getElementById('syncAllBtn');
+  const closeModalBtn = document.getElementById('closeModalBtn');
+  
+  if (show) {
+    progressIndicator.style.display = 'block';
+    syncSelectedBtn.disabled = true;
+    syncAllBtn.disabled = true;
+    closeModalBtn.disabled = true;
+  } else {
+    progressIndicator.style.display = 'none';
+    syncSelectedBtn.disabled = false;
+    syncAllBtn.disabled = false;
+    closeModalBtn.disabled = false;
+  }
+}
+
+function loadCoursesForModal() {
+  document.getElementById('coursesLoading').style.display = 'block';
+  document.getElementById('coursesList').style.display = 'none';
+  document.getElementById('coursesError').style.display = 'none';
+  fetch('/canvas/list_available_courses/')
+    .then(response => response.json())
+    .then(data => {
+      if (data.courses) {
+        const list = document.getElementById('coursesCheckboxList');
+        list.innerHTML = '';
+        data.courses.forEach(course => {
+          const li = document.createElement('li');
+          li.innerHTML = `<label><input type="checkbox" class="course-checkbox" value="${course.id}"> ${course.name} (${course.course_code})</label>`;
+          list.appendChild(li);
+        });
+        document.getElementById('coursesLoading').style.display = 'none';
+        document.getElementById('coursesList').style.display = 'block';
+      } else {
+        document.getElementById('coursesLoading').style.display = 'none';
+        document.getElementById('coursesError').innerText = data.error || 'Failed to load courses.';
+        document.getElementById('coursesError').style.display = 'block';
+      }
+    })
+    .catch(() => {
+      document.getElementById('coursesLoading').style.display = 'none';
+      document.getElementById('coursesError').innerText = 'Failed to load courses.';
+      document.getElementById('coursesError').style.display = 'block';
+    });
+}
+
+function selectAllCourses(select) {
+  document.querySelectorAll('.course-checkbox').forEach(cb => cb.checked = select);
+}
+
+function syncSelectedCourses() {
+  const selected = Array.from(document.querySelectorAll('.course-checkbox:checked')).map(cb => cb.value);
+  if (selected.length === 0) {
+    alert('Please select at least one course.');
+    return;
+  }
+  
+  // Show sync in progress
+  showSyncProgress(true);
+  
+  fetch('/canvas/sync_selected_courses/', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({course_ids: selected})
+  })
+  .then(response => response.json())
+  .then(data => {
+    // Hide progress indicator
+    showSyncProgress(false);
+    
+    if (data.synced && data.synced.length > 0) {
+      alert('Successfully synced ' + data.synced.length + ' course(s)');
+      location.reload();
+    } else {
+      alert('No courses were synced. Errors: ' + JSON.stringify(data.errors));
+    }
+  })
+  .catch(error => {
+    // Hide progress indicator and show error
+    showSyncProgress(false);
+    alert('An error occurred while syncing courses. Please try again.');
+    console.error('Sync error:', error);
+  });
+}
+
+function syncAllCourses() {
+  selectAllCourses(true);
+  syncSelectedCourses();
+}
+
+// Bootstrap 5: load courses when modal is shown
+var syncCoursesModal = document.getElementById('syncCoursesModal');
+syncCoursesModal && syncCoursesModal.addEventListener('show.bs.modal', function (event) {
+  loadCoursesForModal();
+});
+</script>
 {% endblock %}
