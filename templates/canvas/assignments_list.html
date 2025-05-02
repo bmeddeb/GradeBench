@@ -9,18 +9,27 @@
 <div class="row">
     <div class="col-md-12">
         <div class="card">
-            <div class="card-header">
-                <h4 class="card-title">Canvas Assignments</h4>
-                <p class="card-category">All assignments across Canvas courses</p>
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <h4 class="card-title">Canvas Assignments</h4>
+                    <p class="card-category">All assignments across Canvas courses</p>
+                </div>
+                {% if assignments_by_course %}
+                <div>
+                    <a href="{% url 'canvas_courses_list' %}" class="btn btn-primary btn-sm">
+                        <i class="fa fa-plus"></i> Add More Courses
+                    </a>
+                </div>
+                {% endif %}
             </div>
-            <div class="card-content">
+            <div class="card-body">
                 {% if assignments_by_course %}
                     {% for course_data in assignments_by_course %}
-                    <div class="course-section">
+                    <div class="course-section mb-4">
                         <h4>{{ course_data.course.course_code }}: {{ course_data.course.name }}</h4>
                         <div class="table-responsive">
                             <table class="table table-hover">
-                                <thead>
+                                <thead class="text-primary">
                                     <tr>
                                         <th>Name</th>
                                         <th>Due Date</th>
@@ -63,14 +72,14 @@
                             </table>
                         </div>
                     </div>
-                    {% if not forloop.last %}<hr>{% endif %}
+                    {% if not forloop.last %}<hr class="mb-4">{% endif %}
                     {% endfor %}
                 {% else %}
-                <div class="text-center">
+                <div class="text-center py-5">
                     <h3>No assignments found</h3>
                     <p>No assignments have been created in any Canvas courses yet.</p>
                     <p>
-                        <a href="{% url 'canvas_courses_list' %}" class="btn btn-primary btn-fill">
+                        <a href="{% url 'canvas_courses_list' %}" class="btn btn-primary btn-fill mt-3">
                             <i class="fa fa-plus"></i> Add Courses from Canvas
                         </a>
                     </p>
