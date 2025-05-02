@@ -8,6 +8,11 @@ generate_secret_key() {
     python3 -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
 }
 
+# Function to generate a 32-byte base64 key for FIELD_ENCRYPTION_KEY
+generate_encryption_key() {
+    python3 -c "import base64, os; print(base64.b64encode(os.urandom(32)).decode())"
+}
+
 # Check if uv is installed, install if missing
 if ! command -v uv &> /dev/null
 then
@@ -51,6 +56,24 @@ else
 fi
 
 echo ".env file updated with SECRET_KEY."
+
+# Prompt user for FIELD_ENCRYPTION_KEY or generate automatically
+echo "Enter FIELD_ENCRYPTION_KEY or leave empty to generate a secure key:"
+read -r USER_ENCRYPTION_KEY
+
+if [ -z "$USER_ENCRYPTION_KEY" ]; then
+    USER_ENCRYPTION_KEY=$(generate_encryption_key)
+    echo "Generated FIELD_ENCRYPTION_KEY: $USER_ENCRYPTION_KEY"
+fi
+
+# Update or add FIELD_ENCRYPTION_KEY in .env
+if grep -q '^FIELD_ENCRYPTION_KEY=' "$ENV_FILE"; then
+    sed -i.bak "s/^FIELD_ENCRYPTION_KEY=.*/FIELD_ENCRYPTION_KEY=$USER_ENCRYPTION_KEY/" "$ENV_FILE"
+else
+    echo "FIELD_ENCRYPTION_KEY=$USER_ENCRYPTION_KEY" >> "$ENV_FILE"
+fi
+
+echo ".env file updated with FIELD_ENCRYPTION_KEY."
 
 # Export Django settings module and load env variables for migrate command
 export DJANGO_SETTINGS_MODULE=gradebench.settings
