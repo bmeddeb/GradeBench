@@ -1,0 +1,75 @@
+{% extends 'canvas/base.html' %}
+{% load static %}
+
+{% block title %}Canvas Students | GradeBench{% endblock %}
+{% block page_title %}Canvas Students{% endblock %}
+{% block nav_canvas_students %}active{% endblock %}
+
+{% block canvas_content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <h4 class="card-title">Canvas Students</h4>
+                    <p class="card-category">All students enrolled across Canvas courses</p>
+                </div>
+                {% if students %}
+                <div>
+                    <a href="{% url 'canvas_courses_list' %}" class="btn btn-primary btn-sm">
+                        <i class="fa fa-plus"></i> Add More Courses
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    {% if students %}
+                    <table class="table table-hover">
+                        <thead class="text-primary">
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Courses</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for student in students %}
+                            <tr>
+                                <td>{{ student.name }}</td>
+                                <td>{{ student.email|default:"Not available" }}</td>
+                                <td>
+                                    {% for course_info in student.courses %}
+                                    <span class="badge bg-info">{{ course_info.course.course_code }}</span>
+                                    {% endfor %}
+                                </td>
+                                <td>
+                                    {% for course_info in student.courses %}
+                                    <a href="{% url 'canvas_student_detail' course_id=course_info.course.canvas_id user_id=student.user_id %}" class="btn btn-info btn-xs">
+                                        <i class="fa fa-eye"></i> View in {{ course_info.course.course_code }}
+                                    </a>
+                                    {% if not forloop.last %}<br>{% endif %}
+                                    {% endfor %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <h3>No students found</h3>
+                        <p>No students have been enrolled in any Canvas courses yet.</p>
+                        <p>
+                            <a href="{% url 'canvas_courses_list' %}" class="btn btn-primary btn-fill mt-3">
+                                <i class="fa fa-plus"></i> Add Courses from Canvas
+                            </a>
+                        </p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,393 @@
+{% extends 'canvas/base.html' %}
+{% load static %}
+
+{% block title %}Canvas Dashboard | GradeBench{% endblock %}
+{% block page_title %}Canvas Dashboard{% endblock %}
+{% block nav_canvas_dashboard %}active{% endblock %}
+
+{% block canvas_content %}
+<div class="row">
+    <div class="col-lg-3 col-md-6 col-sm-6">
+        <div class="card card-stats">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-5 col-md-4">
+                        <div class="icon-big text-center icon-warning">
+                            <i class="nc-icon nc-book-bookmark text-warning"></i>
+                        </div>
+                    </div>
+                    <div class="col-7 col-md-8">
+                        <div class="numbers">
+                            <p class="card-category">Courses</p>
+                            <p class="card-title">{{ course_data|length }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer">
+                <hr>
+                <div class="stats">
+                    <i class="fa fa-refresh"></i> Synced Courses
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 col-sm-6">
+        <div class="card card-stats">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-5 col-md-4">
+                        <div class="icon-big text-center icon-warning">
+                            <i class="nc-icon nc-hat-3 text-success"></i>
+                        </div>
+                    </div>
+                    <div class="col-7 col-md-8">
+                        <div class="numbers">
+                            <p class="card-category">Total Courses</p>
+                            <p class="card-title">{{ integration.courses.count }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer">
+                <hr>
+                <div class="stats">
+                    <i class="fa fa-calendar-o"></i> All Available
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 col-sm-6">
+        <div class="card card-stats">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-5 col-md-4">
+                        <div class="icon-big text-center icon-warning">
+                            <i class="nc-icon nc-time-alarm text-primary"></i>
+                        </div>
+                    </div>
+                    <div class="col-7 col-md-8">
+                        <div class="numbers">
+                            <p class="card-category">Last Sync</p>
+                            <p class="card-title">
+                                {% if integration.last_sync %}
+                                {{ integration.last_sync|date:"M d" }}
+                                {% else %}
+                                Never
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer">
+                <hr>
+                <div class="stats">
+                    <i class="fa fa-clock-o"></i> 
+                    {% if integration.last_sync %}
+                    {{ integration.last_sync|date:"H:i" }}
+                    {% else %}
+                    Not synchronized
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 col-sm-6">
+        <div class="card card-stats">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-5 col-md-4">
+                        <div class="icon-big text-center icon-warning">
+                            <i class="nc-icon nc-refresh-69 text-danger"></i>
+                        </div>
+                    </div>
+                    <div class="col-7 col-md-8">
+                        <div class="numbers">
+                            <p class="card-category">Sync Courses</p>
+                            <p class="card-title">
+                                <button class="btn btn-xs btn-danger" type="button" data-bs-toggle="modal" data-bs-target="#syncCoursesModal">
+                                    <i class="fa fa-refresh"></i>
+                                </button>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer">
+                <hr>
+                <div class="stats">
+                    <i class="fa fa-plus"></i> Add/Sync Courses
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title">Canvas Courses</h4>
+                <p class="card-category">All courses synced from Canvas</p>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    {% if course_data %}
+                    <table class="table table-hover">
+                        <thead class="text-primary">
+                            <tr>
+                                <th>Course Code</th>
+                                <th>Course Name</th>
+                                <th>Students</th>
+                                <th>Assignments</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in course_data %}
+                            <tr>
+                                <td>{{ item.course.course_code }}</td>
+                                <td>{{ item.course.name }}</td>
+                                <td>{{ item.enrollment_count }}</td>
+                                <td>{{ item.assignment_count }}</td>
+                                <td>
+                                    <span class="badge {% if item.course.workflow_state == 'available' %}bg-success{% elif item.course.workflow_state == 'unpublished' %}bg-warning{% else %}bg-info{% endif %}">
+                                        {{ item.course.workflow_state|title }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <a href="{% url 'canvas_course_detail' course_id=item.course.canvas_id %}" class="btn btn-info btn-xs">
+                                        <i class="fa fa-eye"></i> View
+                                    </a>
+                                    <a href="{% url 'canvas_sync_course' course_id=item.course.canvas_id %}" class="btn btn-default btn-xs">
+                                        <i class="fa fa-refresh"></i> Sync
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <div class="text-center">
+                        <h3>No courses found</h3>
+                        <p>Click the 'Add Courses from Canvas' button to fetch courses from Canvas.</p>
+                        <button id="openSyncModal" class="btn btn-primary mt-3" type="button" data-bs-toggle="modal" data-bs-target="#syncCoursesModal">
+                            <i class="fa fa-plus"></i> Add Courses from Canvas
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if course_data %}
+<div class="row">
+    <div class="col-lg-6 col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title">Recent Courses</h4>
+                <p class="card-category">Courses with recent activity</p>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    {% for item in course_data|slice:":5" %}
+                    <a href="{% url 'canvas_course_detail' course_id=item.course.canvas_id %}" class="list-group-item">
+                        <h4 class="list-group-item-heading">{{ item.course.course_code }}: {{ item.course.name }}</h4>
+                        <p class="list-group-item-text">
+                            <span class="badge bg-info">{{ item.enrollment_count }} Students</span>
+                            <span class="badge bg-warning">{{ item.assignment_count }} Assignments</span>
+                        </p>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6 col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title">Canvas Integration</h4>
+                <p class="card-category">API Connection Information</p>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-4 text-right">
+                        <strong>Canvas Instance:</strong>
+                    </div>
+                    <div class="col-8">
+                        {{ integration.canvas_url }}
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-4 text-right">
+                        <strong>API Key:</strong>
+                    </div>
+                    <div class="col-8">
+                        •••••••••••••••••{{ integration.api_key|slice:"-4:" }}
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-4 text-right">
+                        <strong>Last Sync:</strong>
+                    </div>
+                    <div class="col-8">
+                        {% if integration.last_sync %}
+                        {{ integration.last_sync|date:"F d, Y H:i" }}
+                        {% else %}
+                        Never synchronized
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="row mt-4">
+                    <div class="col-12 text-center">
+                        <a href="{% url 'canvas_setup' %}" class="btn btn-primary btn-fill">
+                            <i class="fa fa-cog"></i> Update Configuration
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Modal for selecting Canvas courses to sync -->
+<div class="modal fade" id="syncCoursesModal" tabindex="-1" aria-labelledby="syncCoursesModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="syncCoursesModalLabel">Select Canvas Courses to Sync</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div id="coursesLoading">Loading courses...</div>
+        <div id="coursesList" style="display:none;">
+          <button class="btn btn-link" onclick="selectAllCourses(true)">Select All</button>
+          <button class="btn btn-link" onclick="selectAllCourses(false)">Deselect All</button>
+          <ul id="coursesCheckboxList" class="list-unstyled mt-2"></ul>
+        </div>
+        <div id="coursesError" class="alert alert-danger" style="display:none;"></div>
+      </div>
+      <div class="modal-footer">
+        <div id="syncProgressIndicator" style="display:none;" class="me-auto">
+          <div class="spinner-border spinner-border-sm text-primary" role="status">
+            <span class="visually-hidden">Syncing courses...</span>
+          </div>
+          <span class="ms-2">Syncing courses, please wait...</span>
+        </div>
+        <button id="syncSelectedBtn" class="btn btn-primary" onclick="syncSelectedCourses()">Sync Selected</button>
+        <button id="syncAllBtn" class="btn btn-secondary" onclick="syncAllCourses()">Sync All</button>
+        <button id="closeModalBtn" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block canvas_js %}
+<script>
+function loadCoursesForModal() {
+  document.getElementById('coursesLoading').style.display = 'block';
+  document.getElementById('coursesList').style.display = 'none';
+  document.getElementById('coursesError').style.display = 'none';
+  fetch('/canvas/list_available_courses/')
+    .then(response => response.json())
+    .then(data => {
+      if (data.courses) {
+        const list = document.getElementById('coursesCheckboxList');
+        list.innerHTML = '';
+        data.courses.forEach(course => {
+          const li = document.createElement('li');
+          li.innerHTML = `<label><input type="checkbox" class="course-checkbox" value="${course.id}"> ${course.name} (${course.course_code})</label>`;
+          list.appendChild(li);
+        });
+        document.getElementById('coursesLoading').style.display = 'none';
+        document.getElementById('coursesList').style.display = 'block';
+      } else {
+        document.getElementById('coursesLoading').style.display = 'none';
+        document.getElementById('coursesError').innerText = data.error || 'Failed to load courses.';
+        document.getElementById('coursesError').style.display = 'block';
+      }
+    })
+    .catch(() => {
+      document.getElementById('coursesLoading').style.display = 'none';
+      document.getElementById('coursesError').innerText = 'Failed to load courses.';
+      document.getElementById('coursesError').style.display = 'block';
+    });
+}
+
+function selectAllCourses(select) {
+  document.querySelectorAll('.course-checkbox').forEach(cb => cb.checked = select);
+}
+
+function showSyncProgress(show) {
+  const progressIndicator = document.getElementById('syncProgressIndicator');
+  const syncSelectedBtn = document.getElementById('syncSelectedBtn');
+  const syncAllBtn = document.getElementById('syncAllBtn');
+  const closeModalBtn = document.getElementById('closeModalBtn');
+  
+  if (show) {
+    progressIndicator.style.display = 'block';
+    syncSelectedBtn.disabled = true;
+    syncAllBtn.disabled = true;
+    closeModalBtn.disabled = true;
+  } else {
+    progressIndicator.style.display = 'none';
+    syncSelectedBtn.disabled = false;
+    syncAllBtn.disabled = false;
+    closeModalBtn.disabled = false;
+  }
+}
+
+function syncSelectedCourses() {
+  const selected = Array.from(document.querySelectorAll('.course-checkbox:checked')).map(cb => cb.value);
+  if (selected.length === 0) {
+    alert('Please select at least one course.');
+    return;
+  }
+  
+  // Show sync in progress
+  showSyncProgress(true);
+  
+  fetch('/canvas/sync_selected_courses/', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({course_ids: selected})
+  })
+  .then(response => response.json())
+  .then(data => {
+    // Hide progress indicator
+    showSyncProgress(false);
+    
+    if (data.synced && data.synced.length > 0) {
+      alert('Successfully synced ' + data.synced.length + ' course(s)');
+      location.reload();
+    } else {
+      alert('No courses were synced. Errors: ' + JSON.stringify(data.errors));
+    }
+  })
+  .catch(error => {
+    // Hide progress indicator and show error
+    showSyncProgress(false);
+    alert('An error occurred while syncing courses. Please try again.');
+    console.error('Sync error:', error);
+  });
+}
+
+function syncAllCourses() {
+  selectAllCourses(true);
+  syncSelectedCourses();
+}
+
+// Bootstrap 5: load courses when modal is shown
+var syncCoursesModal = document.getElementById('syncCoursesModal');
+syncCoursesModal && syncCoursesModal.addEventListener('show.bs.modal', function (event) {
+  loadCoursesForModal();
+});
+</script>
+{% endblock %}

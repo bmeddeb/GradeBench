@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block title %}Canvas | GradeBench{% endblock %}
+
+{% block nav_canvas %}active{% endblock %}
+{% block nav_canvas_show %}show{% endblock %}
+
+{% block content %}
+    {% block canvas_content %}{% endblock %}
+{% endblock %}
+
+{% block extra_js %}
+    {% load static %}
+    <!-- Include Canvas Sync Progress JS -->
+    <script src="{% static 'js/canvas-sync-progress.js' %}"></script>
+    {% block canvas_js %}{% endblock %}
+{% endblock %}
+
+{% block extra_css %}
+    {% block canvas_css %}{% endblock %}
+{% endblock %}

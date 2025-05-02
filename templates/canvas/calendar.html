@@ -1,0 +1,34 @@
+{% extends 'canvas/base.html' %}
+{% load static %}
+
+{% block title %}Calendar | GradeBench Canvas{% endblock %}
+{% block page_title %}Course Calendar{% endblock %}
+{% block nav_canvas_dashboard %}active{% endblock %}
+
+{% block canvas_content %}
+<div class="card">
+  <div class="card-header">
+    <h4 class="card-title">Calendar for {{ course.name }}</h4>
+  </div>
+  <div class="card-content">
+    <ul class="list-group">
+      {% for ev in events %}
+        <li class="list-group-item">
+          <strong>{{ ev.title }}</strong><br>
+          {% if ev.all_day %}
+            All day on {{ ev.start_at|date:"M j, Y" }}
+          {% else %}
+            {{ ev.start_at|date:"M j, Y, P" }} – {{ ev.end_at|date:"P" }}
+          {% endif %}
+          {% if ev.description %}
+            <p>{{ ev.description|safe }}</p>
+          {% endif %}
+          <a href="{{ ev.html_url }}" class="btn btn-xs btn-primary">View in Canvas</a>
+        </li>
+      {% empty %}
+        <li class="list-group-item">No events found.</li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+{% endblock %}

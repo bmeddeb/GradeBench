@@ -1,0 +1,227 @@
+{% extends 'base_dashboard.html' %}
+
+{% block title %}Profile - GradeBench{% endblock %}
+{% block page_title %}User Profile{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4">
+        <div class="card card-user">
+            <div class="image">
+                <img src="/static/img/bg/damir-bosnjak.jpg" alt="Background Image">
+            </div>
+            <div class="card-body">
+                <div class="author">
+                    <a href="#">
+                        <img class="avatar border-gray" src="/static/img/default-avatar.png" alt="Profile Image">
+                        <h5 class="title">{{ user.get_full_name|default:user.username }}</h5>
+                    </a>
+                    <p class="description">
+                        @{{ user.username }}
+                    </p>
+                </div>
+                <p class="description text-center">
+                    {% if profile.github_username %}
+                    GitHub: {{ profile.github_username }}<br>
+                    {% endif %}
+                    Joined: {{ user.date_joined|date:"F j, Y" }}
+                </p>
+            </div>
+            <div class="card-footer">
+                <hr>
+                <div class="button-container">
+                    <div class="row">
+                        <div class="col-lg-4 col-md-6 col-6 ml-auto">
+                            <h5>5<br><small>Repos</small></h5>
+                        </div>
+                        <div class="col-lg-4 col-md-6 col-6 ml-auto mr-auto">
+                            <h5>128<br><small>Commits</small></h5>
+                        </div>
+                        <div class="col-lg-4 mr-auto">
+                            <h5>92.5%<br><small>Grade</small></h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title">Profile Information</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{% url 'profile' %}">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-6 pr-1">
+                            <div class="form-group">
+                                <label>Username (disabled)</label>
+                                <input type="text" class="form-control" disabled value="{{ user.username }}">
+                            </div>
+                        </div>
+                        <div class="col-md-6 pl-1">
+                            <div class="form-group">
+                                <label>Email address</label>
+                                <input type="email" class="form-control" name="email" value="{{ user.email }}">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 pr-1">
+                            <div class="form-group">
+                                <label>First Name</label>
+                                <input type="text" class="form-control" name="first_name" value="{{ user.first_name }}">
+                            </div>
+                        </div>
+                        <div class="col-md-6 pl-1">
+                            <div class="form-group">
+                                <label>Last Name</label>
+                                <input type="text" class="form-control" name="last_name" value="{{ user.last_name }}">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label>GitHub Username</label>
+                                <input type="text" class="form-control" disabled value="{{ profile.github_username|default:'' }}">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label>Phone Number</label>
+                                <input type="text" class="form-control" name="phone_number" value="{{ profile.phone_number|default:'' }}">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label>About Me</label>
+                                <textarea class="form-control textarea" name="bio">{{ profile.bio|default:'' }}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="update ml-auto mr-auto">
+                            <button type="submit" class="btn btn-primary btn-round">Update Profile</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title">Connected GitHub Repositories</h4>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead class="text-primary">
+                            <tr>
+                                <th>Repository Name</th>
+                                <th>Description</th>
+                                <th class="text-center">Commits</th>
+                                <th class="text-center">Last Activity</th>
+                                <th class="text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Repository 1</td>
+                                <td>First test repository for Django project</td>
+                                <td class="text-center">42</td>
+                                <td class="text-center">2 days ago</td>
+                                <td class="text-right">
+                                    <button class="btn btn-sm btn-info btn-icon"><i class="fa fa-eye"></i></button>
+                                    <button class="btn btn-sm btn-success btn-icon"><i class="fa fa-refresh"></i></button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Repository 2</td>
+                                <td>Frontend React application</td>
+                                <td class="text-center">36</td>
+                                <td class="text-center">3 days ago</td>
+                                <td class="text-right">
+                                    <button class="btn btn-sm btn-info btn-icon"><i class="fa fa-eye"></i></button>
+                                    <button class="btn btn-sm btn-success btn-icon"><i class="fa fa-refresh"></i></button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Repository 3</td>
+                                <td>Backend API service</td>
+                                <td class="text-center">28</td>
+                                <td class="text-center">1 week ago</td>
+                                <td class="text-right">
+                                    <button class="btn btn-sm btn-info btn-icon"><i class="fa fa-eye"></i></button>
+                                    <button class="btn btn-sm btn-success btn-icon"><i class="fa fa-refresh"></i></button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Repository 4</td>
+                                <td>Documentation website</td>
+                                <td class="text-center">14</td>
+                                <td class="text-center">2 weeks ago</td>
+                                <td class="text-right">
+                                    <button class="btn btn-sm btn-info btn-icon"><i class="fa fa-eye"></i></button>
+                                    <button class="btn btn-sm btn-success btn-icon"><i class="fa fa-refresh"></i></button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Repository 5</td>
+                                <td>Data analysis tools</td>
+                                <td class="text-center">8</td>
+                                <td class="text-center">3 weeks ago</td>
+                                <td class="text-right">
+                                    <button class="btn btn-sm btn-info btn-icon"><i class="fa fa-eye"></i></button>
+                                    <button class="btn btn-sm btn-success btn-icon"><i class="fa fa-refresh"></i></button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="row">
+                    <div class="update ml-auto mr-auto">
+                        <button class="btn btn-primary btn-round">Connect New Repository</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Fetch GitHub profile data
+        async function fetchGitHubProfile() {
+            try {
+                const response = await fetch('/api/github-profile/');
+                const data = await response.json();
+
+                if (data.error) {
+                    console.error('Error fetching GitHub profile:', data.error);
+                } else {
+                    console.log('GitHub profile data:', data);
+                    // Update UI with GitHub data if needed
+                }
+            } catch (error) {
+                console.error('Failed to fetch GitHub profile:', error);
+            }
+        }
+
+        // Call the function when the page loads
+        fetchGitHubProfile();
+    });
+</script>
+{% endblock %}

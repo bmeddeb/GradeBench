@@ -1,0 +1,92 @@
+{% extends 'canvas/base.html' %}
+{% load static %}
+
+{% block title %}Canvas Assignments | GradeBench{% endblock %}
+{% block page_title %}Canvas Assignments{% endblock %}
+{% block nav_canvas_assignments %}active{% endblock %}
+
+{% block canvas_content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <h4 class="card-title">Canvas Assignments</h4>
+                    <p class="card-category">All assignments across Canvas courses</p>
+                </div>
+                {% if assignments_by_course %}
+                <div>
+                    <a href="{% url 'canvas_courses_list' %}" class="btn btn-primary btn-sm">
+                        <i class="fa fa-plus"></i> Add More Courses
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if assignments_by_course %}
+                    {% for course_data in assignments_by_course %}
+                    <div class="course-section mb-4">
+                        <h4>{{ course_data.course.course_code }}: {{ course_data.course.name }}</h4>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="text-primary">
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Due Date</th>
+                                        <th>Points</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for assignment in course_data.assignments %}
+                                    <tr>
+                                        <td>{{ assignment.name }}</td>
+                                        <td>
+                                            {% if assignment.due_at %}
+                                            {{ assignment.due_at|date:"M d, Y" }}
+                                            {% else %}
+                                            No due date
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ assignment.points_possible }}</td>
+                                        <td>
+                                            {% if assignment.published %}
+                                            <span class="badge bg-success">Published</span>
+                                            {% else %}
+                                            <span class="badge bg-warning">Unpublished</span>
+                                            {% endif %}
+
+                                            {% if assignment.muted %}
+                                            <span class="badge bg-info">Muted</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="{% url 'canvas_assignment_detail' course_id=course_data.course.canvas_id assignment_id=assignment.canvas_id %}" class="btn btn-info btn-xs">
+                                                <i class="fa fa-eye"></i> View
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    {% if not forloop.last %}<hr class="mb-4">{% endif %}
+                    {% endfor %}
+                {% else %}
+                <div class="text-center py-5">
+                    <h3>No assignments found</h3>
+                    <p>No assignments have been created in any Canvas courses yet.</p>
+                    <p>
+                        <a href="{% url 'canvas_courses_list' %}" class="btn btn-primary btn-fill mt-3">
+                            <i class="fa fa-plus"></i> Add Courses from Canvas
+                        </a>
+                    </p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

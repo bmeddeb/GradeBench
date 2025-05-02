@@ -1,0 +1,600 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - GradeBench{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block nav_dashboard %}active{% endblock %}
+
+{% block extra_css %}
+<!-- FullCalendar CSS -->
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet" />
+<style>
+    /* Paper Dashboard Pro calendar styling */
+    .card-calendar {
+        margin-bottom: 20px;
+    }
+    
+    .card-calendar .fc {
+        max-height: 600px;
+        margin-top: 30px;
+    }
+    
+    .card-calendar .fc-toolbar h2 {
+        font-size: 1.25rem;
+        line-height: 1.4em;
+        margin: 0;
+        color: #252422;
+        font-weight: 300;
+    }
+    
+    .card-calendar .fc .fc-toolbar-title {
+        font-size: 1.5em !important;
+        margin-top: 0;
+        margin-bottom: 0;
+        color: #252422;
+        font-weight: 300;
+        font-family: "Montserrat", "Helvetica", Arial, sans-serif;
+    }
+    
+    .card-calendar .fc-theme-standard .fc-scrollgrid {
+        border: 1px solid #ddd;
+        border-right: 0;
+        border-bottom: 0;
+    }
+    
+    .card-calendar .fc-theme-standard td, 
+    .card-calendar .fc-theme-standard th {
+        border: 1px solid #ddd;
+    }
+    
+    .card-calendar .fc-theme-standard .fc-scrollgrid {
+        border: 1px solid #ddd;
+    }
+    
+    .card-calendar .fc .fc-col-header-cell-cushion,
+    .card-calendar .fc .fc-daygrid-day-number {
+        color: #66615b;
+        font-weight: 400;
+        opacity: 0.8;
+    }
+
+    .card-calendar .fc-day-today {
+        background-color: rgba(252, 248, 227, 0.3) !important;
+    }
+    
+    .card-calendar .fc-header-toolbar {
+        margin-bottom: 15px !important;
+    }
+    
+    .card-calendar .fc-button-primary {
+        background-color: #66615B !important;
+        border-color: #66615B !important;
+        box-shadow: none;
+        outline: 0 !important;
+        transition: all 0.15s linear;
+    }
+    
+    .card-calendar .fc-button-primary:hover {
+        background-color: #403D39 !important;
+        border-color: #403D39 !important;
+        opacity: 1;
+    }
+    
+    .card-calendar .fc-button-primary:not(:disabled):active,
+    .card-calendar .fc-button-primary.fc-button-active {
+        background-color: #51cbce !important;
+        border-color: #51cbce !important;
+    }
+    
+    .card-calendar .fc-button-primary:disabled {
+        background-color: rgba(102, 97, 91, 0.7) !important;
+        border-color: rgba(102, 97, 91, 0.7) !important;
+    }
+    
+    .card-calendar .fc-button {
+        font-size: 0.8rem;
+        font-weight: 400;
+        padding: 5px 10px;
+        border-radius: 4px;
+        margin-left: 2px;
+        margin-right: 2px;
+    }
+    
+    .card-calendar .fc-daygrid-event {
+        border-radius: 4px;
+        padding: 2px 4px;
+    }
+    
+    /* Event colors */
+    .card-calendar .fc .event-primary {
+        background-color: #51cbce;
+        border-color: #51cbce;
+        color: #FFFFFF;
+    }
+    
+    .card-calendar .fc .event-info {
+        background-color: #51bcda;
+        border-color: #51bcda;
+        color: #FFFFFF;
+    }
+    
+    .card-calendar .fc .event-success {
+        background-color: #6bd098;
+        border-color: #6bd098;
+        color: #FFFFFF;
+    }
+    
+    .card-calendar .fc .event-warning {
+        background-color: #fbc658;
+        border-color: #fbc658;
+        color: #FFFFFF;
+    }
+    
+    .card-calendar .fc .event-danger {
+        background-color: #ef8157;
+        border-color: #ef8157;
+        color: #FFFFFF;
+    }
+    
+    /* Modal styling */
+    #importIcsModal .modal-body,
+    #eventDetailsModal .modal-body {
+        padding: 20px;
+    }
+    
+    .modal .modal-header .close {
+        color: #66615B;
+        opacity: 0.8;
+        text-shadow: none;
+    }
+    
+    .modal .modal-header .modal-title {
+        color: #252422;
+        font-weight: 400;
+    }
+    
+    /* Button styling */
+    .btn-round {
+        border-radius: 30px;
+    }
+    
+    /* Fix for TimeGrid views (week/day) overflow */
+    .card-calendar .fc-timegrid-body {
+        overflow-x: hidden !important;
+    }
+    
+    .card-calendar .fc-timegrid-body .fc-timegrid-slots {
+        font-size: 0.85em;
+    }
+    
+    .card-calendar .fc-timegrid-slot {
+        height: 1.5em;
+    }
+    
+    .card-calendar .fc-timegrid-slot-minor {
+        border-top-style: none;
+    }
+    
+    /* Adjust height for different views */
+    .card-calendar .fc-view-harness {
+        min-height: 450px;
+        max-height: 550px;
+        overflow-x: hidden;
+    }
+    
+    .card-calendar .fc-timegrid.fc-timeGridWeek-view,
+    .card-calendar .fc-timegrid.fc-timeGridDay-view {
+        max-height: 550px;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+    
+    /* Adjust the scrollable area for time grid views */
+    .card-calendar .fc-scroller-liquid-absolute {
+        overflow: auto !important;
+    }
+    
+    /* Make the day grid fit within container better */
+    .card-calendar .fc-daygrid-body {
+        width: 100% !important;
+    }
+    
+    .card-calendar .fc-scrollgrid-sync-table {
+        width: 100% !important;
+    }
+    
+    .fullcalendar-container {
+        height: auto;
+        min-height: 500px;
+        max-height: 600px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-3 col-md-6 col-sm-6">
+        <div class="card card-stats">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-5 col-md-4">
+                        <div class="icon-big text-center icon-warning">
+                            <i class="nc-icon nc-globe text-warning"></i>
+                        </div>
+                    </div>
+                    <div class="col-7 col-md-8">
+                        <div class="numbers">
+                            <p class="card-category">Repositories</p>
+                            <p class="card-title">5</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer">
+                <hr>
+                <div class="stats">
+                    <i class="fa fa-refresh"></i> Updated Now
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 col-sm-6">
+        <div class="card card-stats">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-5 col-md-4">
+                        <div class="icon-big text-center icon-warning">
+                            <i class="nc-icon nc-vector text-success"></i>
+                        </div>
+                    </div>
+                    <div class="col-7 col-md-8">
+                        <div class="numbers">
+                            <p class="card-category">Commits</p>
+                            <p class="card-title">128</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer">
+                <hr>
+                <div class="stats">
+                    <i class="fa fa-calendar-o"></i> Last 7 days
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 col-sm-6">
+        <div class="card card-stats">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-5 col-md-4">
+                        <div class="icon-big text-center icon-warning">
+                            <i class="nc-icon nc-favourite-28 text-primary"></i>
+                        </div>
+                    </div>
+                    <div class="col-7 col-md-8">
+                        <div class="numbers">
+                            <p class="card-category">Grade</p>
+                            <p class="card-title">92.5%</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer">
+                <hr>
+                <div class="stats">
+                    <i class="fa fa-clock-o"></i> Current Average
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 col-sm-6">
+        <div class="card card-stats">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-5 col-md-4">
+                        <div class="icon-big text-center icon-warning">
+                            <i class="nc-icon nc-ruler-pencil text-danger"></i>
+                        </div>
+                    </div>
+                    <div class="col-7 col-md-8">
+                        <div class="numbers">
+                            <p class="card-category">Assignments</p>
+                            <p class="card-title">8</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer">
+                <hr>
+                <div class="stats">
+                    <i class="fa fa-refresh"></i> Total Count
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Calendar row -->
+<div class="row">
+    <div class="col-12">
+        <div class="card card-calendar">
+            <div class="card-header">
+                <div class="row">
+                    <div class="col-md-8">
+                        <h4 class="card-title">Calendar</h4>
+                        <p class="card-category">Your upcoming events and deadlines</p>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <button class="btn btn-sm btn-primary btn-round" data-bs-toggle="modal" data-bs-target="#importIcsModal">
+                            <i class="fa fa-upload"></i> Import Calendar
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="calendar" class="fullcalendar-container"></div>
+            </div>
+            <div class="card-footer">
+                <hr>
+                <div class="stats">
+                    <i class="fa fa-calendar"></i> Calendar is synchronized with your courses and assignments
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Import Calendar Modal -->
+<div class="modal fade" id="importIcsModal" tabindex="-1" aria-labelledby="importIcsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="importIcsModalLabel">Import Calendar (.ics file)</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="uploadIcsForm" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="icsFile" class="form-label">Select a .ics calendar file</label>
+                        <input class="form-control" type="file" id="icsFile" name="ics_file" accept=".ics">
+                    </div>
+                    <div class="mb-3">
+                        <label for="calendarSource" class="form-label">Calendar Source</label>
+                        <select class="form-control" id="calendarSource" name="source">
+                            <option value="canvas">Canvas</option>
+                            <option value="github">GitHub</option>
+                            <option value="custom">Custom</option>
+                        </select>
+                    </div>
+                    <div class="alert alert-info">
+                        <p><strong>Tip:</strong> You can export your calendar from Canvas or other platforms as an .ics file, then import it here.</p>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="submitIcsUpload">Import</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Event Details Modal -->
+<div class="modal fade" id="eventDetailsModal" tabindex="-1" aria-labelledby="eventDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="eventDetailsModalLabel">Event Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong>Title:</strong> <span id="eventTitle"></span></p>
+                <p><strong>Start:</strong> <span id="eventStart"></span></p>
+                <p><strong>End:</strong> <span id="eventEnd"></span></p>
+                <p><strong>Location:</strong> <span id="eventLocation"></span></p>
+                <div id="eventDescriptionContainer">
+                    <p><strong>Description:</strong></p>
+                    <p id="eventDescription"></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- FullCalendar JS -->
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+
+<script>
+    $(document).ready(function() {
+        // Setup CSRF token for all AJAX requests
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    // Does this cookie string begin with the name we want?
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        
+        const csrftoken = getCookie('csrftoken');
+        
+        $.ajaxSetup({
+            beforeSend: function(xhr, settings) {
+                if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                }
+            }
+        });
+        
+        // Initialize FullCalendar
+        const calendarEl = document.getElementById('calendar');
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'title',
+                center: 'dayGridMonth,timeGridWeek,timeGridDay,listMonth',
+                right: 'prev,next,today'
+            },
+            height: 'auto',
+            navLinks: true,
+            editable: false,
+            selectable: true,
+            selectHelper: true,
+            nowIndicator: true,
+            dayMaxEvents: true,
+            events: '/api/calendar/events/',
+            eventClassNames: function(arg) {
+                // Assign color classes based on event source or type
+                if (arg.event.extendedProps.source === 'canvas') {
+                    return ['event-primary'];
+                } else if (arg.event.extendedProps.source === 'github') {
+                    return ['event-success'];
+                } else if (arg.event.extendedProps.source === 'deadline') {
+                    return ['event-danger'];
+                } else if (arg.event.extendedProps.source === 'meeting') {
+                    return ['event-warning'];
+                } else {
+                    return ['event-info'];
+                }
+            },
+            // Adjust view options for different views
+            viewDidMount: function(info) {
+                // Add specific class based on the view to help with CSS targeting
+                if (info.view.type === 'timeGridWeek' || info.view.type === 'timeGridDay') {
+                    $('.card-calendar .fc-view-harness').addClass('time-grid-view');
+                } else {
+                    $('.card-calendar .fc-view-harness').removeClass('time-grid-view');
+                }
+            },
+            loading: function(isLoading) {
+                if (isLoading) {
+                    // Show loading indicator
+                    $('#calendar').append('<div class="fc-loading">Loading...</div>');
+                } else {
+                    // Remove loading indicator
+                    $('.fc-loading').remove();
+                }
+            },
+            eventClick: function(info) {
+                // Show event details in modal
+                $('#eventTitle').text(info.event.title);
+                $('#eventStart').text(formatDate(info.event.start));
+                
+                if (info.event.end) {
+                    $('#eventEnd').text(formatDate(info.event.end));
+                } else {
+                    $('#eventEnd').text('N/A');
+                }
+                
+                if (info.event.extendedProps.location) {
+                    $('#eventLocation').text(info.event.extendedProps.location);
+                } else {
+                    $('#eventLocation').text('N/A');
+                }
+                
+                if (info.event.extendedProps.description) {
+                    $('#eventDescriptionContainer').show();
+                    $('#eventDescription').text(info.event.extendedProps.description);
+                } else {
+                    $('#eventDescriptionContainer').hide();
+                }
+                
+                $('#eventDetailsModal').modal('show');
+            }
+        });
+        
+        calendar.render();
+        
+        // Format date for event details modal
+        function formatDate(date) {
+            if (!date) return 'N/A';
+            
+            const options = { 
+                weekday: 'long',
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            };
+            
+            return date.toLocaleDateString(undefined, options);
+        }
+        
+        // Handle ICS file upload
+        $('#submitIcsUpload').click(function() {
+            const formData = new FormData($('#uploadIcsForm')[0]);
+            const fileInput = $('#icsFile')[0];
+            
+            if (fileInput.files.length === 0) {
+                alert('Please select a file to upload');
+                return;
+            }
+            
+            $.ajax({
+                url: '/api/calendar/upload-ics/',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    $('#importIcsModal').modal('hide');
+                    
+                    // Show success notification
+                    $.notify({
+                        icon: "nc-icon nc-check-2",
+                        message: response.message
+                    }, {
+                        type: 'success',
+                        timer: 4000,
+                        placement: {
+                            from: 'top',
+                            align: 'right'
+                        }
+                    });
+                    
+                    // Refresh calendar
+                    calendar.refetchEvents();
+                    
+                    // Reset form
+                    $('#uploadIcsForm')[0].reset();
+                },
+                error: function(xhr) {
+                    let errorMessage = 'An error occurred while importing the calendar file.';
+                    
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
+                    }
+                    
+                    // Show error notification
+                    $.notify({
+                        icon: "nc-icon nc-simple-remove",
+                        message: errorMessage
+                    }, {
+                        type: 'danger',
+                        timer: 4000,
+                        placement: {
+                            from: 'top',
+                            align: 'right'
+                        }
+                    });
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}
