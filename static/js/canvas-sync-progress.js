@@ -67,7 +67,8 @@ function initSyncProgressUI() {
         if (courseIdParam) {
             window.location.href = `/canvas/course/${courseIdParam}/`;
         } else {
-            window.location.href = '/canvas/';
+            // For the courses list view, reload to show the latest courses
+            window.location.href = '/canvas/course/';
         }
     });
 }
@@ -194,13 +195,22 @@ function updateProgressUI(data) {
             statusText = 'Fetching course information...';
             break;
         case 'fetching_enrollments':
-            statusText = 'Fetching students and instructor data...';
+            statusText = 'Fetching student and instructor enrollments...';
+            break;
+        case 'fetching_users':
+            statusText = 'Fetching user details and email addresses...';
             break;
         case 'fetching_assignments':
             statusText = 'Fetching assignments...';
             break;
+        case 'fetching_submissions':
+            statusText = 'Fetching assignment submissions...';
+            break;
         case 'processing_submissions':
             statusText = 'Processing assignment submissions...';
+            break;
+        case 'saving_data':
+            statusText = 'Saving data to database...';
             break;
         case 'completed':
             statusText = 'Sync completed successfully!';
@@ -229,6 +239,14 @@ function syncCompleted(data) {
         if (!document.getElementById('syncProgressModal').classList.contains('show')) {
             showNotification('Sync completed successfully!', 'success');
         }
+        
+        // Add option to auto-refresh the page after a short delay
+        setTimeout(() => {
+            // Only refresh if we're still on a Canvas page
+            if (window.location.pathname.includes('/canvas/')) {
+                window.location.reload();
+            }
+        }, 1500);
     } else if (data.status === 'error') {
         syncProgressBar.classList.remove('progress-bar-animated');
         syncProgressText.innerText = 'Sync failed!';

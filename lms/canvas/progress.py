@@ -13,8 +13,11 @@ class SyncProgress:
     STATUS_PENDING = 'pending'
     STATUS_FETCHING_COURSE = 'fetching_course'
     STATUS_FETCHING_ENROLLMENTS = 'fetching_enrollments'
-    STATUS_FETCHING_ASSIGNMENTS = 'fetching_assignments' 
+    STATUS_FETCHING_USERS = 'fetching_users'
+    STATUS_FETCHING_ASSIGNMENTS = 'fetching_assignments'
+    STATUS_FETCHING_SUBMISSIONS = 'fetching_submissions'
     STATUS_PROCESSING_SUBMISSIONS = 'processing_submissions'
+    STATUS_SAVING_DATA = 'saving_data'
     STATUS_COMPLETED = 'completed'
     STATUS_ERROR = 'error'
     
