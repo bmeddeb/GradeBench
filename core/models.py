@@ -5,6 +5,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils import timezone
 from core.async_utils import AsyncModelMixin
+from encrypted_model_fields.fields import EncryptedCharField
 
 
 class UserProfile(models.Model, AsyncModelMixin):
@@ -15,7 +16,7 @@ class UserProfile(models.Model, AsyncModelMixin):
         User, on_delete=models.CASCADE, related_name='profile'
     )
     github_username = models.CharField(max_length=100, blank=True, null=True)
-    github_access_token = models.CharField(
+    github_access_token = EncryptedCharField(
         max_length=255, blank=True, null=True
     )
     github_avatar_url = models.URLField(
@@ -44,7 +45,7 @@ class GitHubToken(models.Model, AsyncModelMixin):
     Model to store multiple GitHub tokens for professors and TAs
     """
     name = models.CharField(max_length=100)
-    token = models.CharField(max_length=255)
+    token = EncryptedCharField()
     scope = models.CharField(max_length=255, blank=True, null=True)
     last_used = models.DateTimeField(blank=True, null=True)
     rate_limit_remaining = models.IntegerField(default=5000)
@@ -70,8 +71,10 @@ class StaffProfile(models.Model, AsyncModelMixin):
         UserProfile, on_delete=models.CASCADE
     )
     github_tokens = models.ManyToManyField(GitHubToken, blank=True)
-    lms_access_token = models.CharField(max_length=255, blank=True, null=True)
-    lms_refresh_token = models.CharField(max_length=255, blank=True, null=True)
+    lms_access_token = EncryptedCharField(
+        max_length=255, blank=True, null=True)
+    lms_refresh_token = EncryptedCharField(
+        max_length=255, blank=True, null=True)
     lms_token_expires = models.DateTimeField(blank=True, null=True)
 
     class Meta:
@@ -127,7 +130,8 @@ class Student(models.Model, AsyncModelMixin):
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
     email = models.EmailField(unique=True)
-    student_id = models.CharField(max_length=20, blank=True, null=True, unique=True)
+    student_id = models.CharField(
+        max_length=20, blank=True, null=True, unique=True)
 
     # Team association
     team = models.ForeignKey(
@@ -214,16 +218,17 @@ class Student(models.Model, AsyncModelMixin):
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):
     from django.db import connection
-    
+
     # Check if the UserProfile table exists
     with connection.cursor() as cursor:
         table_name = UserProfile._meta.db_table
         try:
-            cursor.execute(f"SELECT 1 FROM sqlite_master WHERE type='table' AND name='{table_name}';")
+            cursor.execute(
+                f"SELECT 1 FROM sqlite_master WHERE type='table' AND name='{table_name}';")
             table_exists = cursor.fetchone() is not None
         except:
             table_exists = False
-    
+
     if created and table_exists:
         UserProfile.objects.create(user=instance)
 
