@@ -376,7 +376,6 @@
           <span class="ms-2">Syncing courses, please wait...</span>
         </div>
         <button id="syncSelectedBtn" class="btn btn-primary" onclick="syncSelectedCourses()">Sync Selected</button>
-        <button id="syncAllBtn" class="btn btn-secondary" onclick="syncAllCourses()">Sync All</button>
         <button id="closeModalBtn" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
       </div>
     </div>
@@ -389,18 +388,15 @@
 function showSyncProgress(show) {
   const progressIndicator = document.getElementById('syncProgressIndicator');
   const syncSelectedBtn = document.getElementById('syncSelectedBtn');
-  const syncAllBtn = document.getElementById('syncAllBtn');
   const closeModalBtn = document.getElementById('closeModalBtn');
   
   if (show) {
     progressIndicator.style.display = 'block';
     syncSelectedBtn.disabled = true;
-    syncAllBtn.disabled = true;
     closeModalBtn.disabled = true;
   } else {
     progressIndicator.style.display = 'none';
     syncSelectedBtn.disabled = false;
-    syncAllBtn.disabled = false;
     closeModalBtn.disabled = false;
   }
 }
@@ -446,33 +442,18 @@ function syncSelectedCourses() {
     return;
   }
   
-  // Show sync in progress
-  showSyncProgress(true);
+  // Hide the modal
+  const syncModal = bootstrap.Modal.getInstance(document.getElementById('syncCoursesModal'));
+  syncModal.hide();
   
-  fetch('/canvas/sync_selected_courses/', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({course_ids: selected})
-  })
-  .then(response => response.json())
-  .then(data => {
-    // Hide progress indicator
-    showSyncProgress(false);
-    
-    if (data.synced && data.synced.length > 0) {
-      alert('Successfully synced ' + data.synced.length + ' course(s)');
-      location.reload();
-    } else {
-      alert('No courses were synced. Errors: ' + JSON.stringify(data.errors));
-    }
-  })
-  .catch(error => {
-    // Hide progress indicator and show error
-    showSyncProgress(false);
-    alert('An error occurred while syncing courses. Please try again.');
-    console.error('Sync error:', error);
-  });
+  // Start sync with progress tracking
+  startSyncWithProgress(
+    '/canvas/sync_selected_courses/', 
+    {course_ids: selected}
+  );
 }
+
+// This function is retained for backward compatibility but is no longer used in the UI
 
 function syncAllCourses() {
   selectAllCourses(true);
@@ -489,27 +470,18 @@ function syncCurrentCourse() {
   const pathParts = window.location.pathname.split('/');
   const courseId = pathParts[pathParts.indexOf('course') + 1];
   
-  fetch('/canvas/sync_selected_courses/', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({course_ids: [courseId]})
-  })
-  .then(response => response.json())
-  .then(data => {
-    if (data.synced && data.synced.length > 0) {
-      location.reload();
-    } else {
-      alert('Failed to sync course. Error: ' + JSON.stringify(data.errors));
-      syncButton.innerHTML = '<i class="fa fa-refresh"></i>';
-      syncButton.disabled = false;
-    }
-  })
-  .catch(error => {
-    console.error('Sync error:', error);
-    alert('An error occurred while syncing the course. Please try again.');
+  // Start sync with progress tracking
+  startSyncWithProgress(
+    '/canvas/sync_selected_courses/', 
+    {course_ids: [courseId]},
+    courseId
+  );
+  
+  // Reset button after starting the sync
+  setTimeout(() => {
     syncButton.innerHTML = '<i class="fa fa-refresh"></i>';
     syncButton.disabled = false;
-  });
+  }, 1000);
 }
 
 // Bootstrap 5: load courses when modal is shown

@@ -222,17 +222,45 @@ def canvas_sync(request):
         messages.error(request, 'Canvas integration not set up')
         return redirect('canvas_setup')
 
-    try:
+    # For a direct URL access, we'll redirect to a page that shows progress
+    # Initialize the sync in a background thread
+    user_id = request.user.id
+    import threading
+    from .client import Client
+    import asyncio
+    from .progress import SyncProgress
+    
+    # Initialize progress tracking
+    SyncProgress.start_sync(user_id, None, total_steps=10)  # Placeholder total, will be updated during sync
+    
+    def run_sync():
         client = Client(integration)
-        # The client.sync_all_courses method is already async, so don't use sync_to_async
-        import asyncio
-        synced_courses = asyncio.run(client.sync_all_courses())
-        messages.success(
-            request, f'Successfully synced {len(synced_courses)} courses from Canvas')
-    except Exception as e:
-        logger.error(f"Error syncing courses: {e}")
-        messages.error(request, f'Error syncing courses: {str(e)}')
-
+        try:
+            synced_courses = asyncio.run(client.sync_all_courses(user_id))
+            logger.info(f"Successfully synced {len(synced_courses)} courses from Canvas")
+        except Exception as e:
+            logger.error(f"Error syncing courses: {e}")
+            # Update progress with error
+            SyncProgress.complete_sync(
+                user_id, 
+                None, 
+                success=False, 
+                message="Sync failed with an error",
+                error=str(e)
+            )
+    
+    # Start the sync in a background thread
+    sync_thread = threading.Thread(target=run_sync)
+    sync_thread.daemon = True
+    sync_thread.start()
+    
+    # Redirect to dashboard with message that sync has started
+    messages.info(request, 'Syncing courses from Canvas. This may take a while. You can check progress below.')
+    
+    # Add a session flag to indicate sync is in progress
+    request.session['canvas_sync_in_progress'] = True
+    request.session['canvas_sync_started'] = True
+    
     return redirect('canvas_dashboard')
 
 
@@ -437,16 +465,43 @@ def canvas_sync_single_course(request, course_id):
         messages.error(request, 'Canvas integration not set up')
         return redirect('canvas_setup')
 
-    try:
+    # Initialize the sync in a background thread
+    user_id = request.user.id
+    import threading
+    from .client import Client
+    import asyncio
+    from .progress import SyncProgress
+    
+    # Initialize progress before starting the thread
+    SyncProgress.start_sync(user_id, course_id)
+    
+    def run_sync():
         client = Client(integration)
-        # The client.sync_course method is already async, so don't use sync_to_async
-        import asyncio
-        course = asyncio.run(client.sync_course(course_id))
-        messages.success(request, f'Successfully synced course: {course.name}')
-    except Exception as e:
-        logger.error(f"Error syncing course {course_id}: {e}")
-        messages.error(request, f'Error syncing course: {str(e)}')
-
+        try:
+            course = asyncio.run(client.sync_course(course_id, user_id))
+            logger.info(f"Successfully synced course: {course.name}")
+        except Exception as e:
+            logger.error(f"Error syncing course {course_id}: {e}")
+            # Update progress with error
+            SyncProgress.complete_sync(
+                user_id, 
+                course_id, 
+                success=False, 
+                message="Course sync failed with an error.",
+                error=str(e)
+            )
+    
+    # Start the sync in a background thread
+    sync_thread = threading.Thread(target=run_sync)
+    sync_thread.daemon = True
+    sync_thread.start()
+    
+    # Redirect with message that sync has started
+    messages.info(request, 'Course sync has started. This may take a while. You can check progress below.')
+    
+    # Add a session flag to indicate sync is in progress
+    request.session[f'canvas_sync_course_{course_id}_in_progress'] = True
+    
     return redirect('canvas_course_detail', course_id=course_id)
 
 
@@ -497,12 +552,35 @@ def canvas_list_available_courses(request):
     return JsonResponse({'courses': course_list})
 
 
+@login_required
+def canvas_sync_progress(request):
+    """
+    Get the current progress of a sync operation
+    """
+    from .progress import SyncProgress
+    user_id = request.user.id
+    course_id = request.GET.get('course_id')
+    
+    progress = SyncProgress.get(user_id, course_id)
+    
+    # If the status is completed or error, clear any session flags
+    if course_id and progress.get('status') in [SyncProgress.STATUS_COMPLETED, SyncProgress.STATUS_ERROR]:
+        session_key = f'canvas_sync_course_{course_id}_in_progress'
+        if session_key in request.session:
+            del request.session[session_key]
+    elif not course_id and progress.get('status') in [SyncProgress.STATUS_COMPLETED, SyncProgress.STATUS_ERROR]:
+        if 'canvas_sync_in_progress' in request.session:
+            del request.session['canvas_sync_in_progress']
+    
+    return JsonResponse(progress)
+
 @csrf_exempt
 @require_POST
 @login_required
 def canvas_sync_selected_courses(request):
     """
     Sync only the selected Canvas courses. Expects a POST with JSON: { "course_ids": [123, 456, ...] }
+    Uses AJAX with progress tracking for better UX.
     """
     import json
     integration = get_integration_for_user(request.user)
@@ -513,20 +591,81 @@ def canvas_sync_selected_courses(request):
         data = json.loads(request.body)
         course_ids = data.get('course_ids', [])
         if not course_ids:
-            return JsonResponse({'error': 'No course IDs provided'}, status=400)
-    except Exception:
-        return JsonResponse({'error': 'Invalid request'}, status=400)
+            return JsonResponse({
+                'error': 'Please select at least one course to sync',
+                'status': 'error'
+            }, status=400)
+    except Exception as e:
+        return JsonResponse({
+            'error': f'Invalid request format: {str(e)}',
+            'status': 'error'
+        }, status=400)
 
+    # For AJAX, we're going to start the sync process asynchronously and 
+    # immediately return a response to the client indicating that the 
+    # sync has been started
+    user_id = request.user.id
+    
+    # Start the sync in a background thread
+    import threading
     from .client import Client
     import asyncio
-    client = Client(integration)
-    synced = []
-    errors = []
-    for course_id in course_ids:
+    from .progress import SyncProgress
+    
+    # Initialize progress before starting the thread
+    SyncProgress.start_sync(user_id, None, total_steps=len(course_ids))
+    
+    def run_sync():
+        client = Client(integration)
         try:
-            course = asyncio.run(client.sync_course(course_id))
-            synced.append(course_id)
+            asyncio.run(sync_courses(client, course_ids, user_id))
         except Exception as e:
-            errors.append({'course_id': course_id, 'error': str(e)})
-
-    return JsonResponse({'synced': synced, 'errors': errors})
+            # Handle any unexpected errors in the thread
+            SyncProgress.complete_sync(user_id, None, success=False, error=str(e))
+    
+    async def sync_courses(client, course_ids, user_id):
+        synced = []
+        errors = []
+        
+        for i, course_id in enumerate(course_ids):
+            try:
+                # Update progress at the overall level
+                SyncProgress.update(
+                    user_id, 
+                    None,
+                    current=i, 
+                    total=len(course_ids),
+                    status="syncing_course",
+                    message=f"Syncing course {i+1} of {len(course_ids)}"
+                )
+                
+                # This will automatically update progress through the client
+                course = await client.sync_course(course_id, user_id)
+                synced.append(course_id)
+            except Exception as e:
+                errors.append({'course_id': course_id, 'error': str(e)})
+        
+        # Mark the overall sync as complete
+        success = len(synced) > 0
+        message = f"Completed sync of {len(synced)} out of {len(course_ids)} courses."
+        error = None if success else "Failed to sync any courses"
+        
+        SyncProgress.complete_sync(
+            user_id, 
+            None,
+            success=success,
+            message=message,
+            error=error
+        )
+    
+    # Start the sync in a background thread
+    sync_thread = threading.Thread(target=run_sync)
+    sync_thread.daemon = True
+    sync_thread.start()
+    
+    # Return immediately with a response that the sync has been started
+    return JsonResponse({
+        'status': 'started',
+        'message': f'Started syncing {len(course_ids)} course(s)',
+        'course_ids': course_ids
+    })

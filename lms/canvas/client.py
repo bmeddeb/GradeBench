@@ -266,67 +266,171 @@ class Client:
         )
         return submission
 
-    async def sync_course(self, course_id: int) -> CanvasCourse:
-        """Sync a course and its enrollments, assignments, and submissions"""
-        # Get course data
-        course_data = await self.get_course(course_id)
-        course = await self._save_course(course_data)
-
-        # Get enrollments
-        enrollments_data = await self.get_enrollments(course_id)
+    async def sync_course(self, course_id: int, user_id: int = None) -> CanvasCourse:
+        """
+        Sync a course and its enrollments, assignments, and submissions
         
-        # Get all users with emails (teachers, TAs, students, etc.)
-        users_data = await self.get_course_users(course_id)
-        
-        # Create a lookup dictionary for user emails by user_id
-        user_emails = {}
-        for user in users_data:
-            if 'id' in user and 'email' in user:
-                user_emails[user['id']] = user['email']
-        
-        # Process enrollments with emails from the user data
-        for enrollment_data in enrollments_data:
-            # Try to add email from our lookup for any enrollment type
-            if ('user_id' in enrollment_data and 
-                enrollment_data['user_id'] in user_emails):
-                
-                # Make sure there's a user dict
-                if 'user' not in enrollment_data:
-                    enrollment_data['user'] = {}
-                
-                # Add email from our lookup
-                enrollment_data['user']['email'] = user_emails[enrollment_data['user_id']]
+        Args:
+            course_id: Canvas course ID
+            user_id: ID of the user initiating the sync (for progress tracking)
+        """
+        # Initialize progress tracking if user_id is provided
+        from .progress import SyncProgress
+        if user_id:
+            await SyncProgress.async_start_sync(user_id, course_id, total_steps=4)
             
-            # Save the enrollment with the updated data
-            await self._save_enrollment(enrollment_data, course)
+        try:
+            # Step 1: Get course data
+            if user_id:
+                await SyncProgress.async_update(
+                    user_id, course_id, current=1, total=4, 
+                    status=SyncProgress.STATUS_FETCHING_COURSE,
+                    message="Fetching course information..."
+                )
+            course_data = await self.get_course(course_id)
+            course = await self._save_course(course_data)
 
-        # Get and sync assignments
-        assignments_data = await self.get_assignments(course_id)
-        for assignment_data in assignments_data:
-            assignment = await self._save_assignment(assignment_data, course)
+            # Step 2: Get enrollments and user data
+            if user_id:
+                await SyncProgress.async_update(
+                    user_id, course_id, current=2, total=4, 
+                    status=SyncProgress.STATUS_FETCHING_ENROLLMENTS,
+                    message="Fetching enrollments and user data..."
+                )
+            enrollments_data = await self.get_enrollments(course_id)
+            
+            # Get all users with emails (teachers, TAs, students, etc.)
+            users_data = await self.get_course_users(course_id)
+            
+            # Create a lookup dictionary for user emails by user_id
+            user_emails = {}
+            for user in users_data:
+                if 'id' in user and 'email' in user:
+                    user_emails[user['id']] = user['email']
+            
+            # Process enrollments with emails from the user data
+            for enrollment_data in enrollments_data:
+                # Try to add email from our lookup for any enrollment type
+                if ('user_id' in enrollment_data and 
+                    enrollment_data['user_id'] in user_emails):
+                    
+                    # Make sure there's a user dict
+                    if 'user' not in enrollment_data:
+                        enrollment_data['user'] = {}
+                    
+                    # Add email from our lookup
+                    enrollment_data['user']['email'] = user_emails[enrollment_data['user_id']]
+                
+                # Save the enrollment with the updated data
+                await self._save_enrollment(enrollment_data, course)
 
-            # Get and sync submissions for this assignment
-            submissions_data = await self.get_submissions(course_id, assignment_data['id'])
-            for submission_data in submissions_data:
-                await self._save_submission(submission_data, assignment)
+            # Step 3: Get and sync assignments
+            if user_id:
+                await SyncProgress.async_update(
+                    user_id, course_id, current=3, total=4, 
+                    status=SyncProgress.STATUS_FETCHING_ASSIGNMENTS,
+                    message="Fetching assignments..."
+                )
+            assignments_data = await self.get_assignments(course_id)
+            assignment_count = len(assignments_data)
+            
+            # Step 4: Process submissions for each assignment
+            if user_id:
+                await SyncProgress.async_update(
+                    user_id, course_id, current=3.5, total=4, 
+                    status=SyncProgress.STATUS_PROCESSING_SUBMISSIONS,
+                    message=f"Processing submissions for {assignment_count} assignments..."
+                )
+                
+            for i, assignment_data in enumerate(assignments_data):
+                assignment = await self._save_assignment(assignment_data, course)
+                
+                # Update progress on a per-assignment basis within step 4
+                if user_id and assignment_count > 0:
+                    progress = 3.5 + (0.5 * (i / assignment_count))
+                    await SyncProgress.async_update(
+                        user_id, course_id, 
+                        current=progress, 
+                        total=4,
+                        status=SyncProgress.STATUS_PROCESSING_SUBMISSIONS,
+                        message=f"Processing assignment {i+1} of {assignment_count}..."
+                    )
 
-        # Update last sync timestamp
-        from django.utils import timezone
-        self.integration.last_sync = timezone.now()
-        await sync_to_async(self.integration.save)()
+                # Get and sync submissions for this assignment
+                submissions_data = await self.get_submissions(course_id, assignment_data['id'])
+                for submission_data in submissions_data:
+                    await self._save_submission(submission_data, assignment)
 
-        return course
+            # Update last sync timestamp
+            from django.utils import timezone
+            self.integration.last_sync = timezone.now()
+            await sync_to_async(self.integration.save)()
+            
+            # Mark sync as complete
+            if user_id:
+                await SyncProgress.async_complete_sync(
+                    user_id, course_id, 
+                    success=True,
+                    message="Sync completed successfully!"
+                )
+                
+            return course
+            
+        except Exception as e:
+            # Mark sync as failed if there was an error
+            if user_id:
+                await SyncProgress.async_complete_sync(
+                    user_id, course_id, 
+                    success=False,
+                    message="Sync failed with an error.",
+                    error=str(e)
+                )
+            raise
 
-    async def sync_all_courses(self) -> List[CanvasCourse]:
-        """Sync all available courses"""
+    async def sync_all_courses(self, user_id: int = None) -> List[CanvasCourse]:
+        """
+        Sync all available courses
+        
+        Args:
+            user_id: ID of the user initiating the sync (for progress tracking)
+        """
+        from .progress import SyncProgress
         courses_data = await self.get_courses()
         synced_courses = []
+        
+        # If tracking progress, initialize the overall progress
+        if user_id:
+            await SyncProgress.async_start_sync(
+                user_id, total_steps=len(courses_data)
+            )
+            await SyncProgress.async_update(
+                user_id, current=0, total=len(courses_data),
+                status=SyncProgress.STATUS_PENDING,
+                message=f"Starting sync of {len(courses_data)} courses..."
+            )
 
-        for course_data in courses_data:
+        for i, course_data in enumerate(courses_data):
             try:
-                course = await self.sync_course(course_data['id'])
+                # Update progress at the overall level
+                if user_id:
+                    await SyncProgress.async_update(
+                        user_id, current=i, total=len(courses_data),
+                        status="syncing_course",
+                        message=f"Syncing course {i+1} of {len(courses_data)}: {course_data.get('name', '')}"
+                    )
+                
+                # Sync the individual course (this will track its own progress if user_id is provided)
+                course = await self.sync_course(course_data['id'], user_id)
                 synced_courses.append(course)
             except Exception as e:
                 logger.error(f"Error syncing course {course_data['id']}: {e}")
+        
+        # Mark the overall sync as complete
+        if user_id:
+            await SyncProgress.async_complete_sync(
+                user_id, 
+                success=len(synced_courses) > 0,
+                message=f"Completed sync of {len(synced_courses)} out of {len(courses_data)} courses."
+            )
 
         return synced_courses

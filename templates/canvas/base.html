@@ -10,6 +10,9 @@
 {% endblock %}
 
 {% block extra_js %}
+    {% load static %}
+    <!-- Include Canvas Sync Progress JS -->
+    <script src="{% static 'js/canvas-sync-progress.js' %}"></script>
     {% block canvas_js %}{% endblock %}
 {% endblock %}
 

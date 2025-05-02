@@ -18,6 +18,10 @@ urlpatterns = [
     # Sync selected courses (AJAX)
     path('sync_selected_courses/', views.canvas_sync_selected_courses,
          name='canvas_sync_selected_courses'),
+         
+    # Get sync progress (AJAX)
+    path('sync_progress/', views.canvas_sync_progress,
+         name='canvas_sync_progress'),
 
     # Courses list
     path('course/', views.canvas_courses_list, name='canvas_courses_list'),
