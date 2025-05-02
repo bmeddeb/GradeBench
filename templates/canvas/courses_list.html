@@ -9,68 +9,72 @@
 <div class="row">
     <div class="col-md-12">
         <div class="card">
-            <div class="card-header">
-                <h4 class="card-title">Canvas Courses</h4>
-                <p class="card-category">All courses synced from Canvas</p>
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <h4 class="card-title">Canvas Courses</h4>
+                    <p class="card-category">All courses synced from Canvas</p>
+                </div>
                 {% if course_data %}
-                <div class="float-end">
+                <div>
                     <button class="btn btn-primary btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#syncCoursesModal">
                         <i class="fa fa-plus"></i> Add More Courses
                     </button>
                 </div>
                 {% endif %}
             </div>
-            <div class="card-content table-responsive">
-                {% if course_data %}
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>Course Code</th>
-                            <th>Course Name</th>
-                            <th>Students</th>
-                            <th>Assignments</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for item in course_data %}
-                        <tr>
-                            <td>{{ item.course.course_code }}</td>
-                            <td>{{ item.course.name }}</td>
-                            <td>{{ item.enrollment_count }}</td>
-                            <td>{{ item.assignment_count }}</td>
-                            <td>
-                                <span class="badge {% if item.course.workflow_state == 'available' %}bg-success{% elif item.course.workflow_state == 'unpublished' %}bg-warning{% else %}bg-info{% endif %}">
-                                    {{ item.course.workflow_state|title }}
-                                </span>
-                            </td>
-                            <td>
-                                <a href="{% url 'canvas_course_detail' course_id=item.course.canvas_id %}" class="btn btn-info btn-xs">
-                                    <i class="fa fa-eye"></i> View
-                                </a>
-                                <a href="{% url 'canvas_sync_course' course_id=item.course.canvas_id %}" class="btn btn-default btn-xs">
-                                    <i class="fa fa-refresh"></i> Sync
-                                </a>
-                                <a href="{% url 'canvas_delete_course' course_id=item.course.canvas_id %}" class="btn btn-danger btn-xs">
-                                    <i class="fa fa-trash"></i> Delete
-                                </a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                {% else %}
-                <div class="text-center">
-                    <h3>No courses found</h3>
-                    <p>Click the 'Add Courses from Canvas' button to fetch courses from Canvas.</p>
-                    <p>
-                        <button id="openSyncModal" class="btn btn-primary btn-fill" type="button" data-bs-toggle="modal" data-bs-target="#syncCoursesModal">
-                            <i class="fa fa-plus"></i> Add Courses from Canvas
-                        </button>
-                    </p>
+            <div class="card-body">
+                <div class="table-responsive">
+                    {% if course_data %}
+                    <table class="table table-hover">
+                        <thead class="text-primary">
+                            <tr>
+                                <th>Course Code</th>
+                                <th>Course Name</th>
+                                <th>Students</th>
+                                <th>Assignments</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in course_data %}
+                            <tr>
+                                <td>{{ item.course.course_code }}</td>
+                                <td>{{ item.course.name }}</td>
+                                <td>{{ item.enrollment_count }}</td>
+                                <td>{{ item.assignment_count }}</td>
+                                <td>
+                                    <span class="badge {% if item.course.workflow_state == 'available' %}bg-success{% elif item.course.workflow_state == 'unpublished' %}bg-warning{% else %}bg-info{% endif %}">
+                                        {{ item.course.workflow_state|title }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <a href="{% url 'canvas_course_detail' course_id=item.course.canvas_id %}" class="btn btn-info btn-xs">
+                                        <i class="fa fa-eye"></i> View
+                                    </a>
+                                    <a href="{% url 'canvas_sync_course' course_id=item.course.canvas_id %}" class="btn btn-default btn-xs">
+                                        <i class="fa fa-refresh"></i> Sync
+                                    </a>
+                                    <a href="{% url 'canvas_delete_course' course_id=item.course.canvas_id %}" class="btn btn-danger btn-xs">
+                                        <i class="fa fa-trash"></i> Delete
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <h3>No courses found</h3>
+                        <p>Click the 'Add Courses from Canvas' button to fetch courses from Canvas.</p>
+                        <p>
+                            <button id="openSyncModal" class="btn btn-primary mt-3" type="button" data-bs-toggle="modal" data-bs-target="#syncCoursesModal">
+                                <i class="fa fa-plus"></i> Add Courses from Canvas
+                            </button>
+                        </p>
+                    </div>
+                    {% endif %}
                 </div>
-                {% endif %}
             </div>
         </div>
     </div>
