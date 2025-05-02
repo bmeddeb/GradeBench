@@ -96,6 +96,8 @@
         font-weight: 400;
         padding: 5px 10px;
         border-radius: 4px;
+        margin-left: 2px;
+        margin-right: 2px;
     }
     
     .card-calendar .fc-daygrid-event {
@@ -156,13 +158,55 @@
         border-radius: 30px;
     }
     
-    .card-calendar .fc-button {
-        margin-left: 2px;
-        margin-right: 2px;
+    /* Fix for TimeGrid views (week/day) overflow */
+    .card-calendar .fc-timegrid-body {
+        overflow-x: hidden !important;
+    }
+    
+    .card-calendar .fc-timegrid-body .fc-timegrid-slots {
+        font-size: 0.85em;
+    }
+    
+    .card-calendar .fc-timegrid-slot {
+        height: 1.5em;
+    }
+    
+    .card-calendar .fc-timegrid-slot-minor {
+        border-top-style: none;
+    }
+    
+    /* Adjust height for different views */
+    .card-calendar .fc-view-harness {
+        min-height: 450px;
+        max-height: 550px;
+        overflow-x: hidden;
+    }
+    
+    .card-calendar .fc-timegrid.fc-timeGridWeek-view,
+    .card-calendar .fc-timegrid.fc-timeGridDay-view {
+        max-height: 550px;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+    
+    /* Adjust the scrollable area for time grid views */
+    .card-calendar .fc-scroller-liquid-absolute {
+        overflow: auto !important;
+    }
+    
+    /* Make the day grid fit within container better */
+    .card-calendar .fc-daygrid-body {
+        width: 100% !important;
+    }
+    
+    .card-calendar .fc-scrollgrid-sync-table {
+        width: 100% !important;
     }
     
     .fullcalendar-container {
-        height: 550px;
+        height: auto;
+        min-height: 500px;
+        max-height: 600px;
     }
 </style>
 {% endblock %}
@@ -397,6 +441,15 @@
                     return ['event-warning'];
                 } else {
                     return ['event-info'];
+                }
+            },
+            // Adjust view options for different views
+            viewDidMount: function(info) {
+                // Add specific class based on the view to help with CSS targeting
+                if (info.view.type === 'timeGridWeek' || info.view.type === 'timeGridDay') {
+                    $('.card-calendar .fc-view-harness').addClass('time-grid-view');
+                } else {
+                    $('.card-calendar .fc-view-harness').removeClass('time-grid-view');
                 }
             },
             loading: function(isLoading) {
