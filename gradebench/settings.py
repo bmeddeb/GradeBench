@@ -29,6 +29,10 @@ environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = env('SECRET_KEY')
 
+
+# Field encryption key
+FIELD_ENCRYPTION_KEY = os.environ.get(
+    'FIELD_ENCRYPTION_KEY', 'b2Z0ZW5hYmxlc2VjdXJla2V5Zm9yZGVtb3M=')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool('DEBUG', default=False)
 
@@ -65,12 +69,12 @@ JAZZMIN_SETTINGS = {
     "jquery_cdn": "https://code.jquery.com/jquery-3.7.1.min.js",
     "use_bootstrap_cdn": True,
     "bootstrap_cdn": "https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css",
-    
+
     # Title and branding
     "site_title": "GradeBench Admin",
     "site_header": "GradeBench Administration",
     "site_brand": "GradeBench",
-    
+
     # Custom icons for side menu apps/models
     "icons": {
         "auth": "fas fa-users-cog",
@@ -81,7 +85,7 @@ JAZZMIN_SETTINGS = {
         "project_mgmt.taiga": "fas fa-tasks",
         "core": "fas fa-cogs",
     },
-    
+
     # Order apps and models on the side menu
     "order_with_respect_to": [
         "auth",
@@ -91,7 +95,7 @@ JAZZMIN_SETTINGS = {
         "social_django",
         "core",
     ],
-    
+
     # Custom links to put in the side menu
     "custom_links": {
         "auth": [{
@@ -100,7 +104,7 @@ JAZZMIN_SETTINGS = {
             "icon": "fas fa-id-card"
         }],
     },
-    
+
     # Hide models from the side menu
     "hide_models": [
         # Social Django models
@@ -109,12 +113,12 @@ JAZZMIN_SETTINGS = {
         "social_django.UserSocialAuth",
         "social_django.Code",
         "social_django.Partial",
-        
+
         # Integrations models - Grade Link and Provider Association
         "integrations.GradeLink",
         "integrations.ProviderAssociation",
     ],
-    
+
     # UI Customizations
     "show_ui_builder": True,
     "changeform_format": "horizontal_tabs",
@@ -181,7 +185,8 @@ SOCIAL_AUTH_GITHUB_SECRET = env('GITHUB_SECRET')
 SOCIAL_AUTH_GITHUB_SCOPE = ['user:email']
 SOCIAL_AUTH_GITHUB_GET_ALL_EXTRA_DATA = True
 SOCIAL_AUTH_USERNAME_IS_FULL_EMAIL = True
-SOCIAL_AUTH_SLUGIFY_USERNAMES = False  # Don't slugify since we're using email directly
+# Don't slugify since we're using email directly
+SOCIAL_AUTH_SLUGIFY_USERNAMES = False
 SOCIAL_AUTH_CLEAN_USERNAMES = True
 SOCIAL_AUTH_USER_FIELDS = ['username', 'email', 'first_name', 'last_name']
 

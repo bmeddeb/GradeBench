@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
-from django.utils import timezone
+from encrypted_model_fields.fields import EncryptedCharField
 
 
 class CanvasIntegration(models.Model):
@@ -8,8 +8,9 @@ class CanvasIntegration(models.Model):
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name='canvas_integrations')
     canvas_url = models.URLField(default="https://canvas.instructure.com")
-    api_key = models.CharField(max_length=255)
-    refresh_token = models.CharField(max_length=255, blank=True, null=True)
+    api_key = EncryptedCharField(max_length=255)  # Encrypts the key
+    refresh_token = EncryptedCharField(
+        max_length=255, blank=True, null=True)  # Also encrypt refresh token
     last_sync = models.DateTimeField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
