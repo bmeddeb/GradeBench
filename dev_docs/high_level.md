@@ -1,164 +1,139 @@
-# GradeBench Roadmap & Requirements
+# GradeBench Architecture & Roadmap
 
-## 1. User Management System
+## 1. User and Student Management System
 
 ### User Types (Using Django Groups)
 - **Professors**: Course administrators with full access
 - **TA**: Teaching assistants with grading privileges
-- **Students**: Organized into teams
-- **Others**: Potential observers, administrators, etc.
+- **Students**: Not Django users, but managed through the Student model
+- **Others**: Admin users, observers, etc.
 
 ### User Model Extensions
 - **Base UserProfile**:
   - Common fields for all users (profile picture, contact info)
-  - Django User model integration for auth
+  - Django User model integration for authentication
+  - GitHub OAuth connection
 
-- **Professor/TA Extensions**:
-  - Multiple GitHub token storage
-  - Token rotation mechanism
-  - Rate limit tracking
-  - Canvas LMS integration credentials (future)
+- **Staff Profiles**:
+  - Abstract StaffProfile model with shared functionality
+  - ProfessorProfile with department, office info
+  - TAProfile with supervisor (professor) reference
+  - GitHub token management (many-to-many)
+  - Canvas LMS integration credentials
 
-- **Student Extensions**:
-  - Team associations
-  - Repository associations
-  - Taiga project associations
+### Student Model (Central Integration Point)
+- **Core Student Entity**:
+  - Not tied to Django authentication
+  - Contains student identification (name, email, student ID)
+  - Cross-platform identity fields (github_username, taiga_username, canvas_user_id)
+  - Created and managed by professors/TAs
 
 ### Team Management
-- Team creation and management
-- Team membership control
-- Team-repository associations
-- Team-project associations
+- Team model with platform-specific identifiers
+- Direct relationship to students (one team to many students)
+- Direct relationships to repositories and projects
 
 ## 2. GitHub Integration
 
 ### Token Management
-- **Multiple Token Support**:
-  - Store multiple tokens per user
-  - Track token usage and rate limits
-  - Implement token rotation mechanism
+- **GitHub Token Model**:
+  - EncryptedCharField for secure token storage
+  - Rate limit tracking (remaining calls, reset time)
+  - Last used timestamp
 
-- **Token Validation**:
-  - Real-time status checking
-  - Rate limit checking (remaining calls, reset time)
-  - Regular validation scheduling
+### GitHub Models
+- **Collaborator**: Links to Student model (one-to-one)
+- **Repository**: Tracks GitHub repositories
+- **Branch**: Tracks branches in repositories
+- **Commit**: Records commit history with collaborator attribution
+- **PullRequest**: Tracks PRs with state management (open, closed, merged)
+- **Issue**: Tracks GitHub issues with state management
+- **Comment**: Tracks comments on PRs, issues, and repositories
+- **CodeReview**: Tracks PR reviews
 
 ### API Integration
-- **Service Layer**:
+- **Service Layer** (in progress):
   - Abstract API calls behind service interfaces
-  - Support both httpx direct calls and RepoMetrics library
   - Async implementation for non-blocking operations
+  - Use of GitHub OAuth for authentication
 
-- **Features to Implement**:
-  - Repository listing and management
-  - Commit history analysis
-  - Code review tracking
-  - Issue/PR tracking
-  - Repository statistics
+## 3. Taiga Integration
 
-## 3. Taiga Integration (Future)
+### Project Management Models
+- **Project**: Maps to Taiga projects, linked to Team
+- **Member**: Links Student to Taiga user (one-to-one)
+- **Sprint**: Tracks Taiga sprints/milestones
+- **UserStory**: Tracks user stories in sprints
+- **Task**: Tracks individual tasks in user stories
+- **TaskEvent & TaskAssignmentEvent**: Tracks task history
 
-### Connection Management
-- Token storage and validation
-- Project associations
+## 4. Canvas LMS Integration
 
-### Project Tracking
-- User story management
-- Sprint tracking
-- Task assignments
-
-## 4. Canvas LMS Integration (Future)
-
-### Course Mirroring
-- Course structure synchronization
-- Student roster integration
-- Assignment mapping
-
-### Grade Synchronization
-- Push grades to Canvas
-- Pull assignment structures
+### Canvas Models
+- **CanvasIntegration**: Stores API configuration and credentials
+- **CanvasCourse**: Tracks course information
+- **CanvasEnrollment**: Tracks student enrollments in courses
+- **CanvasAssignment**: Tracks course assignments
+- **CanvasSubmission**: Tracks student submissions
+- **CanvasRubric/CanvasRubricCriterion/CanvasRubricRating**: Tracks grading rubrics
 
 ## 5. UI/UX Components
 
-### Profile Page
-- **Status Cards**:
-  - User profile card with basic info
-  - GitHub connection status card with:
-    - Token validity
-    - Rate limit information (remaining calls, reset time)
-    - Multiple token management
-  - Taiga connection status (future)
+### User Interface
+- **Profile Pages**:
+  - User profile with basic info and GitHub connection
+  - GitHub token management for staff
+  - Canvas API connection management
+
+- **Canvas Integration UI**:
+  - Setup page for Canvas API connections
+  - Dashboard for course overview
+  - Course details page
+  - Student roster and detail pages
+  - Assignment management
 
 ### Dashboard
-- Summary views based on user type
-- Activity feeds
-- Repository and team views
+- Core dashboard with navigation
+- Canvas-specific dashboard
+- Secure token display with toggle visibility
 
-## Implementation Plan (Short-term Focus)
+## 6. Architecture Highlights
 
-### Phase 1: User Model Enhancements
-1. Update UserProfile model to support user types via Django Groups
-2. Extend model to support multiple GitHub tokens
-3. Implement team data structure and associations
+### Cross-Domain Integration
+- **Student as Central Entity**: 
+  - The Student model serves as the central integration point
+  - Platform-specific IDs stored on Student (github_username, taiga_username, canvas_user_id)
+  - One-to-one relationships from domain-specific models back to Student
 
-### Phase 2: GitHub Token Management
-1. Create service for token validation and rate limit checking
-2. Develop token rotation mechanism
-3. Implement UI for token management in profile
+### Security Features
+- **Token Encryption**:
+  - All tokens and API keys stored using Django's encrypted model fields
+  - Token visibility toggle in UI for security
+  - Secure OAuth flow for GitHub integration
 
-### Phase 3: Team & Repository Management
-1. Develop team management interface
-2. Implement repository-team associations
-3. Create repository analysis views
+### Async Operations
+- **AsyncModelMixin**:
+  - Common mixin for async database operations
+  - Consistent async interfaces for models
+  - Properly handled sync_to_async operations
 
-## Database Schema Adjustments
+## Current Implementation Status
 
-### UserProfile Extensions
-```python
-class UserProfile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
-    bio = models.TextField(blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    # Other common fields...
-```
+### Completed
+- Core user management and profiles
+- Student model with cross-domain linking
+- Canvas LMS integration foundation
+- GitHub and Taiga model structures
+- Bootstrap-based UI foundation
 
-### GitHub Token Model
-```python
-class GitHubToken(models.Model):
-    user_profile = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='github_tokens')
-    access_token = models.CharField(max_length=255)
-    name = models.CharField(max_length=100, help_text="User-friendly name for this token")
-    is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    last_used = models.DateTimeField(null=True, blank=True)
-    last_checked = models.DateTimeField(null=True, blank=True)
-    calls_remaining = models.IntegerField(null=True, blank=True)
-    rate_limit_reset = models.DateTimeField(null=True, blank=True)
-```
+### In Progress
+- Canvas course synchronization
+- Repository analysis and visualization
+- Enhanced team management
+- Calendar integration
 
-### Team Management
-```python
-class Team(models.Model):
-    name = models.CharField(max_length=100)
-    description = models.TextField(blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    
-class TeamMembership(models.Model):
-    team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='memberships')
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='team_memberships')
-    role = models.CharField(max_length=50, choices=[('leader', 'Team Leader'), ('member', 'Team Member')])
-    joined_at = models.DateTimeField(auto_now_add=True)
-```
-
-### Repository Tracking
-```python
-class GitHubRepository(models.Model):
-    name = models.CharField(max_length=255)
-    full_name = models.CharField(max_length=255, unique=True)  # owner/repo format
-    teams = models.ManyToManyField(Team, related_name='repositories', blank=True)
-    is_private = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-    last_synced = models.DateTimeField(null=True, blank=True)
-    description = models.TextField(blank=True, null=True)
-```
+### Future Work
+- Grading integration between Canvas and GitHub
+- Advanced analytics for student contributions
+- Full Taiga integration with Canvas assignments
+- Mobile-responsive UI enhancements
