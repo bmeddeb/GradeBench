@@ -281,7 +281,8 @@ class Client:
                 await self._save_submission(submission_data, assignment)
 
         # Update last sync timestamp
-        self.integration.last_sync = datetime.now()
+        from django.utils import timezone
+        self.integration.last_sync = timezone.now()
         await sync_to_async(self.integration.save)()
 
         return course
