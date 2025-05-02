@@ -177,7 +177,7 @@ cython_debug/
 /target/
 Cargo.lock
 **/*.rs.bk
-
+claude.md
 # C++
 *.d
 *.slo
