@@ -88,6 +88,13 @@ class Client:
             'include[]': ['avatar_url', 'group_ids', 'locked', 'observed_users', 'can_be_removed', 'uuid', 'current_grading_period_scores', 'user'],
             'per_page': 100
         })
+        
+    async def get_course_users(self, course_id: int) -> List[Dict]:
+        """Get all users (students, teachers, TAs, etc.) for a course with email information"""
+        return await self.request('GET', f'courses/{course_id}/users', params={
+            'include[]': ['email', 'enrollments'],
+            'per_page': 100
+        })
 
     async def get_assignments(self, course_id: int) -> List[Dict]:
         """Get all assignments for a course"""
@@ -265,9 +272,32 @@ class Client:
         course_data = await self.get_course(course_id)
         course = await self._save_course(course_data)
 
-        # Get and sync enrollments
+        # Get enrollments
         enrollments_data = await self.get_enrollments(course_id)
+        
+        # Get all users with emails (teachers, TAs, students, etc.)
+        users_data = await self.get_course_users(course_id)
+        
+        # Create a lookup dictionary for user emails by user_id
+        user_emails = {}
+        for user in users_data:
+            if 'id' in user and 'email' in user:
+                user_emails[user['id']] = user['email']
+        
+        # Process enrollments with emails from the user data
         for enrollment_data in enrollments_data:
+            # Try to add email from our lookup for any enrollment type
+            if ('user_id' in enrollment_data and 
+                enrollment_data['user_id'] in user_emails):
+                
+                # Make sure there's a user dict
+                if 'user' not in enrollment_data:
+                    enrollment_data['user'] = {}
+                
+                # Add email from our lookup
+                enrollment_data['user']['email'] = user_emails[enrollment_data['user_id']]
+            
+            # Save the enrollment with the updated data
             await self._save_enrollment(enrollment_data, course)
 
         # Get and sync assignments
