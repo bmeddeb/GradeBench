@@ -298,7 +298,7 @@
                         </nav>
                         <div class="credits ml-auto">
                             <span class="copyright">
-                                © <script>document.write(new Date().getFullYear())</script>, GradeBench
+                                © <span id="current-year"></span>, GradeBench
                             </span>
                         </div>
                     </div>
@@ -322,6 +322,9 @@
     <!-- Bootstrap 5 initialization -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Set current year for copyright
+            document.getElementById('current-year').textContent = new Date().getFullYear();
+
             // Initialize all dropdowns
             var dropdownElementList = [].slice.call(document.querySelectorAll('.dropdown-toggle'));
             dropdownElementList.map(function(dropdownToggleEl) {
