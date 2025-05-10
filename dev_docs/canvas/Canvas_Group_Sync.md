@@ -321,4 +321,111 @@ class StudentSerializer(serializers.ModelSerializer):
         elif obj.team:
             return 'manual'
         return None
+
+
+## 5. Manual Teams & Fallback Logic
+
+* **Detect absence of Canvas groups**: if `get_group_categories` returns an empty list, skip calls to `sync_canvas_groups` and `sync_group_memberships`.
+* **Preserve manual Teams**: manual Teams (no `canvas_group_id`) remain available for students to be assigned manually in your UI.
+* **UI hint**: when Canvas has no groups, show a banner like “No Canvas groups found — please create Teams manually.”
+* **Clean‐up policy**: optionally, you can delete previously imported Teams if Canvas categories vanish, by filtering `Team.objects.filter(canvas_course=course, canvas_group_id__isnull=False).exclude(canvas_group_id__in=current_ids).delete()`.
+
+---
+
+## 6. Querying Results
+
+Retrieve students with their teams (whether imported or manual):
+
+```python
+from core.models import Student
+
+students = Student.objects.select_related('team').all()
+for s in students:
+    print(s.full_name, '→', s.team.name if s.team else 'No team')
 ```
+
+In DRF serializers:
+
+```python
+team = serializers.CharField(source='team.name', default=None)
+```
+
+---
+
+## 7. Pushing Team Assignments to Canvas
+
+Canvas provides group membership APIs so you can mirror your application’s Teams back into Canvas.
+
+### 7.1 Invite Individual Students to a Group
+
+```http
+POST /api/v1/groups/:group_id/invite
+Content-Type: application/x-www-form-urlencoded
+
+invitees[]=<canvas_user_id>&invitees[]=<canvas_user_id>&...
+```
+
+Invites the specified users into the group (or auto‑joins them if the group’s `join_level` is `parent_context_auto_join`).
+
+### 7.2 Overwrite a Group’s Membership
+
+```http
+PUT /api/v1/groups/:group_id
+Content-Type: application/x-www-form-urlencoded
+
+members[]=<canvas_user_id>&members[]=<canvas_user_id>&...
+```
+
+Passing the complete list of user IDs will sync Canvas—adding missing users and removing any that aren’t in your list.
+
+### 7.3 Bulk‑assign Unassigned Members
+
+```http
+POST /api/v1/group_categories/:group_category_id/assign_unassigned_members?sync=true
+```
+
+Evenly distributes any users not already in a group of that category across existing groups. Great for filling out teams automatically.
+
+### 7.4 CanvasClient Methods
+
+Extend your `CanvasClient` with these helpers:
+
+```python
+class CanvasClient:
+    # … existing methods …
+
+    async def invite_user_to_group(self, group_id: int, user_ids: List[int]):
+        return await self.request(
+            'POST', f'groups/{group_id}/invite',
+            data={'invitees[]': user_ids}
+        )
+
+    async def set_group_members(self, group_id: int, user_ids: List[int]):
+        return await self.request(
+            'PUT', f'groups/{group_id}',
+            data=[('members[]', uid) for uid in user_ids]
+        )
+
+    async def assign_unassigned(self, category_id: int, sync: bool = True):
+        params = {'sync': 'true'} if sync else {}
+        return await self.request(
+            'POST', f'group_categories/{category_id}/assign_unassigned_members',
+            params=params
+        )
+```
+
+### 7.5 Syncer Method to Push Assignments
+
+In your `CanvasSyncer`, add a method to push local `Team` → Canvas group assignments:
+
+```python
+async def push_group_assignments(self, course: CanvasCourse):
+    from lms.canvas.models import CanvasEnrollment
+    # For each imported Team, gather current members and send to Canvas
+    for team in Team.objects.filter(canvas_course=course, canvas_group_id__isnull=False):
+        user_ids = [int(enroll.user_id)
+                    for enroll in CanvasEnrollment.objects.filter(student__team=team)]
+        await self.client.set_group_members(team.canvas_group_id, user_ids)
+```
+
+This ensures your local `Team` and `Student.team` relationships are reflected back into Canvas’s group structure.
