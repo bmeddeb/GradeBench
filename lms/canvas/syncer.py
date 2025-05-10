@@ -95,24 +95,57 @@ class CanvasSyncer:
                 # Update progress for large enrollment sets
                 if user_id and i > 0 and i % 25 == 0 and enrollment_count > 50:
                     await SyncProgress.async_update(
-                        user_id, course_id, current=5, total=12, 
+                        user_id, course_id, current=5, total=12,
                         status=SyncProgress.STATUS_SAVING_DATA,
                         message=f"Saving enrollment {i} of {enrollment_count}..."
                     )
-                    
+
                 # Try to add email from our lookup for any enrollment type
-                if ('user_id' in enrollment_data and 
+                if ('user_id' in enrollment_data and
                     enrollment_data['user_id'] in user_emails):
-                    
+
                     # Make sure there's a user dict
                     if 'user' not in enrollment_data:
                         enrollment_data['user'] = {}
-                    
+
                     # Add email from our lookup
                     enrollment_data['user']['email'] = user_emails[enrollment_data['user_id']]
-                
+
                 # Save the enrollment with the updated data
-                await self.client._save_enrollment(enrollment_data, course)
+                enrollment = await self.client._save_enrollment(enrollment_data, course)
+
+            # Create Student records for all student enrollments
+            if user_id:
+                await SyncProgress.async_update(
+                    user_id, course_id, current=5.5, total=12,
+                    status="creating_students",
+                    message="Creating Student records from enrollments..."
+                )
+
+            # Get all student enrollments
+            student_enrollments = await self._get_student_enrollments(course)
+
+            # Create Student records for each enrollment if needed
+            student_count = 0
+            for enrollment in student_enrollments:
+                try:
+                    student = await self._get_or_create_student(enrollment)
+                    if student:
+                        student_count += 1
+
+                        # If student has a Canvas group membership, set team
+                        # This is a basic setup that will be enhanced later during group membership sync
+                        # We do this in case there are students who are in Canvas groups but the group sync fails
+                        await self._try_assign_group_to_student(student, enrollment, course)
+                except Exception as e:
+                    logger.error(f"Error creating student from enrollment {enrollment.id}: {str(e)}")
+
+            if user_id:
+                await SyncProgress.async_update(
+                    user_id, course_id, current=5.8, total=12,
+                    status=SyncProgress.STATUS_SAVING_DATA,
+                    message=f"Created/updated {student_count} Student records"
+                )
 
             # Step 5: Get assignment data
             if user_id:
@@ -488,7 +521,16 @@ class CanvasSyncer:
     def _get_canvas_teams(self, course: CanvasCourse) -> List[Team]:
         """Get all Canvas teams for a course (sync function)"""
         return list(Team.objects.filter(canvas_course=course, canvas_group_id__isnull=False))
-        
+
+    @sync_to_async
+    def _get_student_enrollments(self, course: CanvasCourse) -> List[CanvasEnrollment]:
+        """Get all student enrollments for a course (sync function)"""
+        return list(CanvasEnrollment.objects.filter(
+            course=course,
+            role='StudentEnrollment',
+            enrollment_state='active'
+        ))
+
     @sync_to_async
     def _get_enrollment(self, canvas_id: int, course: CanvasCourse) -> Optional[CanvasEnrollment]:
         """Get a Canvas enrollment by ID (sync function)"""
@@ -503,13 +545,13 @@ class CanvasSyncer:
         # Use existing student if already linked
         if enrollment.student:
             return enrollment.student
-            
+
         # Create new student
         try:
             user_name_parts = enrollment.user_name.split()
             first_name = user_name_parts[0] if user_name_parts else "Unknown"
             last_name = " ".join(user_name_parts[1:]) if len(user_name_parts) > 1 else ""
-            
+
             student, created = Student.objects.update_or_create(
                 canvas_user_id=str(enrollment.user_id),
                 defaults={
@@ -518,19 +560,51 @@ class CanvasSyncer:
                     'last_name': last_name,
                 }
             )
-            
+
             if created:
                 logger.info(f"Created new student from Canvas enrollment: {student.full_name}")
-                
+
             # Link student to enrollment
             enrollment.student = student
             enrollment.save(update_fields=['student'])
-            
+
             return student
-            
+
         except Exception as e:
             logger.error(f"Error creating student for enrollment {enrollment.id}: {str(e)}")
             return None
+
+    async def _try_assign_group_to_student(self, student: Student, enrollment: CanvasEnrollment, course: CanvasCourse):
+        """Try to find and assign a Canvas group to a student"""
+        try:
+            # Skip if student already has a team
+            if student.team is not None:
+                return
+
+            # Get Canvas teams for this course
+            teams = await self._get_canvas_teams(course)
+            if not teams:
+                return
+
+            # For each team, check group members
+            for team in teams:
+                if not team.canvas_group_id:
+                    continue
+
+                members = await self.client.get_group_members(team.canvas_group_id)
+
+                # Check if student is in this group
+                for member in members:
+                    if member.get('id') == enrollment.canvas_id:
+                        # Found a match - assign team to student
+                        student.team = team
+                        await sync_to_async(student.save)(update_fields=['team'])
+                        logger.info(f"Assigned student {student.full_name} to team {team.name} from Canvas group")
+                        return
+
+        except Exception as e:
+            logger.error(f"Error trying to assign group to student {student.full_name}: {str(e)}")
+            # Don't raise - just log the error and continue
 
     async def sync_all_courses(self, user_id: int = None) -> List[CanvasCourse]:
         """
