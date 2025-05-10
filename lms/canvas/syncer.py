@@ -407,24 +407,41 @@ class CanvasSyncer:
         return current_group_ids
 
     @sync_to_async
-    def _save_team(self, canvas_group_id: int, canvas_course: CanvasCourse, 
+    def _save_team(self, canvas_group_id: int, canvas_course: CanvasCourse,
                   name: str, description: str) -> Tuple[Team, bool]:
         """Save or update a Team from Canvas group data (sync function)"""
-        team, created = Team.objects.update_or_create(
-            canvas_group_id=canvas_group_id,
-            canvas_course=canvas_course,
-            defaults={
-                'name': name,
-                'description': description,
-                'last_synced_at': timezone.now()
-            }
-        )
-        
-        # Log when new teams are created
-        if created:
-            logger.info(f"Created new team from Canvas group: {team.name} (ID: {canvas_group_id})")
-            
-        return team, created
+        try:
+            # Ensure parameters are valid
+            if not canvas_group_id or not canvas_course:
+                logger.error(f"Invalid parameters for _save_team: group_id={canvas_group_id}, course={canvas_course}")
+                return None, False
+
+            # Clean and validate inputs
+            team_name = str(name).strip()[:100] if name else f"Team {canvas_group_id}"
+            team_desc = str(description).strip()[:500] if description else ""
+
+            # Create or update the team
+            team, created = Team.objects.update_or_create(
+                canvas_group_id=canvas_group_id,
+                canvas_course=canvas_course,
+                defaults={
+                    'name': team_name,
+                    'description': team_desc,
+                    'last_synced_at': timezone.now()
+                }
+            )
+
+            # Log when teams are created or updated
+            if created:
+                logger.info(f"Created new team from Canvas group: {team.name} (ID: {canvas_group_id})")
+            else:
+                logger.info(f"Updated existing team from Canvas group: {team.name} (ID: {canvas_group_id})")
+
+            return team, created
+
+        except Exception as e:
+            logger.error(f"Error saving team for Canvas group {canvas_group_id}: {str(e)}")
+            return None, False
 
     async def sync_group_memberships(self, course: CanvasCourse, user_id=None):
         """
@@ -483,8 +500,8 @@ class CanvasSyncer:
                         continue
 
                     try:
-                        # Get the enrollment
-                        enrollment = await self._get_enrollment(m['id'], course)
+                        # Get the enrollment - the 'id' in the member response is the Canvas user_id
+                        enrollment = await self._get_enrollment_by_user_id(m['id'], course)
                         if not enrollment:
                             logger.warning(
                                 f"Enrollment not found for user ID {m['id']} in team {team.name}"
@@ -533,9 +550,17 @@ class CanvasSyncer:
 
     @sync_to_async
     def _get_enrollment(self, canvas_id: int, course: CanvasCourse) -> Optional[CanvasEnrollment]:
-        """Get a Canvas enrollment by ID (sync function)"""
+        """Get a Canvas enrollment by canvas_id (sync function)"""
         try:
             return CanvasEnrollment.objects.get(canvas_id=canvas_id, course=course)
+        except CanvasEnrollment.DoesNotExist:
+            return None
+
+    @sync_to_async
+    def _get_enrollment_by_user_id(self, user_id: int, course: CanvasCourse) -> Optional[CanvasEnrollment]:
+        """Get a Canvas enrollment by user_id (sync function)"""
+        try:
+            return CanvasEnrollment.objects.get(user_id=user_id, course=course)
         except CanvasEnrollment.DoesNotExist:
             return None
             
@@ -595,7 +620,7 @@ class CanvasSyncer:
 
                 # Check if student is in this group
                 for member in members:
-                    if member.get('id') == enrollment.canvas_id:
+                    if member.get('id') == enrollment.user_id:  # Compare with user_id, not canvas_id
                         # Found a match - assign team to student
                         student.team = team
                         await sync_to_async(student.save)(update_fields=['team'])
