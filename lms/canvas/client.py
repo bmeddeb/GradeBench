@@ -122,6 +122,24 @@ class Client:
             'include[]': ['user', 'submission_comments', 'rubric_assessment']
         })
 
+    async def get_group_categories(self, course_id: int) -> List[Dict]:
+        """Get all group categories (group sets) for a course"""
+        return await self.request(
+            'GET', f'courses/{course_id}/group_categories', params={'per_page': 100}
+        )
+
+    async def get_groups(self, category_id: int) -> List[Dict]:
+        """Get all groups within a group category"""
+        return await self.request(
+            'GET', f'group_categories/{category_id}/groups', params={'per_page': 100}
+        )
+
+    async def get_group_members(self, group_id: int) -> List[Dict]:
+        """Get all members of a group"""
+        return await self.request(
+            'GET', f'groups/{group_id}/users', params={'per_page': 100}
+        )
+
     @sync_to_async
     def _save_course(self, course_data: Dict) -> CanvasCourse:
         """Save course data to the database (sync function)"""

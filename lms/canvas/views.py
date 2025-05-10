@@ -16,6 +16,8 @@ from .models import (
     CanvasAssignment, CanvasSubmission
 )
 from .client import Client
+from .syncer import CanvasSyncer
+from core.models import Team, Student
 
 logger = logging.getLogger(__name__)
 
@@ -226,46 +228,46 @@ def canvas_sync(request):
     # Initialize the sync in a background thread
     user_id = request.user.id
     import threading
-    from .client import Client
     import asyncio
     from .progress import SyncProgress
-    
+
     # Initialize progress tracking
     SyncProgress.start_sync(user_id, None, total_steps=10)  # Placeholder total, will be updated during sync
-    
+
     def run_sync():
         client = Client(integration)
+        syncer = CanvasSyncer(client)
         try:
-            synced_courses = asyncio.run(client.sync_all_courses(user_id))
+            synced_courses = asyncio.run(syncer.sync_all_courses(user_id))
             logger.info(f"Successfully synced {len(synced_courses)} courses from Canvas")
         except Exception as e:
             logger.error(f"Error syncing courses: {e}")
             # Update progress with error
             SyncProgress.complete_sync(
-                user_id, 
-                None, 
-                success=False, 
+                user_id,
+                None,
+                success=False,
                 message="Sync failed with an error",
                 error=str(e)
             )
-    
+
     # Start the sync in a background thread
     sync_thread = threading.Thread(target=run_sync)
     sync_thread.daemon = True
     sync_thread.start()
-    
+
     # Redirect to dashboard with message that sync has started
     messages.info(request, 'Syncing courses from Canvas. This may take a while. You can check progress below.')
-    
+
     # Add a session flag to indicate sync is in progress
     request.session['canvas_sync_in_progress'] = True
     request.session['canvas_sync_started'] = True
-    
+
     return redirect('canvas_dashboard')
 
 
 def course_detail(request, course_id):
-    """View a single Canvas course with enrollments and assignments"""
+    """View a single Canvas course with enrollments, assignments and teams"""
     if not request.user.is_authenticated:
         return redirect('login')
 
@@ -280,6 +282,7 @@ def course_detail(request, course_id):
     # Get enrollments and assignments
     enrollments = list(
         CanvasEnrollment.objects.filter(course=course)
+        .select_related('student')  # Eager load student relationship
         .order_by('role', 'sortable_name')
     )
 
@@ -288,18 +291,38 @@ def course_detail(request, course_id):
         .order_by('position', 'due_at')
     )
 
+    # Get teams for this course
+    teams = list(
+        Team.objects.filter(canvas_course=course)
+        .annotate(student_count=Count('students'))
+        .order_by('name')
+    )
+
     # Get some statistics
     student_count = len(
         [e for e in enrollments if e.role == 'StudentEnrollment'])
     instructor_count = len([e for e in enrollments if e.role in [
                            'TeacherEnrollment', 'TaEnrollment']])
 
+    # Calculate team statistics
+    canvas_teams_count = len([t for t in teams if t.canvas_group_id is not None])
+    manual_teams_count = len([t for t in teams if t.canvas_group_id is None])
+    students_in_teams_count = sum(t.student_count for t in teams)
+
+    # Check if any students don't have teams
+    students_without_teams = student_count - students_in_teams_count
+
     context = {
         'course': course,
         'enrollments': enrollments,
         'assignments': assignments,
+        'teams': teams,
         'student_count': student_count,
         'instructor_count': instructor_count,
+        'canvas_teams_count': canvas_teams_count,
+        'manual_teams_count': manual_teams_count,
+        'students_in_teams_count': students_in_teams_count,
+        'students_without_teams_count': students_without_teams,
     }
 
     return render(request, 'canvas/course_detail.html', context)
@@ -377,7 +400,7 @@ def assignment_detail(request, course_id, assignment_id):
 
 
 def student_detail(request, course_id, user_id):
-    """View a single student's information and submissions"""
+    """View a single student's information, submissions, and team details"""
     if not request.user.is_authenticated:
         return redirect('login')
 
@@ -409,9 +432,30 @@ def student_detail(request, course_id, user_id):
     current_score = grades.get('current_score')
     final_score = grades.get('final_score')
 
+    # Get student and team information
+    student = enrollment.student
+    team = None
+    team_members = []
+    team_source = None
+
+    if student and student.team:
+        team = student.team
+        team_source = "Canvas" if team.canvas_group_id else "Manual"
+
+        # Get other team members
+        team_members = list(
+            Student.objects.filter(team=team)
+            .exclude(id=student.id)
+            .order_by('first_name', 'last_name')
+        )
+
     context = {
         'course': course,
         'enrollment': enrollment,
+        'student': student,
+        'team': team,
+        'team_source': team_source,
+        'team_members': team_members,
         'submissions': submissions,
         'assignment_count': assignment_count,
         'submitted_count': submitted_count,
@@ -468,40 +512,40 @@ def canvas_sync_single_course(request, course_id):
     # Initialize the sync in a background thread
     user_id = request.user.id
     import threading
-    from .client import Client
     import asyncio
     from .progress import SyncProgress
-    
+
     # Initialize progress before starting the thread
     SyncProgress.start_sync(user_id, course_id)
-    
+
     def run_sync():
         client = Client(integration)
+        syncer = CanvasSyncer(client)
         try:
-            course = asyncio.run(client.sync_course(course_id, user_id))
+            course = asyncio.run(syncer.sync_course(course_id, user_id))
             logger.info(f"Successfully synced course: {course.name}")
         except Exception as e:
             logger.error(f"Error syncing course {course_id}: {e}")
             # Update progress with error
             SyncProgress.complete_sync(
-                user_id, 
-                course_id, 
-                success=False, 
+                user_id,
+                course_id,
+                success=False,
                 message="Course sync failed with an error.",
                 error=str(e)
             )
-    
+
     # Start the sync in a background thread
     sync_thread = threading.Thread(target=run_sync)
     sync_thread.daemon = True
     sync_thread.start()
-    
+
     # Redirect with message that sync has started
     messages.info(request, 'Course sync has started. This may take a while. You can check progress below.')
-    
+
     # Add a session flag to indicate sync is in progress
     request.session[f'canvas_sync_course_{course_id}_in_progress'] = True
-    
+
     return redirect('canvas_course_detail', course_id=course_id)
 
 
@@ -617,41 +661,42 @@ def canvas_sync_selected_courses(request):
     
     def run_sync():
         client = Client(integration)
+        syncer = CanvasSyncer(client)
         try:
-            asyncio.run(sync_courses(client, course_ids, user_id))
+            asyncio.run(sync_courses(syncer, course_ids, user_id))
         except Exception as e:
             # Handle any unexpected errors in the thread
             SyncProgress.complete_sync(user_id, None, success=False, error=str(e))
-    
-    async def sync_courses(client, course_ids, user_id):
+
+    async def sync_courses(syncer, course_ids, user_id):
         synced = []
         errors = []
-        
+
         for i, course_id in enumerate(course_ids):
             try:
                 # Update progress at the overall level
                 SyncProgress.update(
-                    user_id, 
+                    user_id,
                     None,
-                    current=i, 
+                    current=i,
                     total=len(course_ids),
                     status="syncing_course",
                     message=f"Syncing course {i+1} of {len(course_ids)}"
                 )
-                
-                # This will automatically update progress through the client
-                course = await client.sync_course(course_id, user_id)
+
+                # This will automatically update progress through the syncer
+                course = await syncer.sync_course(course_id, user_id)
                 synced.append(course_id)
             except Exception as e:
                 errors.append({'course_id': course_id, 'error': str(e)})
-        
+
         # Mark the overall sync as complete
         success = len(synced) > 0
         message = f"Completed sync of {len(synced)} out of {len(course_ids)} courses."
         error = None if success else "Failed to sync any courses"
-        
+
         SyncProgress.complete_sync(
-            user_id, 
+            user_id,
             None,
             success=success,
             message=message,

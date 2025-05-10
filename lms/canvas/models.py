@@ -1,6 +1,8 @@
+# lms/canvas/models.py
 from django.db import models
 from django.contrib.auth.models import User
 from encrypted_model_fields.fields import EncryptedCharField
+from core.async_utils import AsyncModelMixin
 
 
 class CanvasIntegration(models.Model):
@@ -78,6 +80,12 @@ class CanvasEnrollment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     grades = models.JSONField(default=dict, blank=True)
+    student = models.ForeignKey(
+        'core.Student',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='canvas_enrollments'
+    )
 
     class Meta:
         ordering = ['sortable_name']
@@ -207,3 +215,16 @@ class CanvasRubricRating(models.Model):
 
     def __str__(self):
         return f"{self.description} ({self.points} pts)"
+
+
+# Add fields to Team model in core app
+from django.db import connection
+if connection.introspection.table_names() and 'core_team' in connection.introspection.table_names():
+    from core.models import Team
+
+    # Check if the fields exist before trying to add them to prevent migration errors
+    team_fields = [f.name for f in Team._meta.get_fields()]
+
+    if 'canvas_course' not in team_fields:
+        # Fields will be added via migration
+        pass
