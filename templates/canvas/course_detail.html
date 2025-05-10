@@ -266,6 +266,7 @@
                             <tr>
                                 <th>Name</th>
                                 <th>Role</th>
+                                <th>Team</th>
                                 <th>Status</th>
                                 <th>Last Activity</th>
                                 <th>Score</th>
@@ -291,6 +292,22 @@
                                     Test Student
                                     {% else %}
                                     {{ enrollment.role }}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if enrollment.student and enrollment.student.team %}
+                                        <span class="badge {% if enrollment.student.team.canvas_group_id %}bg-success{% else %}bg-info{% endif %} me-1">
+                                            {{ enrollment.student.team.name }}
+                                        </span>
+                                        {% if enrollment.student.team.canvas_group_id %}
+                                            <small class="text-muted">(Canvas)</small>
+                                        {% else %}
+                                            <small class="text-muted">(Manual)</small>
+                                        {% endif %}
+                                    {% elif enrollment.role == 'StudentEnrollment' %}
+                                        <span class="badge bg-secondary">Unassigned</span>
+                                    {% else %}
+                                        <span class="text-muted">—</span>
                                     {% endif %}
                                 </td>
                                 <td>
@@ -348,6 +365,16 @@
                         <i class="fa fa-users"></i> Manage Teams
                     </a>
                 </div>
+            </div>
+            <div class="alert alert-info m-3">
+                <strong><i class="fa fa-info-circle"></i> Team Management</strong><br>
+                Use our <a href="{% url 'canvas_manage_teams' course_id=course.canvas_id %}" class="alert-link">Team Management interface</a> to:
+                <ul class="mb-0 mt-2">
+                    <li>Create new teams</li>
+                    <li>Drag and drop students between teams</li>
+                    <li>Auto-distribute students into balanced teams</li>
+                    <li>Sync teams with Canvas</li>
+                </ul>
             </div>
             <div class="card-body">
                 <div class="table-responsive">

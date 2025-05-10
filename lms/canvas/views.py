@@ -303,7 +303,7 @@ def course_detail(request, course_id):
     # Get enrollments and assignments
     enrollments = list(
         CanvasEnrollment.objects.filter(course=course)
-        .select_related('student')  # Eager load student relationship
+        .select_related('student', 'student__team')  # Eager load student and team relationships
         .order_by('role', 'sortable_name')
     )
 

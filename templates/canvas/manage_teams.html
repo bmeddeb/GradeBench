@@ -8,11 +8,12 @@
 {% block styles %}
 <style>
     .team-box {
-        border: 1px solid #ddd;
-        border-radius: 5px;
-        padding: 15px;
-        margin-bottom: 15px;
-        background-color: #f9f9f9;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        background-color: #fff;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        overflow: hidden;
     }
     
     .team-box.canvas-team {
@@ -24,68 +25,62 @@
     }
     
     .team-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 10px;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #e9ecef;
     }
     
     .team-members-list {
-        min-height: 50px;
-        border: 1px dashed #ccc;
-        border-radius: 4px;
-        padding: 10px;
-        margin-top: 10px;
-        background-color: #fff;
-    }
-    
-    .unassigned-students {
-        border: 1px solid #f8d7da;
-        border-radius: 5px;
+        min-height: 100px;
         padding: 15px;
-        margin-bottom: 15px;
-        background-color: #fff8f8;
+        background-color: #fff;
+        transition: all 0.2s ease;
     }
     
     .student-item {
-        padding: 8px 12px;
-        margin-bottom: 5px;
+        padding: 12px;
+        margin-bottom: 10px;
         background-color: #fff;
         border: 1px solid #e0e0e0;
-        border-radius: 4px;
+        border-radius: 8px;
         cursor: move;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+        transition: all 0.2s ease;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
     
     .student-item:hover {
-        background-color: #f5f5f5;
+        background-color: #f8f9fa;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        transform: translateY(-1px);
     }
     
     .student-ghost {
         opacity: 0.5;
-        background-color: #c8ebfb;
+        background-color: #e2f0ff;
     }
     
     .student-chosen {
         background-color: #e9f7fe;
-        border: 1px dashed #7cb9e8;
+        border: 1px dashed #4c9aff;
+        box-shadow: 0 0 0 3px rgba(76, 154, 255, 0.1);
     }
     
     .badge-canvas {
         background-color: #28a745;
         color: white;
+        font-size: 0.75rem;
+        font-weight: normal;
+        padding: 0.25em 0.6em;
+        border-radius: 10px;
     }
     
     .badge-manual {
         background-color: #17a2b8;
         color: white;
-    }
-    
-    .action-buttons {
-        display: flex;
-        gap: 5px;
+        font-size: 0.75rem;
+        font-weight: normal;
+        padding: 0.25em 0.6em;
+        border-radius: 10px;
     }
     
     .loading-overlay {
@@ -104,8 +99,44 @@
     }
     
     .dropzone-active {
-        background-color: #e8f4ff;
-        border: 2px dashed #4c9aff;
+        background-color: #f0f7ff;
+        border: 2px dashed #4c9aff !important;
+        box-shadow: inset 0 0 10px rgba(76, 154, 255, 0.2);
+    }
+    
+    /* Avatar styles */
+    .avatar-placeholder {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+    }
+    
+    /* Improve dropzone visibility */
+    .team-members-list {
+        position: relative;
+        transition: all 0.2s;
+        border: 2px solid transparent;
+        border-radius: 8px;
+    }
+    
+    /* Empty state styling */
+    .border-dashed {
+        border-style: dashed !important;
+    }
+    
+    .dropzone-message {
+        opacity: 0.6;
+        transition: opacity 0.2s;
+    }
+    
+    .team-members-list:hover .dropzone-message {
+        opacity: 1;
+    }
+    
+    /* Auto-distribute button styling */
+    .btn-auto-distribute {
+        margin-bottom: 15px;
     }
 </style>
 {% endblock %}
@@ -138,9 +169,13 @@
                         <i class="fa fa-plus-circle"></i> Create New Team
                     </button>
                     
+                    <button id="autoDistributeBtn" class="btn btn-success me-2">
+                        <i class="fa fa-random"></i> Auto-Distribute Students
+                    </button>
+                    
                     {% if group_categories %}
                     <div class="dropdown me-2">
-                        <button class="btn btn-success dropdown-toggle" type="button" id="syncDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <button class="btn btn-outline-success dropdown-toggle" type="button" id="syncDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fa fa-cloud-download"></i> Push to Canvas
                         </button>
                         <ul class="dropdown-menu" aria-labelledby="syncDropdown">
@@ -152,7 +187,7 @@
                         </ul>
                     </div>
                     {% else %}
-                    <button class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#createCategoryModal">
+                    <button class="btn btn-outline-success me-2" data-bs-toggle="modal" data-bs-target="#createCategoryModal">
                         <i class="fa fa-cloud-upload"></i> Create Canvas Group Category
                     </button>
                     {% endif %}
@@ -160,6 +195,56 @@
                     <a href="{% url 'canvas_course_detail' course_id=course.canvas_id %}" class="btn btn-outline-secondary">
                         <i class="fa fa-arrow-left"></i> Back to Course
                     </a>
+                </div>
+                
+                <!-- Auto-Distribute Modal -->
+                <div class="modal fade" id="autoDistributeModal" tabindex="-1" aria-labelledby="autoDistributeModalLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="autoDistributeModalLabel">Auto-Distribute Students</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form id="autoDistributeForm">
+                                    <div class="mb-3">
+                                        <label for="distributionType" class="form-label">Distribution Method</label>
+                                        <select class="form-select" id="distributionType">
+                                            <option value="even">Evenly across teams</option>
+                                            <option value="size">By team size</option>
+                                            <option value="new">Create new teams</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div id="teamSizeDiv" class="mb-3" style="display: none;">
+                                        <label for="teamSize" class="form-label">Team Size</label>
+                                        <input type="number" class="form-control" id="teamSize" min="2" value="4">
+                                        <small class="form-text text-muted">How many students per team</small>
+                                    </div>
+                                    
+                                    <div id="teamCountDiv" class="mb-3" style="display: none;">
+                                        <label for="teamCount" class="form-label">Number of Teams</label>
+                                        <input type="number" class="form-control" id="teamCount" min="2" value="4">
+                                        <small class="form-text text-muted">How many teams to create</small>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="clearExisting">
+                                            <label class="form-check-label" for="clearExisting">
+                                                Clear existing team assignments
+                                            </label>
+                                        </div>
+                                        <small class="form-text text-muted">If unchecked, only unassigned students will be distributed</small>
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <button type="button" class="btn btn-primary" id="executeDistributeBtn">Distribute Students</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -169,73 +254,114 @@
 <div class="row">
     <!-- Unassigned Students -->
     <div class="col-md-4">
-        <div class="unassigned-students">
-            <h5><i class="fa fa-user-circle"></i> Unassigned Students ({{ unassigned_students|length }})</h5>
-            <div id="unassigned-list" class="team-members-list">
-                {% for student in unassigned_students %}
-                <div class="student-item" data-id="{{ student.id }}">
-                    <span>{{ student.full_name }}</span>
-                    <span class="text-muted small">{{ student.email }}</span>
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0">
+                    <i class="fa fa-user-circle"></i> Unassigned Students 
+                    <span class="badge bg-primary rounded-pill">{{ unassigned_students|length }}</span>
+                </h5>
+            </div>
+            <div class="card-body p-3">
+                <div class="alert alert-info">
+                    <i class="fa fa-arrows-alt"></i> Drag students to teams to assign them
                 </div>
-                {% empty %}
-                <div class="text-center text-muted p-3">
-                    <em>All students are assigned to teams</em>
+                <div id="unassigned-list" class="team-members-list">
+                    {% for student in unassigned_students %}
+                    <div class="student-item" data-id="{{ student.id }}">
+                        <div class="d-flex align-items-center w-100">
+                            <div class="avatar-placeholder me-2 bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; flex-shrink: 0;">
+                                {{ student.first_name|first }}{{ student.last_name|first }}
+                            </div>
+                            <div class="flex-grow-1">
+                                <div>{{ student.full_name }}</div>
+                                <div class="text-muted small">{{ student.email }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center text-muted p-4 border border-light rounded">
+                        <em>All students are assigned to teams</em>
+                    </div>
+                    {% endfor %}
                 </div>
-                {% endfor %}
             </div>
         </div>
     </div>
     
     <!-- Teams -->
     <div class="col-md-8">
-        <div id="teams-container">
-            {% for team in teams %}
-            <div class="team-box {% if team.canvas_group_id %}canvas-team{% else %}manual-team{% endif %}" data-id="{{ team.id }}">
-                <div class="team-header">
-                    <div>
-                        <h5>
-                            {{ team.name }}
-                            {% if team.canvas_group_id %}
-                            <span class="badge badge-canvas">Canvas Group</span>
-                            {% else %}
-                            <span class="badge badge-manual">Manual Team</span>
-                            {% endif %}
-                        </h5>
-                        <div class="text-muted small">
-                            {{ team.description|default:"No description" }}
-                            {% if team.canvas_group_id %}
-                            <br>Canvas ID: {{ team.canvas_group_id }}
-                            {% endif %}
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0">
+                    <i class="fa fa-users"></i> Teams
+                    <span class="badge bg-primary rounded-pill">{{ teams|length }}</span>
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="teams-container">
+                    {% for team in teams %}
+                    <div class="team-box {% if team.canvas_group_id %}canvas-team{% else %}manual-team{% endif %} mb-4" data-id="{{ team.id }}">
+                        <div class="team-header bg-light p-3 rounded-top">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h5 class="mb-1">
+                                        {{ team.name }}
+                                        {% if team.canvas_group_id %}
+                                        <span class="badge badge-canvas">Canvas Group</span>
+                                        {% else %}
+                                        <span class="badge badge-manual">Manual Team</span>
+                                        {% endif %}
+                                    </h5>
+                                    <div class="text-muted small">
+                                        {{ team.description|default:"No description" }}
+                                        {% if team.canvas_group_id %}
+                                        <br>Canvas ID: {{ team.canvas_group_id }}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge bg-primary rounded-pill">{{ team.student_count }} members</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="team-members-list p-3 border border-light rounded-bottom" data-team-id="{{ team.id }}">
+                            <div class="dropzone-message text-center mb-2">
+                                <small class="text-muted"><i class="fa fa-arrows-alt"></i> Drop students here</small>
+                            </div>
+                            
+                            {% for student in team.students.all %}
+                            <div class="student-item mb-2" data-id="{{ student.id }}">
+                                <div class="d-flex align-items-center w-100">
+                                    <div class="avatar-placeholder me-2 bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; flex-shrink: 0;">
+                                        {{ student.first_name|first }}{{ student.last_name|first }}
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div>{{ student.full_name }}</div>
+                                        <div class="text-muted small">{{ student.email }}</div>
+                                    </div>
+                                    <button class="btn btn-sm btn-outline-danger remove-student-btn" 
+                                            data-student-id="{{ student.id }}" 
+                                            data-student-name="{{ student.full_name }}"
+                                            title="Remove from team">
+                                        <i class="fa fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            {% empty %}
+                            <div class="text-center text-muted p-4 border border-light border-dashed rounded empty-team-message">
+                                <em>Drag students here to add to team</em>
+                            </div>
+                            {% endfor %}
                         </div>
                     </div>
-                    <div class="text-end">
-                        <span class="badge bg-primary">{{ team.student_count }} members</span>
-                    </div>
-                </div>
-                
-                <div class="team-members-list" data-team-id="{{ team.id }}">
-                    {% for student in team.students.all %}
-                    <div class="student-item" data-id="{{ student.id }}">
-                        <span>{{ student.full_name }}</span>
-                        <button class="btn btn-sm btn-outline-danger remove-student-btn" 
-                                data-student-id="{{ student.id }}" 
-                                data-student-name="{{ student.full_name }}"
-                                title="Remove from team">
-                            <i class="fa fa-times"></i>
-                        </button>
-                    </div>
                     {% empty %}
-                    <div class="text-center text-muted p-3 empty-team-message">
-                        <em>Drag students here to add to team</em>
+                    <div class="alert alert-warning">
+                        <i class="fa fa-exclamation-circle"></i> No teams found. Create a team to start assigning students.
                     </div>
                     {% endfor %}
                 </div>
             </div>
-            {% empty %}
-            <div class="alert alert-warning">
-                <i class="fa fa-exclamation-circle"></i> No teams found. Create a team to start assigning students.
-            </div>
-            {% endfor %}
         </div>
     </div>
 </div>
@@ -346,7 +472,18 @@
         animation: 150,
         ghostClass: 'student-ghost',
         chosenClass: 'student-chosen',
+        onStart: function(evt) {
+            // Add active class to all team member lists to highlight drop zones
+            document.querySelectorAll('.team-members-list').forEach(list => {
+                list.classList.add('dropzone-active');
+            });
+        },
         onEnd: function(evt) {
+            // Remove active class from all team member lists
+            document.querySelectorAll('.team-members-list').forEach(list => {
+                list.classList.remove('dropzone-active');
+            });
+            
             // If moved to a team container
             if (evt.to !== unassignedList) {
                 const studentId = evt.item.dataset.id;
@@ -366,7 +503,18 @@
             animation: 150,
             ghostClass: 'student-ghost',
             chosenClass: 'student-chosen',
+            onStart: function(evt) {
+                // Add active class to all team member lists to highlight drop zones
+                document.querySelectorAll('.team-members-list').forEach(list => {
+                    list.classList.add('dropzone-active');
+                });
+            },
             onEnd: function(evt) {
+                // Remove active class from all team member lists
+                document.querySelectorAll('.team-members-list').forEach(list => {
+                    list.classList.remove('dropzone-active');
+                });
+                
                 // If moved to a different team or back to unassigned
                 if (evt.from !== evt.to) {
                     const studentId = evt.item.dataset.id;
@@ -396,7 +544,7 @@
                     const emptyMessage = evt.from.querySelector('.empty-team-message');
                     if (!emptyMessage) {
                         const newEmptyMessage = document.createElement('div');
-                        newEmptyMessage.className = 'text-center text-muted p-3 empty-team-message';
+                        newEmptyMessage.className = 'text-center text-muted p-4 border border-light border-dashed rounded empty-team-message';
                         newEmptyMessage.innerHTML = '<em>Drag students here to add to team</em>';
                         evt.from.appendChild(newEmptyMessage);
                     } else {
@@ -436,11 +584,17 @@
                     const newBtn = document.createElement('button');
                     newBtn.className = 'btn btn-sm btn-outline-danger remove-student-btn';
                     newBtn.setAttribute('data-student-id', studentId);
-                    newBtn.setAttribute('data-student-name', itemElement.querySelector('span').textContent);
+                    // Get student name from the first div in the flex-grow-1 container
+                    const nameElement = itemElement.querySelector('.flex-grow-1 div:first-child');
+                    const studentName = nameElement ? nameElement.textContent : 'Student';
+                    newBtn.setAttribute('data-student-name', studentName);
                     newBtn.setAttribute('title', 'Remove from team');
                     newBtn.innerHTML = '<i class="fa fa-times"></i>';
                     newBtn.addEventListener('click', onRemoveStudentClick);
-                    itemElement.appendChild(newBtn);
+
+                    // Find the flex div to append to
+                    const flexDiv = itemElement.querySelector('.d-flex');
+                    flexDiv.appendChild(newBtn);
                 }
             } else {
                 // Handle error
@@ -640,6 +794,196 @@
         });
     });
     
+    // Auto-distribute students
+    document.getElementById('autoDistributeBtn').addEventListener('click', function() {
+        // Show the auto-distribute modal
+        new bootstrap.Modal(document.getElementById('autoDistributeModal')).show();
+    });
+    
+    // Handle distribution type change
+    document.getElementById('distributionType').addEventListener('change', function() {
+        const value = this.value;
+        document.getElementById('teamSizeDiv').style.display = (value === 'size' || value === 'new') ? 'block' : 'none';
+        document.getElementById('teamCountDiv').style.display = value === 'new' ? 'block' : 'none';
+    });
+    
+    // Execute auto-distribution
+    document.getElementById('executeDistributeBtn').addEventListener('click', function() {
+        const distributionType = document.getElementById('distributionType').value;
+        const teamSize = document.getElementById('teamSize').value;
+        const teamCount = document.getElementById('teamCount').value;
+        const clearExisting = document.getElementById('clearExisting').checked;
+        
+        // Get all teams
+        const teams = Array.from(document.querySelectorAll('.team-box')).map(team => {
+            return {
+                id: team.dataset.id,
+                element: team,
+                studentCount: team.querySelectorAll('.student-item').length
+            };
+        });
+        
+        // Get all unassigned students
+        const unassignedStudents = Array.from(unassignedList.querySelectorAll('.student-item'));
+        
+        // Get all assigned students if clearing existing assignments
+        let allStudents = [...unassignedStudents];
+        if (clearExisting) {
+            // Also get all students currently in teams
+            const assignedStudents = Array.from(document.querySelectorAll('.team-members-list[data-team-id] .student-item'));
+            allStudents = [...unassignedStudents, ...assignedStudents];
+            
+            // Move all students to unassigned first
+            allStudents.forEach(student => {
+                // If not already in unassigned list
+                if (!unassignedList.contains(student)) {
+                    // Remove from current team
+                    const studentId = student.dataset.id;
+                    removeStudentFromTeam(studentId, student);
+                    
+                    // Move to unassigned list
+                    unassignedList.appendChild(student);
+                }
+            });
+        }
+        
+        // Shuffle students for random distribution
+        shuffleArray(allStudents);
+        
+        if (distributionType === 'even') {
+            // Distribute evenly across existing teams
+            if (teams.length === 0) {
+                alert('No teams available. Please create teams first.');
+                return;
+            }
+            
+            // Distribute students evenly
+            allStudents.forEach((student, index) => {
+                const teamIndex = index % teams.length;
+                const team = teams[teamIndex];
+                const teamList = team.element.querySelector('.team-members-list');
+                
+                // Move student to team
+                teamList.appendChild(student);
+                
+                // Assign in database
+                const studentId = student.dataset.id;
+                const teamId = team.id;
+                assignStudentToTeam(studentId, teamId, student);
+            });
+        } else if (distributionType === 'size') {
+            // Distribute by team size
+            if (teams.length === 0) {
+                alert('No teams available. Please create teams first.');
+                return;
+            }
+            
+            // Count how many students we can put in each team
+            const maxStudentsPerTeam = parseInt(teamSize);
+            
+            // Assign students to teams
+            let currentTeamIndex = 0;
+            allStudents.forEach((student) => {
+                // Find next team that has space
+                while (currentTeamIndex < teams.length && 
+                       teams[currentTeamIndex].studentCount >= maxStudentsPerTeam) {
+                    currentTeamIndex++;
+                }
+                
+                // If we have teams with space
+                if (currentTeamIndex < teams.length) {
+                    const team = teams[currentTeamIndex];
+                    const teamList = team.element.querySelector('.team-members-list');
+                    
+                    // Move student to team
+                    teamList.appendChild(student);
+                    
+                    // Assign in database
+                    const studentId = student.dataset.id;
+                    const teamId = team.id;
+                    assignStudentToTeam(studentId, teamId, student);
+                    
+                    // Update team count
+                    team.studentCount++;
+                } else {
+                    // No more space in any team, leave student unassigned
+                    console.log('No more space in teams for student');
+                }
+            });
+        } else if (distributionType === 'new') {
+            // Create new teams and distribute
+            const newTeamCount = parseInt(teamCount);
+            const maxStudentsPerTeam = parseInt(teamSize);
+            
+            // Create the teams first
+            const createdTeams = [];
+            const createTeamPromises = [];
+            
+            for (let i = 1; i <= newTeamCount; i++) {
+                const teamName = `Team ${i}`;
+                
+                const createPromise = fetch(`{% url "canvas_create_team" course_id=course.canvas_id %}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCsrfToken()
+                    },
+                    body: JSON.stringify({
+                        name: teamName,
+                        description: `Auto-created team ${i}`
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        createdTeams.push(data.team);
+                        // Add the new team to the page
+                        addTeamToPage(data.team);
+                    }
+                });
+                
+                createTeamPromises.push(createPromise);
+            }
+            
+            // Wait for all teams to be created
+            Promise.all(createTeamPromises)
+                .then(() => {
+                    // Now assign students to the newly created teams
+                    let currentTeamIndex = 0;
+                    allStudents.forEach((student, index) => {
+                        // If we've filled up the current team, move to the next
+                        if (index > 0 && index % maxStudentsPerTeam === 0) {
+                            currentTeamIndex++;
+                        }
+                        
+                        // If we have a team for this student
+                        if (currentTeamIndex < createdTeams.length) {
+                            const team = createdTeams[currentTeamIndex];
+                            
+                            // Find the team element in the DOM
+                            const teamElement = document.querySelector(`.team-box[data-id="${team.id}"]`);
+                            const teamList = teamElement.querySelector('.team-members-list');
+                            
+                            // Move student to team
+                            teamList.appendChild(student);
+                            
+                            // Assign in database
+                            const studentId = student.dataset.id;
+                            assignStudentToTeam(studentId, team.id, student);
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.error('Error creating teams:', error);
+                    alert('An error occurred while creating teams. Please try again.');
+                });
+        }
+        
+        // Close the modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('autoDistributeModal'));
+        modal.hide();
+    });
+    
     // Select a group category for pushing teams
     function selectGroupCategory(categoryId, categoryName) {
         selectedCategoryId = categoryId;
@@ -654,29 +998,34 @@
         
         // Create team box
         const teamBox = document.createElement('div');
-        teamBox.className = team.canvas_group_id ? 'team-box canvas-team' : 'team-box manual-team';
+        teamBox.className = team.canvas_group_id ? 'team-box canvas-team mb-4' : 'team-box manual-team mb-4';
         teamBox.dataset.id = team.id;
         
         // Create team HTML
         teamBox.innerHTML = `
-            <div class="team-header">
-                <div>
-                    <h5>
-                        ${team.name}
-                        ${team.canvas_group_id ? '<span class="badge badge-canvas">Canvas Group</span>' : '<span class="badge badge-manual">Manual Team</span>'}
-                    </h5>
-                    <div class="text-muted small">
-                        ${team.description || 'No description'}
-                        ${team.canvas_group_id ? `<br>Canvas ID: ${team.canvas_group_id}` : ''}
+            <div class="team-header bg-light p-3 rounded-top">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-1">
+                            ${team.name}
+                            ${team.canvas_group_id ? '<span class="badge badge-canvas">Canvas Group</span>' : '<span class="badge badge-manual">Manual Team</span>'}
+                        </h5>
+                        <div class="text-muted small">
+                            ${team.description || 'No description'}
+                            ${team.canvas_group_id ? `<br>Canvas ID: ${team.canvas_group_id}` : ''}
+                        </div>
                     </div>
-                </div>
-                <div class="text-end">
-                    <span class="badge bg-primary">0 members</span>
+                    <div class="text-end">
+                        <span class="badge bg-primary rounded-pill">0 members</span>
+                    </div>
                 </div>
             </div>
             
-            <div class="team-members-list" data-team-id="${team.id}">
-                <div class="text-center text-muted p-3 empty-team-message">
+            <div class="team-members-list p-3 border border-light rounded-bottom" data-team-id="${team.id}">
+                <div class="dropzone-message text-center mb-2">
+                    <small class="text-muted"><i class="fa fa-arrows-alt"></i> Drop students here</small>
+                </div>
+                <div class="text-center text-muted p-4 border border-light border-dashed rounded empty-team-message">
                     <em>Drag students here to add to team</em>
                 </div>
             </div>
@@ -692,7 +1041,18 @@
             animation: 150,
             ghostClass: 'student-ghost',
             chosenClass: 'student-chosen',
+            onStart: function(evt) {
+                // Add active class to all team member lists to highlight drop zones
+                document.querySelectorAll('.team-members-list').forEach(list => {
+                    list.classList.add('dropzone-active');
+                });
+            },
             onEnd: function(evt) {
+                // Remove active class from all team member lists
+                document.querySelectorAll('.team-members-list').forEach(list => {
+                    list.classList.remove('dropzone-active');
+                });
+                
                 // If moved to a different team or back to unassigned
                 if (evt.from !== evt.to) {
                     const studentId = evt.item.dataset.id;
@@ -722,7 +1082,7 @@
                     const emptyMessage = evt.from.querySelector('.empty-team-message');
                     if (!emptyMessage) {
                         const newEmptyMessage = document.createElement('div');
-                        newEmptyMessage.className = 'text-center text-muted p-3 empty-team-message';
+                        newEmptyMessage.className = 'text-center text-muted p-4 border border-light border-dashed rounded empty-team-message';
                         newEmptyMessage.innerHTML = '<em>Drag students here to add to team</em>';
                         evt.from.appendChild(newEmptyMessage);
                     } else {
@@ -747,8 +1107,10 @@
     // Make sure all student items have remove buttons
     document.querySelectorAll('.team-members-list[data-team-id] .student-item').forEach(item => {
         const studentId = item.dataset.id;
-        const studentName = item.querySelector('span').textContent;
-        
+        // Get student name safely
+        const nameElement = item.querySelector('.flex-grow-1 div:first-child');
+        const studentName = nameElement ? nameElement.textContent : 'Student';
+
         if (!item.querySelector('.remove-student-btn')) {
             const newBtn = document.createElement('button');
             newBtn.className = 'btn btn-sm btn-outline-danger remove-student-btn';
@@ -757,8 +1119,22 @@
             newBtn.setAttribute('title', 'Remove from team');
             newBtn.innerHTML = '<i class="fa fa-times"></i>';
             newBtn.addEventListener('click', onRemoveStudentClick);
-            item.appendChild(newBtn);
+
+            // Find the flex div to append to
+            const flexDiv = item.querySelector('.d-flex');
+            if (flexDiv) {
+                flexDiv.appendChild(newBtn);
+            }
         }
     });
+    
+    // Utility function to shuffle array in-place (Fisher-Yates algorithm)
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
 </script>
 {% endblock %}
