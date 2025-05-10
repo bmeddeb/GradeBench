@@ -1,5 +1,6 @@
 {% extends 'canvas/base.html' %}
 {% load static %}
+{% load lms_extras %}
 
 {% block title %}Canvas Students | GradeBench{% endblock %}
 {% block page_title %}Canvas Students{% endblock %}
@@ -31,6 +32,7 @@
                                 <th>Name</th>
                                 <th>Email</th>
                                 <th>Courses</th>
+                                <th>Teams</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -43,6 +45,29 @@
                                     {% for course_info in student.courses %}
                                     <span class="badge bg-info">{{ course_info.course.course_code }}</span>
                                     {% endfor %}
+                                </td>
+                                <td>
+                                    {% if student.has_team %}
+                                        {% for course_info in student.courses %}
+                                            {% with team_info=student.teams|get_item:course_info.course.id %}
+                                                {% if team_info %}
+                                                <div class="mb-1">
+                                                    <strong>{{ course_info.course.course_code }}:</strong>
+                                                    <span class="badge {% if team_info.source == 'Canvas' %}bg-success{% else %}bg-secondary{% endif %}">
+                                                        {{ team_info.team.name }}
+                                                        {% if team_info.source == 'Canvas' %}
+                                                            <i class="fa fa-cloud" title="Canvas Group"></i>
+                                                        {% else %}
+                                                            <i class="fa fa-edit" title="Manual Team"></i>
+                                                        {% endif %}
+                                                    </span>
+                                                </div>
+                                                {% endif %}
+                                            {% endwith %}
+                                        {% endfor %}
+                                    {% else %}
+                                        <span class="text-muted">No teams</span>
+                                    {% endif %}
                                 </td>
                                 <td>
                                     {% for course_info in student.courses %}

@@ -183,14 +183,37 @@ class CanvasSyncer:
             # Step 8: Sync Canvas groups
             if user_id:
                 await SyncProgress.async_update(
-                    user_id, course_id, current=10, total=12, 
+                    user_id, course_id, current=10, total=12,
                     status="syncing_groups",
                     message="Syncing Canvas groups and team memberships..."
                 )
 
-            # Sync groups and get current group IDs for cleanup
-            current_group_ids = await self.sync_canvas_groups(course, user_id)
-            await self.sync_group_memberships(course, user_id)
+            try:
+                # Sync groups and get current group IDs for cleanup
+                current_group_ids = await self.sync_canvas_groups(course, user_id)
+
+                # Only try to sync memberships if we found groups
+                if current_group_ids:
+                    await self.sync_group_memberships(course, user_id)
+                else:
+                    if user_id:
+                        await SyncProgress.async_update(
+                            user_id, course_id,
+                            current=10.5, total=12,
+                            status="info",
+                            message="No Canvas groups found, skipping membership sync."
+                        )
+                    logger.info(f"No Canvas groups found for course {course.name}, skipping membership sync")
+            except Exception as e:
+                # Log the error but continue with sync (don't fail the whole sync process)
+                logger.error(f"Error syncing groups for course {course_id}: {str(e)}")
+                if user_id:
+                    await SyncProgress.async_update(
+                        user_id, course_id,
+                        current=10.5, total=12,
+                        status="warning",
+                        message=f"Warning: Error syncing Canvas groups: {str(e)}"
+                    )
 
             # Update last sync timestamp
             from django.utils import timezone
@@ -250,58 +273,103 @@ class CanvasSyncer:
     async def sync_canvas_groups(self, course: CanvasCourse, user_id=None) -> List[int]:
         """
         Sync Canvas groups for a course to Teams
-        
+
         Args:
             course: The Canvas course to sync groups for
             user_id: ID of the user initiating the sync (for progress tracking)
-            
+
         Returns:
             List of current Canvas group IDs that were synced
         """
         from .progress import SyncProgress
-        
+
         if user_id:
             await SyncProgress.async_update(
                 user_id, course.canvas_id,
                 status="fetching_groups",
                 message="Fetching group categories from Canvas..."
             )
-            
+
         # 1. Fetch group‑sets
-        categories = await self.client.get_group_categories(course.canvas_id)
-        
+        try:
+            categories = await self.client.get_group_categories(course.canvas_id)
+
+            # Handle case where API returns None or empty list
+            if not categories:
+                if user_id:
+                    await SyncProgress.async_update(
+                        user_id, course.canvas_id,
+                        status="info",
+                        message="No Canvas group categories found for this course."
+                    )
+                logger.info(f"No group categories found for course {course.name} (ID: {course.canvas_id})")
+                return []
+
+        except Exception as e:
+            logger.error(f"Error fetching group categories for course {course.canvas_id}: {str(e)}")
+            if user_id:
+                await SyncProgress.async_update(
+                    user_id, course.canvas_id,
+                    status="warning",
+                    message=f"Error fetching Canvas groups: {str(e)}"
+                )
+            return []
+
         # Track all Canvas group IDs to handle cleanup later
         current_group_ids = []
-        
+
         # 2. Upsert Teams for each Canvas group
         for cat in categories:
+            # Skip if category data is missing
+            if not cat or 'id' not in cat:
+                continue
+
+            cat_name = cat.get('name', 'Unnamed Category')
+
             if user_id:
                 await SyncProgress.async_update(
                     user_id, course.canvas_id,
                     status="fetching_groups",
-                    message=f"Fetching groups in category: {cat.get('name', 'Unnamed Category')}"
+                    message=f"Fetching groups in category: {cat_name}"
                 )
-                
-            groups = await self.client.get_groups(cat['id'])
-            
-            if user_id and groups:
-                await SyncProgress.async_update(
-                    user_id, course.canvas_id,
-                    status="saving_groups",
-                    message=f"Saving {len(groups)} groups to database..."
-                )
-            
-            for grp in groups:
-                current_group_ids.append(grp['id'])
-                
-                # Perform update_or_create with sync_to_async
-                await self._save_team(
-                    canvas_group_id=grp['id'],
-                    canvas_course=course,
-                    name=grp.get('name', '')[:100],
-                    description=grp.get('description', '')[:500]
-                )
-        
+
+            try:
+                # Get groups for this category
+                groups = await self.client.get_groups(cat['id'])
+
+                # Handle case where API returns None or empty list
+                if not groups:
+                    logger.info(f"No groups found in category '{cat_name}' for course {course.name}")
+                    continue
+
+                if user_id and groups:
+                    await SyncProgress.async_update(
+                        user_id, course.canvas_id,
+                        status="saving_groups",
+                        message=f"Saving {len(groups)} groups to database..."
+                    )
+
+                for grp in groups:
+                    # Skip if group data is missing
+                    if not grp or 'id' not in grp:
+                        continue
+
+                    current_group_ids.append(grp['id'])
+
+                    # Perform update_or_create with sync_to_async
+                    await self._save_team(
+                        canvas_group_id=grp['id'],
+                        canvas_course=course,
+                        name=grp.get('name', '')[:100],
+                        description=grp.get('description', '')[:500]
+                    )
+            except Exception as e:
+                logger.error(f"Error processing group category '{cat_name}' for course {course.canvas_id}: {str(e)}")
+                continue
+
+        # Log group count
+        logger.info(f"Synced {len(current_group_ids)} Canvas groups for course {course.name} (ID: {course.canvas_id})")
+
         # Return group IDs for potential cleanup
         return current_group_ids
 
@@ -328,39 +396,59 @@ class CanvasSyncer:
     async def sync_group_memberships(self, course: CanvasCourse, user_id=None):
         """
         Sync group memberships to Student.team assignments
-        
+
         Args:
             course: The Canvas course to sync memberships for
             user_id: ID of the user initiating the sync (for progress tracking)
         """
         from .progress import SyncProgress
-        
+
         # Get teams with canvas_group_id
         teams = await self._get_canvas_teams(course)
-        
+
+        # Handle case where there are no Canvas teams
+        if not teams:
+            if user_id:
+                await SyncProgress.async_update(
+                    user_id, course.canvas_id,
+                    status="info",
+                    message="No Canvas teams found to sync memberships."
+                )
+            logger.info(f"No Canvas teams found to sync memberships for course {course.name} (ID: {course.canvas_id})")
+            return
+
         if user_id:
             await SyncProgress.async_update(
                 user_id, course.canvas_id,
                 status="syncing_members",
                 message=f"Syncing memberships for {len(teams)} teams..."
             )
-        
+
         for i, team in enumerate(teams):
             if not team.canvas_group_id:
                 continue  # Skip manually created teams
-                
+
             if user_id and i > 0 and i % 5 == 0:
                 await SyncProgress.async_update(
                     user_id, course.canvas_id,
                     status="syncing_members",
                     message=f"Syncing team {i+1} of {len(teams)}: {team.name}"
                 )
-                
+
             try:
                 # Get group members
                 members = await self.client.get_group_members(team.canvas_group_id)
-                
+
+                # Handle case where API returns None or empty list
+                if not members:
+                    logger.info(f"No members found for team {team.name} (Canvas group ID: {team.canvas_group_id})")
+                    continue
+
                 for m in members:
+                    # Skip if member data is missing
+                    if not m or 'id' not in m:
+                        continue
+
                     try:
                         # Get the enrollment
                         enrollment = await self._get_enrollment(m['id'], course)
@@ -369,30 +457,32 @@ class CanvasSyncer:
                                 f"Enrollment not found for user ID {m['id']} in team {team.name}"
                             )
                             continue
-                            
+
                         # Get or create student
                         student = await self._get_or_create_student(enrollment)
                         if not student:
                             continue
-                            
+
                         # Assign team to student if different
                         if student.team != team:
                             old_team = student.team
                             student.team = team
                             await sync_to_async(student.save)(update_fields=['team'])
-                            
+
                             logger.info(
                                 f"Updated student {student.full_name} team assignment: " +
                                 f"{old_team.name if old_team else 'None'} → {team.name}"
                             )
-                            
+
                     except Exception as e:
                         logger.error(f"Error processing member {m.get('id', 'unknown')} for team {team.name}: {str(e)}")
                         continue
-                        
+
             except Exception as e:
                 logger.error(f"Error syncing memberships for team {team.name}: {str(e)}")
                 continue
+
+        logger.info(f"Finished syncing memberships for {len(teams)} teams in course {course.name} (ID: {course.canvas_id})")
 
     @sync_to_async
     def _get_canvas_teams(self, course: CanvasCourse) -> List[Team]:

@@ -1,5 +1,6 @@
 {% extends 'canvas/base.html' %}
 {% load static %}
+{% load lms_extras %}
 
 {% block title %}{{ course.name }} | GradeBench Canvas{% endblock %}
 {% block page_title %}{{ course.course_code }}: {{ course.name }}{% endblock %}
@@ -65,13 +66,13 @@
                 <div class="row">
                     <div class="col-5 col-md-4">
                         <div class="icon-big text-center icon-warning">
-                            <i class="nc-icon nc-hat-3 text-primary"></i>
+                            <i class="nc-icon nc-vector text-primary"></i>
                         </div>
                     </div>
                     <div class="col-7 col-md-8">
                         <div class="numbers">
-                            <p class="card-category">Instructors</p>
-                            <p class="card-title">{{ instructor_count }}</p>
+                            <p class="card-category">Teams</p>
+                            <p class="card-title">{{ teams|length }}</p>
                         </div>
                     </div>
                 </div>
@@ -79,7 +80,7 @@
             <div class="card-footer">
                 <hr>
                 <div class="stats">
-                    <i class="fa fa-user"></i> Teachers & TAs
+                    <i class="fa fa-users"></i> {{ canvas_teams_count }} from Canvas, {{ manual_teams_count }} manual
                 </div>
             </div>
         </div>
@@ -325,6 +326,71 @@
                     {% else %}
                     <div class="text-center py-4">
                         <p>No enrollments found for this course.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Teams Section -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title">Teams</h4>
+                <p class="card-category">Canvas Groups and Manual Teams</p>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    {% if teams %}
+                    <table class="table table-hover">
+                        <thead class="text-primary">
+                            <tr>
+                                <th>Team Name</th>
+                                <th>Source</th>
+                                <th>Members</th>
+                                <th>Last Synced</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for team in teams %}
+                            <tr>
+                                <td>{{ team.name }}</td>
+                                <td>
+                                    {% if team.canvas_group_id %}
+                                    <span class="badge bg-success">Canvas Group</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Manual Team</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ team.student_count }}</td>
+                                <td>
+                                    {% if team.last_synced_at %}
+                                    {{ team.last_synced_at|date:"M d, Y H:i" }}
+                                    {% elif team.canvas_group_id %}
+                                    Never synced
+                                    {% else %}
+                                    N/A
+                                    {% endif %}
+                                </td>
+                                <td>{{ team.description|truncatechars:50 }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <div class="text-center py-4">
+                        {% if canvas_teams_count == 0 %}
+                        <div class="alert alert-info">
+                            <strong>No Canvas Groups Found</strong><br>
+                            This course does not have any groups set up in Canvas. You can create manual teams or set up groups in Canvas and resync.
+                        </div>
+                        {% else %}
+                        <p>No teams found for this course.</p>
+                        {% endif %}
                     </div>
                     {% endif %}
                 </div>

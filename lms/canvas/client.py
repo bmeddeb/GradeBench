@@ -124,21 +124,36 @@ class Client:
 
     async def get_group_categories(self, course_id: int) -> List[Dict]:
         """Get all group categories (group sets) for a course"""
-        return await self.request(
-            'GET', f'courses/{course_id}/group_categories', params={'per_page': 100}
-        )
+        try:
+            result = await self.request(
+                'GET', f'courses/{course_id}/group_categories', params={'per_page': 100}
+            )
+            return result if result else []  # Return empty list instead of None
+        except Exception as e:
+            logger.error(f"Error fetching group categories for course {course_id}: {str(e)}")
+            return []  # Return empty list on error
 
     async def get_groups(self, category_id: int) -> List[Dict]:
         """Get all groups within a group category"""
-        return await self.request(
-            'GET', f'group_categories/{category_id}/groups', params={'per_page': 100}
-        )
+        try:
+            result = await self.request(
+                'GET', f'group_categories/{category_id}/groups', params={'per_page': 100}
+            )
+            return result if result else []  # Return empty list instead of None
+        except Exception as e:
+            logger.error(f"Error fetching groups for category {category_id}: {str(e)}")
+            return []  # Return empty list on error
 
     async def get_group_members(self, group_id: int) -> List[Dict]:
         """Get all members of a group"""
-        return await self.request(
-            'GET', f'groups/{group_id}/users', params={'per_page': 100}
-        )
+        try:
+            result = await self.request(
+                'GET', f'groups/{group_id}/users', params={'per_page': 100}
+            )
+            return result if result else []  # Return empty list instead of None
+        except Exception as e:
+            logger.error(f"Error fetching members for group {group_id}: {str(e)}")
+            return []  # Return empty list on error
 
     @sync_to_async
     def _save_course(self, course_data: Dict) -> CanvasCourse:

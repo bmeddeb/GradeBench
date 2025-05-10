@@ -36,7 +36,7 @@ def get_integration_for_user(user):
 
 
 def canvas_students_list(request):
-    """View listing all Canvas students across all courses"""
+    """View listing all Canvas students across all courses with team information"""
     if not request.user.is_authenticated:
         return redirect('login')
 
@@ -49,22 +49,42 @@ def canvas_students_list(request):
     enrollments = CanvasEnrollment.objects.filter(
         course__integration=integration,
         role='StudentEnrollment'
-    ).select_related('course')
+    ).select_related('course', 'student', 'student__team')
 
     # Group by student
     students_by_id = {}
     for enrollment in enrollments:
         if enrollment.user_id not in students_by_id:
+            # Create entry for student
             students_by_id[enrollment.user_id] = {
                 'user_id': enrollment.user_id,
                 'name': enrollment.user_name,
                 'email': enrollment.email,
-                'courses': []
+                'courses': [],
+                'teams': {},  # Dictionary of teams by course ID for this student
+                'has_team': False,  # Flag to indicate if student has any team
             }
+
+        # Add course information
         students_by_id[enrollment.user_id]['courses'].append({
             'course': enrollment.course,
             'enrollment': enrollment
         })
+
+        # Add team information if available
+        if enrollment.student and enrollment.student.team:
+            team = enrollment.student.team
+            course_id = enrollment.course.id
+
+            # Store team info for this course
+            students_by_id[enrollment.user_id]['teams'][course_id] = {
+                'team': team,
+                'source': 'Canvas' if team.canvas_group_id else 'Manual',
+                'course': enrollment.course
+            }
+
+            # Flag that student has at least one team
+            students_by_id[enrollment.user_id]['has_team'] = True
 
     context = {
         'integration': integration,

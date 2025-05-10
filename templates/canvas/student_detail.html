@@ -1,5 +1,6 @@
 {% extends 'canvas/base.html' %}
 {% load static %}
+{% load lms_extras %}
 
 {% block title %}{{ enrollment.user_name }} | {{ course.course_code }} | GradeBench Canvas{% endblock %}
 {% block page_title %}{{ enrollment.user_name }}{% endblock %}
@@ -255,6 +256,51 @@
                         <i class="fa fa-external-link"></i> View in Canvas
                     </a>
                 </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title">Team Information</h4>
+                <p class="card-category">
+                    Team Assignment and Members
+                </p>
+            </div>
+            <div class="card-content">
+                {% if team %}
+                <div class="team-info">
+                    <h5>
+                        {{ team.name }}
+                        <span class="badge {% if team_source == 'Canvas' %}bg-success{% else %}bg-secondary{% endif %}">
+                            {{ team_source }}
+                        </span>
+                    </h5>
+
+                    {% if team.description %}
+                    <p class="small mt-3">{{ team.description }}</p>
+                    {% endif %}
+
+                    {% if team_members %}
+                    <div class="mt-3">
+                        <h6>Team Members ({{ team_members|length|add:"1" }})</h6>
+                        <ul class="list-unstyled">
+                            <li><strong>{{ student.full_name }}</strong> (You are here)</li>
+                            {% for member in team_members %}
+                                <li>{{ member.full_name }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% else %}
+                    <p class="text-muted mt-3">No other team members</p>
+                    {% endif %}
+                </div>
+                {% else %}
+                <div class="text-center py-3">
+                    <div class="alert alert-warning">
+                        <p>This student is not assigned to a team.</p>
+                    </div>
+                </div>
+                {% endif %}
             </div>
         </div>
 
