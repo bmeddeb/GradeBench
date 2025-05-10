@@ -129,6 +129,56 @@ def canvas_assignments_list(request):
     return render(request, 'canvas/assignments_list.html', context)
 
 
+def canvas_teams_list(request):
+    """View listing all courses with team management links"""
+    if not request.user.is_authenticated:
+        return redirect('login')
+
+    integration = get_integration_for_user(request.user)
+
+    if not integration:
+        return redirect('canvas_setup')
+
+    # Get all courses from database with team stats
+    courses = CanvasCourse.objects.filter(integration=integration)
+
+    # Get team stats for each course
+    course_data = []
+    for course in courses:
+        # Get teams for this course
+        teams = Team.objects.filter(canvas_course=course).annotate(student_count=Count('students'))
+
+        # Calculate team statistics
+        team_count = teams.count()
+        canvas_teams_count = teams.filter(canvas_group_id__isnull=False).count()
+        manual_teams_count = team_count - canvas_teams_count
+        students_in_teams_count = sum(t.student_count for t in teams)
+
+        # Get student enrollment count
+        student_count = CanvasEnrollment.objects.filter(
+            course=course, role='StudentEnrollment').count()
+
+        # Calculate students without teams
+        students_without_teams = max(0, student_count - students_in_teams_count)
+
+        course_data.append({
+            'course': course,
+            'team_count': team_count,
+            'canvas_teams_count': canvas_teams_count,
+            'manual_teams_count': manual_teams_count,
+            'student_count': student_count,
+            'students_in_teams_count': students_in_teams_count,
+            'students_without_teams_count': students_without_teams,
+        })
+
+    context = {
+        'integration': integration,
+        'course_data': course_data,
+    }
+
+    return render(request, 'canvas/teams_list.html', context)
+
+
 def canvas_courses_list(request):
     """View listing all Canvas courses"""
     if not request.user.is_authenticated:

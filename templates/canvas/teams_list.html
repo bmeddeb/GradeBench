@@ -1,0 +1,215 @@
+{% extends 'canvas/base.html' %}
+{% load static %}
+
+{% block title %}Team Management | GradeBench Canvas{% endblock %}
+{% block page_title %}Canvas Teams Management{% endblock %}
+{% block nav_canvas_teams %}active{% endblock %}
+
+{% block canvas_content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title">Canvas Teams and Groups</h4>
+                <p class="card-category">Manage teams across all courses</p>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <strong><i class="fa fa-info-circle"></i> Note on terminology:</strong>
+                    <p>In Canvas, student groups are called "Groups", while in GradeBench we refer to them as "Teams".</p>
+                    <p>Our team management interface lets you organize students into teams that can be synced with Canvas Groups.</p>
+                </div>
+                
+                {% if course_data %}
+                <div class="table-responsive">
+                    <table id="courses-table" class="table table-hover">
+                        <thead class="text-primary">
+                            <tr>
+                                <th>Course</th>
+                                <th>Teams</th>
+                                <th>Students</th>
+                                <th>Team Distribution</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for data in course_data %}
+                            <tr>
+                                <td>
+                                    <strong>{{ data.course.course_code }}</strong><br>
+                                    {{ data.course.name }}
+                                </td>
+                                <td>
+                                    <strong>{{ data.team_count }} teams</strong><br>
+                                    {% if data.team_count > 0 %}
+                                        <small class="text-success">{{ data.canvas_teams_count }} from Canvas</small><br>
+                                        <small class="text-info">{{ data.manual_teams_count }} manual</small>
+                                    {% else %}
+                                        <small class="text-muted">No teams created</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <strong>{{ data.student_count }} students</strong><br>
+                                    {% if data.student_count > 0 %}
+                                        <small class="text-success">
+                                            {{ data.students_in_teams_count }} in teams
+                                            ({% widthratio data.students_in_teams_count data.student_count 100 %}%)
+                                        </small><br>
+                                        <small class="text-warning">
+                                            {{ data.students_without_teams_count }} unassigned
+                                            ({% widthratio data.students_without_teams_count data.student_count 100 %}%)
+                                        </small>
+                                    {% else %}
+                                        <small class="text-muted">No students enrolled</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if data.student_count > 0 %}
+                                    <div class="progress">
+                                        {% if data.students_in_teams_count > 0 %}
+                                        <div
+                                            class="progress-bar bg-success"
+                                            role="progressbar"
+                                            style="width: {% widthratio data.students_in_teams_count data.student_count 100 %}%"
+                                            aria-valuenow="{{ data.students_in_teams_count }}"
+                                            aria-valuemin="0"
+                                            aria-valuemax="{{ data.student_count }}">
+                                            {{ data.students_in_teams_count }}
+                                        </div>
+                                        {% endif %}
+                                        {% if data.students_without_teams_count > 0 %}
+                                        <div
+                                            class="progress-bar bg-warning"
+                                            role="progressbar"
+                                            style="width: {% widthratio data.students_without_teams_count data.student_count 100 %}%"
+                                            aria-valuenow="{{ data.students_without_teams_count }}"
+                                            aria-valuemin="0"
+                                            aria-valuemax="{{ data.student_count }}">
+                                            {{ data.students_without_teams_count }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    {% else %}
+                                    <span class="text-muted">No data</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'canvas_manage_teams' course_id=data.course.canvas_id %}" class="btn btn-primary btn-sm mb-1">
+                                        <i class="fa fa-users"></i> Manage Teams
+                                    </a>
+                                    <a href="{% url 'canvas_course_detail' course_id=data.course.canvas_id %}" class="btn btn-outline-secondary btn-sm">
+                                        <i class="fa fa-eye"></i> View Course
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-warning">
+                    <p><i class="fa fa-exclamation-circle"></i> No courses found.</p>
+                    <p>To get started with team management, please sync your courses from Canvas first.</p>
+                    <a href="{% url 'canvas_dashboard' %}" class="btn btn-primary">
+                        <i class="fa fa-refresh"></i> Sync Canvas Courses
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block canvas_css %}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+<style>
+    /* Custom styles for DataTables */
+    .dataTables_wrapper .dataTables_length,
+    .dataTables_wrapper .dataTables_filter,
+    .dataTables_wrapper .dataTables_info,
+    .dataTables_wrapper .dataTables_processing,
+    .dataTables_wrapper .dataTables_paginate {
+        color: #666;
+        margin-bottom: 10px;
+    }
+    
+    .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+        background: #ef8157;
+        border-color: #ef8157;
+        color: white !important;
+    }
+    
+    .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+        background: #fbe2d9;
+        border-color: #ef8157;
+        color: #333 !important;
+    }
+    
+    table.dataTable thead th {
+        position: relative;
+        background-image: none !important;
+    }
+ 
+    table.dataTable thead th.sorting:after,
+    table.dataTable thead th.sorting_asc:after,
+    table.dataTable thead th.sorting_desc:after {
+        position: absolute;
+        top: 12px;
+        right: 8px;
+        display: block;
+        font-family: "Font Awesome 5 Free";
+        opacity: 0.5;
+    }
+    
+    table.dataTable thead th.sorting:after {
+        content: "\f0dc";
+        opacity: 0.2;
+    }
+    
+    table.dataTable thead th.sorting_asc:after {
+        content: "\f0de";
+    }
+    
+    table.dataTable thead th.sorting_desc:after {
+        content: "\f0dd";
+    }
+</style>
+{% endblock %}
+
+{% block canvas_js %}
+<!-- Include DataTables JS -->
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+<script>
+// Initialize DataTables for the courses table
+$(document).ready(function() {
+  $('#courses-table').DataTable({
+    "paging": true,
+    "ordering": true,
+    "info": true,
+    "searching": true,
+    "language": {
+      "search": "Filter:",
+      "lengthMenu": "Show _MENU_ entries",
+      "info": "Showing _START_ to _END_ of _TOTAL_ entries",
+      "infoEmpty": "Showing 0 to 0 of 0 entries",
+      "infoFiltered": "(filtered from _MAX_ total entries)",
+      "paginate": {
+        "first": "First",
+        "last": "Last",
+        "next": "→",
+        "previous": "←"
+      }
+    },
+    "columnDefs": [
+      { "orderable": false, "targets": 4 } // Disable sorting on the Actions column
+    ],
+    "order": [[0, 'asc']], // Default sort by course name ascending
+    "pageLength": 10, // Show 10 entries per page by default
+    "lengthMenu": [5, 10, 25, 50], // Options for number of entries per page
+    "responsive": true
+  });
+});
+</script>
+{% endblock %}

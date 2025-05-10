@@ -33,6 +33,10 @@ urlpatterns = [
     path('assignment/', views.canvas_assignments_list,
          name='canvas_assignments_list'),
 
+    # Teams management list
+    path('teams/', views.canvas_teams_list,
+         name='canvas_teams_list'),
+
     # Course detail
     path('course/<int:course_id>/', views.course_detail,
          name='canvas_course_detail'),

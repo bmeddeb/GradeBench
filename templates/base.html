@@ -136,6 +136,12 @@
                                         <span class="sidebar-normal">Canvas Students</span>
                                     </a>
                                 </li>
+                                <li class="{% block nav_canvas_teams %}{% endblock %}">
+                                    <a href="{% url 'canvas_teams_list' %}">
+                                        <span class="sidebar-mini-icon"><i class="fa fa-object-group"></i></span>
+                                        <span class="sidebar-normal">Team Management</span>
+                                    </a>
+                                </li>
                                 <li class="{% block nav_canvas_assignments %}{% endblock %}">
                                     <a href="{% url 'canvas_assignments_list' %}">
                                         <span class="sidebar-mini-icon"><i class="fa fa-tasks"></i></span>

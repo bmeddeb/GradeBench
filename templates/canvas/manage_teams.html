@@ -43,9 +43,17 @@
         background-color: #fff;
         border: 1px solid #e0e0e0;
         border-radius: 8px;
-        cursor: move;
         transition: all 0.2s ease;
         box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        /* Remove cursor: grab from the whole item as we use handles now */
+    }
+
+    .sortable-ghost {
+        opacity: 0.4;
+    }
+
+    .sortable-chosen {
+        background-color: #e9f7fe;
     }
     
     .student-item:hover {
@@ -53,16 +61,28 @@
         box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         transform: translateY(-1px);
     }
-    
-    .student-ghost {
-        opacity: 0.5;
-        background-color: #e2f0ff;
+
+    .student-item:hover .drag-handle {
+        opacity: 1;
+        color: #495057;
     }
-    
+
+    .student-ghost {
+        opacity: 0.7;
+        background-color: #e2f0ff;
+        border: 1px dashed #4c9aff;
+        height: 65px;  /* Fixed height for the ghost */
+        overflow: hidden;
+        transform: rotate(1deg);
+        box-shadow: 0 0 15px rgba(76, 154, 255, 0.3);
+    }
+
     .student-chosen {
         background-color: #e9f7fe;
         border: 1px dashed #4c9aff;
-        box-shadow: 0 0 0 3px rgba(76, 154, 255, 0.1);
+        box-shadow: 0 0 10px rgba(76, 154, 255, 0.3);
+        transform: scale(1.02);
+        z-index: 9999;
     }
     
     .badge-canvas {
@@ -102,6 +122,57 @@
         background-color: #f0f7ff;
         border: 2px dashed #4c9aff !important;
         box-shadow: inset 0 0 10px rgba(76, 154, 255, 0.2);
+        animation: pulse 1.5s infinite;
+    }
+
+    .team-members-list.dropzone-active .dropzone-message {
+        opacity: 1;
+        animation: bounce 0.6s infinite alternate;
+        color: #4c9aff;
+        font-weight: 500;
+    }
+
+    .team-members-list.dropzone-active::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        border-radius: 8px;
+        box-shadow: 0 0 0 4px rgba(76, 154, 255, 0.3);
+        animation: glow 1.5s infinite alternate;
+        pointer-events: none;
+    }
+
+    @keyframes pulse {
+        0% {
+            background-color: #f0f7ff;
+        }
+        50% {
+            background-color: #e1efff;
+        }
+        100% {
+            background-color: #f0f7ff;
+        }
+    }
+
+    @keyframes bounce {
+        from {
+            transform: translateY(0);
+        }
+        to {
+            transform: translateY(-5px);
+        }
+    }
+
+    @keyframes glow {
+        0% {
+            opacity: 0.3;
+        }
+        100% {
+            opacity: 0.7;
+        }
     }
     
     /* Avatar styles */
@@ -133,10 +204,58 @@
     .team-members-list:hover .dropzone-message {
         opacity: 1;
     }
-    
+
+    /* Drag handle styling */
+    .drag-handle {
+        color: #6c757d;
+        cursor: grab;
+        padding: 8px 10px;
+        border-radius: 4px;
+        background-color: rgba(0,0,0,0.05);
+        margin-left: 8px;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+
+    .drag-handle:hover {
+        color: #495057;
+        background-color: rgba(0,0,0,0.1);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .drag-handle:active {
+        cursor: grabbing;
+        box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .drag-handle i {
+        font-size: 14px;
+    }
+
     /* Auto-distribute button styling */
     .btn-auto-distribute {
         margin-bottom: 15px;
+    }
+
+    /* Global dragging styles */
+    body.dragging {
+        cursor: grabbing;
+    }
+
+    body.dragging .team-members-list:hover {
+        cursor: drop;
+        border-color: #4c9aff;
+    }
+
+    body.dragging .team-box {
+        transition: transform 0.2s;
+    }
+
+    body.dragging .team-box:hover {
+        transform: scale(1.01);
     }
 </style>
 {% endblock %}
@@ -276,6 +395,7 @@
                                 <div>{{ student.full_name }}</div>
                                 <div class="text-muted small">{{ student.email }}</div>
                             </div>
+                            <div class="drag-handle" title="Drag to move student"><i class="fa fa-arrows-alt"></i></div>
                         </div>
                     </div>
                     {% empty %}
@@ -340,12 +460,13 @@
                                         <div>{{ student.full_name }}</div>
                                         <div class="text-muted small">{{ student.email }}</div>
                                     </div>
-                                    <button class="btn btn-sm btn-outline-danger remove-student-btn" 
-                                            data-student-id="{{ student.id }}" 
+                                    <button class="btn btn-sm btn-outline-danger remove-student-btn"
+                                            data-student-id="{{ student.id }}"
                                             data-student-name="{{ student.full_name }}"
                                             title="Remove from team">
                                         <i class="fa fa-times"></i>
                                     </button>
+                                    <div class="drag-handle" title="Drag to move student"><i class="fa fa-arrows-alt"></i></div>
                                 </div>
                             </div>
                             {% empty %}
@@ -472,10 +593,20 @@
         animation: 150,
         ghostClass: 'student-ghost',
         chosenClass: 'student-chosen',
+        handle: '.drag-handle',
         onStart: function(evt) {
             // Add active class to all team member lists to highlight drop zones
             document.querySelectorAll('.team-members-list').forEach(list => {
                 list.classList.add('dropzone-active');
+            });
+
+            // Add dragging class to body
+            document.body.classList.add('dragging');
+
+            // Make empty message more visible
+            document.querySelectorAll('.empty-team-message').forEach(msg => {
+                msg.style.opacity = '1';
+                msg.style.borderColor = '#4c9aff';
             });
         },
         onEnd: function(evt) {
@@ -483,12 +614,21 @@
             document.querySelectorAll('.team-members-list').forEach(list => {
                 list.classList.remove('dropzone-active');
             });
-            
+
+            // Remove dragging class from body
+            document.body.classList.remove('dragging');
+
+            // Reset empty message style
+            document.querySelectorAll('.empty-team-message').forEach(msg => {
+                msg.style.opacity = '';
+                msg.style.borderColor = '';
+            });
+
             // If moved to a team container
             if (evt.to !== unassignedList) {
                 const studentId = evt.item.dataset.id;
                 const teamId = evt.to.dataset.teamId;
-                
+
                 if (studentId && teamId) {
                     assignStudentToTeam(studentId, teamId, evt.item);
                 }
@@ -503,10 +643,20 @@
             animation: 150,
             ghostClass: 'student-ghost',
             chosenClass: 'student-chosen',
+            handle: '.drag-handle',
             onStart: function(evt) {
                 // Add active class to all team member lists to highlight drop zones
                 document.querySelectorAll('.team-members-list').forEach(list => {
                     list.classList.add('dropzone-active');
+                });
+
+                // Add dragging class to body
+                document.body.classList.add('dragging');
+
+                // Make empty message more visible
+                document.querySelectorAll('.empty-team-message').forEach(msg => {
+                    msg.style.opacity = '1';
+                    msg.style.borderColor = '#4c9aff';
                 });
             },
             onEnd: function(evt) {
@@ -514,11 +664,20 @@
                 document.querySelectorAll('.team-members-list').forEach(list => {
                     list.classList.remove('dropzone-active');
                 });
-                
+
+                // Remove dragging class from body
+                document.body.classList.remove('dragging');
+
+                // Reset empty message style
+                document.querySelectorAll('.empty-team-message').forEach(msg => {
+                    msg.style.opacity = '';
+                    msg.style.borderColor = '';
+                });
+
                 // If moved to a different team or back to unassigned
                 if (evt.from !== evt.to) {
                     const studentId = evt.item.dataset.id;
-                    
+
                     if (evt.to === unassignedList) {
                         // Student was moved to unassigned list
                         removeStudentFromTeam(studentId, evt.item);
@@ -577,24 +736,34 @@
                 // Success - do nothing, the UI is already updated
                 console.log('Student assigned successfully');
                 
-                // Update the remove button
-                const removeBtn = itemElement.querySelector('.remove-student-btn');
-                if (!removeBtn) {
-                    // Add remove button if it doesn't exist
-                    const newBtn = document.createElement('button');
-                    newBtn.className = 'btn btn-sm btn-outline-danger remove-student-btn';
-                    newBtn.setAttribute('data-student-id', studentId);
-                    // Get student name from the first div in the flex-grow-1 container
-                    const nameElement = itemElement.querySelector('.flex-grow-1 div:first-child');
-                    const studentName = nameElement ? nameElement.textContent : 'Student';
-                    newBtn.setAttribute('data-student-name', studentName);
-                    newBtn.setAttribute('title', 'Remove from team');
-                    newBtn.innerHTML = '<i class="fa fa-times"></i>';
-                    newBtn.addEventListener('click', onRemoveStudentClick);
+                // Update UI elements
+                const flexDiv = itemElement.querySelector('.d-flex');
+                if (flexDiv) {
+                    // Add remove button if needed
+                    const removeBtn = itemElement.querySelector('.remove-student-btn');
+                    if (!removeBtn) {
+                        const newBtn = document.createElement('button');
+                        newBtn.className = 'btn btn-sm btn-outline-danger remove-student-btn';
+                        newBtn.setAttribute('data-student-id', studentId);
+                        // Get student name from the first div in the flex-grow-1 container
+                        const nameElement = itemElement.querySelector('.flex-grow-1 div:first-child');
+                        const studentName = nameElement ? nameElement.textContent : 'Student';
+                        newBtn.setAttribute('data-student-name', studentName);
+                        newBtn.setAttribute('title', 'Remove from team');
+                        newBtn.innerHTML = '<i class="fa fa-times"></i>';
+                        newBtn.addEventListener('click', onRemoveStudentClick);
+                        flexDiv.appendChild(newBtn);
+                    }
 
-                    // Find the flex div to append to
-                    const flexDiv = itemElement.querySelector('.d-flex');
-                    flexDiv.appendChild(newBtn);
+                    // Add drag handle if needed
+                    const dragHandle = itemElement.querySelector('.drag-handle');
+                    if (!dragHandle) {
+                        const newHandle = document.createElement('div');
+                        newHandle.className = 'drag-handle';
+                        newHandle.setAttribute('title', 'Drag to move student');
+                        newHandle.innerHTML = '<i class="fa fa-arrows-alt"></i>';
+                        flexDiv.appendChild(newHandle);
+                    }
                 }
             } else {
                 // Handle error
@@ -1041,10 +1210,20 @@
             animation: 150,
             ghostClass: 'student-ghost',
             chosenClass: 'student-chosen',
+            handle: '.drag-handle',
             onStart: function(evt) {
                 // Add active class to all team member lists to highlight drop zones
                 document.querySelectorAll('.team-members-list').forEach(list => {
                     list.classList.add('dropzone-active');
+                });
+
+                // Add dragging class to body
+                document.body.classList.add('dragging');
+
+                // Make empty message more visible
+                document.querySelectorAll('.empty-team-message').forEach(msg => {
+                    msg.style.opacity = '1';
+                    msg.style.borderColor = '#4c9aff';
                 });
             },
             onEnd: function(evt) {
@@ -1052,11 +1231,20 @@
                 document.querySelectorAll('.team-members-list').forEach(list => {
                     list.classList.remove('dropzone-active');
                 });
-                
+
+                // Remove dragging class from body
+                document.body.classList.remove('dragging');
+
+                // Reset empty message style
+                document.querySelectorAll('.empty-team-message').forEach(msg => {
+                    msg.style.opacity = '';
+                    msg.style.borderColor = '';
+                });
+
                 // If moved to a different team or back to unassigned
                 if (evt.from !== evt.to) {
                     const studentId = evt.item.dataset.id;
-                    
+
                     if (evt.to === unassignedList) {
                         // Student was moved to unassigned list
                         removeStudentFromTeam(studentId, evt.item);
@@ -1104,13 +1292,17 @@
         return document.querySelector('[name=csrfmiddlewaretoken]').value;
     }
     
-    // Make sure all student items have remove buttons
+    // Make sure all student items have remove buttons and drag handles
     document.querySelectorAll('.team-members-list[data-team-id] .student-item').forEach(item => {
         const studentId = item.dataset.id;
         // Get student name safely
         const nameElement = item.querySelector('.flex-grow-1 div:first-child');
         const studentName = nameElement ? nameElement.textContent : 'Student';
+        const flexDiv = item.querySelector('.d-flex');
 
+        if (!flexDiv) return;
+
+        // Add remove button if missing
         if (!item.querySelector('.remove-student-btn')) {
             const newBtn = document.createElement('button');
             newBtn.className = 'btn btn-sm btn-outline-danger remove-student-btn';
@@ -1119,12 +1311,16 @@
             newBtn.setAttribute('title', 'Remove from team');
             newBtn.innerHTML = '<i class="fa fa-times"></i>';
             newBtn.addEventListener('click', onRemoveStudentClick);
+            flexDiv.appendChild(newBtn);
+        }
 
-            // Find the flex div to append to
-            const flexDiv = item.querySelector('.d-flex');
-            if (flexDiv) {
-                flexDiv.appendChild(newBtn);
-            }
+        // Add drag handle if missing
+        if (!item.querySelector('.drag-handle')) {
+            const dragHandle = document.createElement('div');
+            dragHandle.className = 'drag-handle';
+            dragHandle.setAttribute('title', 'Drag to move student');
+            dragHandle.innerHTML = '<i class="fa fa-arrows-alt"></i>';
+            flexDiv.appendChild(dragHandle);
         }
     });
     
