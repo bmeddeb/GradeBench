@@ -155,6 +155,34 @@ class Client:
             logger.error(f"Error fetching members for group {group_id}: {str(e)}")
             return []  # Return empty list on error
 
+    async def create_group_category(self, course_id: int, name: str, self_signup: str = 'restricted'):
+        """Create a new group category in Canvas"""
+        return await self.request(
+            'POST', f'courses/{course_id}/group_categories',
+            data={
+                'name': name,
+                'self_signup': self_signup
+            }
+        )
+
+    async def create_group(self, category_id: int, name: str, description: str = ''):
+        """Create a new group in a category"""
+        data = {'name': name}
+        if description:
+            data['description'] = description
+
+        return await self.request(
+            'POST', f'group_categories/{category_id}/groups',
+            data=data
+        )
+
+    async def set_group_members(self, group_id: int, user_ids: List[int]):
+        """Set the members of a group"""
+        return await self.request(
+            'PUT', f'groups/{group_id}',
+            data={'members[]': user_ids}
+        )
+
     @sync_to_async
     def _save_course(self, course_data: Dict) -> CanvasCourse:
         """Save course data to the database (sync function)"""

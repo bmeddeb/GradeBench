@@ -52,4 +52,18 @@ urlpatterns = [
     # Student detail
     path('course/<int:course_id>/student/<int:user_id>/',
          views.student_detail, name='canvas_student_detail'),
+
+    # Team management with drag-and-drop interface
+    path('course/<int:course_id>/manage-teams/',
+         views.manage_teams, name='canvas_manage_teams'),
+
+    # API endpoints for team management
+    path('course/<int:course_id>/create-team/',
+         views.create_team, name='canvas_create_team'),
+    path('assign-student-to-team/',
+         views.assign_student_to_team, name='canvas_assign_student_to_team'),
+    path('remove-student-from-team/',
+         views.remove_student_from_team, name='canvas_remove_student_from_team'),
+    path('course/<int:course_id>/create-group-category/',
+         views.create_canvas_group_category, name='canvas_create_group_category'),
 ]

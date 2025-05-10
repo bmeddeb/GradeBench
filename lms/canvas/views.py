@@ -569,6 +569,76 @@ def canvas_sync_single_course(request, course_id):
     return redirect('canvas_course_detail', course_id=course_id)
 
 
+def manage_teams(request, course_id):
+    """View for managing teams and assigning students to teams with drag-and-drop interface"""
+    if not request.user.is_authenticated:
+        return redirect('login')
+
+    course = get_object_or_404(CanvasCourse, canvas_id=course_id)
+
+    # Check if user has access to this course
+    integration = get_integration_for_user(request.user)
+    if course.integration != integration:
+        messages.error(request, 'You do not have access to this course')
+        return redirect('canvas_dashboard')
+
+    # Get student enrollments with team information
+    enrollments = list(
+        CanvasEnrollment.objects.filter(
+            course=course,
+            role='StudentEnrollment'
+        ).select_related('student')
+        .order_by('sortable_name')
+    )
+
+    # Get all teams for this course
+    teams = list(
+        Team.objects.filter(canvas_course=course)
+        .annotate(student_count=Count('students'))
+        .order_by('name')
+    )
+
+    # Get client for making API calls
+    client = Client(integration)
+    syncer = CanvasSyncer(client)
+
+    # Get unassigned students
+    student_ids_with_teams = set()
+    for team in teams:
+        for student in team.students.all():
+            student_ids_with_teams.add(student.id)
+
+    unassigned_students = []
+    for enrollment in enrollments:
+        if enrollment.student and enrollment.student.id not in student_ids_with_teams:
+            unassigned_students.append(enrollment.student)
+        elif not enrollment.student:
+            # Create student object for enrollments without one
+            student = Student.objects.create(
+                first_name=enrollment.user_name.split()[0] if ' ' in enrollment.user_name else enrollment.user_name,
+                last_name=' '.join(enrollment.user_name.split()[1:]) if ' ' in enrollment.user_name else '',
+                email=enrollment.email or f"canvas_{enrollment.user_id}@example.com",
+                canvas_user_id=enrollment.user_id,
+                created_by=request.user
+            )
+            enrollment.student = student
+            enrollment.save()
+            unassigned_students.append(student)
+
+    # Get Canvas group categories
+    import asyncio
+    group_categories = asyncio.run(client.get_group_categories(course_id))
+
+    context = {
+        'course': course,
+        'teams': teams,
+        'unassigned_students': unassigned_students,
+        'group_categories': group_categories,
+    }
+
+    return render(request, 'canvas/manage_teams.html', context)
+
+
 @login_required
 def canvas_list_available_courses(request):
     """
@@ -641,6 +711,329 @@ def canvas_sync_progress(request):
 @csrf_exempt
 @require_POST
 @login_required
+def create_team(request, course_id):
+    """
+    Create a new team for the course.
+    Expects a POST with JSON: { "name": "Team Name", "description": "Description" }
+    """
+    import json
+    course = get_object_or_404(CanvasCourse, canvas_id=course_id)
+
+    # Check if user has access to this course
+    integration = get_integration_for_user(request.user)
+    if course.integration != integration:
+        return JsonResponse({'error': 'You do not have access to this course'}, status=403)
+
+    try:
+        data = json.loads(request.body)
+        name = data.get('name', '').strip()
+        description = data.get('description', '').strip()
+        category_id = data.get('category_id')
+        push_to_canvas = data.get('push_to_canvas', False)
+
+        if not name:
+            return JsonResponse({'error': 'Team name is required'}, status=400)
+
+    except Exception as e:
+        return JsonResponse({'error': f'Invalid request format: {str(e)}'}, status=400)
+
+    # Create the team in the database
+    team = Team.objects.create(
+        name=name,
+        description=description,
+        canvas_course=course,
+        created_at=timezone.now()
+    )
+
+    # If specified, push to Canvas
+    if push_to_canvas and category_id:
+        client = Client(integration)
+
+        # Run in a background thread to avoid blocking
+        import threading
+        import asyncio
+
+        def push_team_to_canvas():
+            try:
+                # Create group in Canvas
+                result = asyncio.run(client.create_group(
+                    category_id=category_id,
+                    name=name,
+                    description=description
+                ))
+
+                # Update team with Canvas group ID
+                if result and 'id' in result:
+                    team.canvas_group_id = result['id']
+                    team.last_synced_at = timezone.now()
+                    team.save()
+            except Exception as e:
+                logger.error(f"Error creating Canvas group: {e}")
+
+        # Start thread
+        push_thread = threading.Thread(target=push_team_to_canvas)
+        push_thread.daemon = True
+        push_thread.start()
+
+    return JsonResponse({
+        'status': 'success',
+        'team': {
+            'id': team.id,
+            'name': team.name,
+            'description': team.description,
+            'student_count': 0,
+            'canvas_group_id': team.canvas_group_id
+        }
+    })
+
+
+@csrf_exempt
+@require_POST
+@login_required
+def assign_student_to_team(request):
+    """
+    Assign a student to a team.
+    Expects a POST with JSON: { "student_id": 123, "team_id": 456 }
+    """
+    import json
+    integration = get_integration_for_user(request.user)
+    if not integration:
+        return JsonResponse({'error': 'Canvas integration not set up'}, status=400)
+
+    try:
+        data = json.loads(request.body)
+        student_id = data.get('student_id')
+        team_id = data.get('team_id')
+
+        if not student_id or not team_id:
+            return JsonResponse({'error': 'Student ID and Team ID are required'}, status=400)
+
+    except Exception as e:
+        return JsonResponse({'error': f'Invalid request format: {str(e)}'}, status=400)
+
+    try:
+        student = Student.objects.get(id=student_id)
+        team = Team.objects.get(id=team_id)
+
+        # Check if user has access to the course this team belongs to
+        if team.canvas_course and team.canvas_course.integration != integration:
+            return JsonResponse({'error': 'You do not have access to this team'}, status=403)
+
+        # Update the student's team
+        old_team = student.team
+        student.team = team
+        student.save()
+
+        # If the team has a Canvas group_id, update in Canvas
+        if team.canvas_group_id:
+            client = Client(integration)
+
+            # Run in a background thread to avoid blocking
+            import threading
+            import asyncio
+
+            def update_canvas_group():
+                try:
+                    # Get all student IDs for this team
+                    canvas_user_ids = list(
+                        Student.objects.filter(team=team)
+                        .exclude(canvas_user_id__isnull=True)
+                        .values_list('canvas_user_id', flat=True)
+                    )
+
+                    # Update group membership in Canvas
+                    asyncio.run(client.set_group_members(
+                        group_id=team.canvas_group_id,
+                        user_ids=canvas_user_ids
+                    ))
+
+                    # Update last sync timestamp
+                    team.last_synced_at = timezone.now()
+                    team.save()
+                except Exception as e:
+                    logger.error(f"Error updating Canvas group members: {e}")
+
+            # Start thread
+            update_thread = threading.Thread(target=update_canvas_group)
+            update_thread.daemon = True
+            update_thread.start()
+
+        return JsonResponse({
+            'status': 'success',
+            'student': {
+                'id': student.id,
+                'name': student.full_name,
+                'email': student.email
+            },
+            'team': {
+                'id': team.id,
+                'name': team.name
+            },
+            'old_team': {
+                'id': old_team.id if old_team else None,
+                'name': old_team.name if old_team else None
+            } if old_team else None
+        })
+    except Student.DoesNotExist:
+        return JsonResponse({'error': 'Student not found'}, status=404)
+    except Team.DoesNotExist:
+        return JsonResponse({'error': 'Team not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': f'Failed to assign student to team: {str(e)}'}, status=500)
+
+
+@csrf_exempt
+@require_POST
+@login_required
+def remove_student_from_team(request):
+    """
+    Remove a student from their team.
+    Expects a POST with JSON: { "student_id": 123 }
+    """
+    import json
+    integration = get_integration_for_user(request.user)
+    if not integration:
+        return JsonResponse({'error': 'Canvas integration not set up'}, status=400)
+
+    try:
+        data = json.loads(request.body)
+        student_id = data.get('student_id')
+
+        if not student_id:
+            return JsonResponse({'error': 'Student ID is required'}, status=400)
+
+    except Exception as e:
+        return JsonResponse({'error': f'Invalid request format: {str(e)}'}, status=400)
+
+    try:
+        student = Student.objects.get(id=student_id)
+
+        # Only allow removing if student has a team
+        if not student.team:
+            return JsonResponse({'error': 'Student is not assigned to any team'}, status=400)
+
+        # Check if user has access to the course this team belongs to
+        team = student.team
+        if team.canvas_course and team.canvas_course.integration != integration:
+            return JsonResponse({'error': 'You do not have access to this team'}, status=403)
+
+        # Remember the team for response
+        old_team = {
+            'id': team.id,
+            'name': team.name,
+            'canvas_group_id': team.canvas_group_id
+        }
+
+        # Update Canvas if needed
+        if team.canvas_group_id:
+            client = Client(integration)
+
+            # Run in a background thread to avoid blocking
+            import threading
+            import asyncio
+
+            def update_canvas_group():
+                try:
+                    # Get remaining students after removal
+                    canvas_user_ids = list(
+                        Student.objects.filter(team=team)
+                        .exclude(id=student.id)  # Exclude the one being removed
+                        .exclude(canvas_user_id__isnull=True)
+                        .values_list('canvas_user_id', flat=True)
+                    )
+
+                    # Update group membership in Canvas
+                    asyncio.run(client.set_group_members(
+                        group_id=team.canvas_group_id,
+                        user_ids=canvas_user_ids
+                    ))
+
+                    # Update last sync timestamp
+                    team.last_synced_at = timezone.now()
+                    team.save()
+                except Exception as e:
+                    logger.error(f"Error updating Canvas group members: {e}")
+
+            # Start thread
+            update_thread = threading.Thread(target=update_canvas_group)
+            update_thread.daemon = True
+            update_thread.start()
+
+        # Remove the student from the team
+        student.team = None
+        student.save()
+
+        return JsonResponse({
+            'status': 'success',
+            'student': {
+                'id': student.id,
+                'name': student.full_name,
+                'email': student.email
+            },
+            'old_team': old_team
+        })
+    except Student.DoesNotExist:
+        return JsonResponse({'error': 'Student not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': f'Failed to remove student from team: {str(e)}'}, status=500)
+
+
+@csrf_exempt
+@require_POST
+@login_required
+def create_canvas_group_category(request, course_id):
+    """
+    Create a new group category in Canvas.
+    Expects a POST with JSON: { "name": "Category Name", "self_signup": "restricted" }
+    """
+    import json
+    course = get_object_or_404(CanvasCourse, canvas_id=course_id)
+
+    # Check if user has access to this course
+    integration = get_integration_for_user(request.user)
+    if course.integration != integration:
+        return JsonResponse({'error': 'You do not have access to this course'}, status=403)
+
+    try:
+        data = json.loads(request.body)
+        name = data.get('name', '').strip()
+        self_signup = data.get('self_signup', 'restricted')
+
+        if not name:
+            return JsonResponse({'error': 'Category name is required'}, status=400)
+
+    except Exception as e:
+        return JsonResponse({'error': f'Invalid request format: {str(e)}'}, status=400)
+
+    # Create the category in Canvas
+    client = Client(integration)
+    import asyncio
+
+    try:
+        result = asyncio.run(client.create_group_category(
+            course_id=course_id,
+            name=name,
+            self_signup=self_signup
+        ))
+
+        if not result or 'id' not in result:
+            return JsonResponse({'error': 'Failed to create group category in Canvas'}, status=500)
+
+        return JsonResponse({
+            'status': 'success',
+            'category': {
+                'id': result['id'],
+                'name': result['name'],
+                'self_signup': result.get('self_signup', 'restricted')
+            }
+        })
+    except Exception as e:
+        return JsonResponse({'error': f'Failed to create group category: {str(e)}'}, status=500)
+
+
+@csrf_exempt
+@require_POST
+@login_required
 def canvas_sync_selected_courses(request):
     """
     Sync only the selected Canvas courses. Expects a POST with JSON: { "course_ids": [123, 456, ...] }
@@ -665,20 +1058,20 @@ def canvas_sync_selected_courses(request):
             'status': 'error'
         }, status=400)
 
-    # For AJAX, we're going to start the sync process asynchronously and 
-    # immediately return a response to the client indicating that the 
+    # For AJAX, we're going to start the sync process asynchronously and
+    # immediately return a response to the client indicating that the
     # sync has been started
     user_id = request.user.id
-    
+
     # Start the sync in a background thread
     import threading
     from .client import Client
     import asyncio
     from .progress import SyncProgress
-    
+
     # Initialize progress before starting the thread
     SyncProgress.start_sync(user_id, None, total_steps=len(course_ids))
-    
+
     def run_sync():
         client = Client(integration)
         syncer = CanvasSyncer(client)
@@ -722,12 +1115,12 @@ def canvas_sync_selected_courses(request):
             message=message,
             error=error
         )
-    
+
     # Start the sync in a background thread
     sync_thread = threading.Thread(target=run_sync)
     sync_thread.daemon = True
     sync_thread.start()
-    
+
     # Return immediately with a response that the sync has been started
     return JsonResponse({
         'status': 'started',
