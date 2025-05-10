@@ -19,7 +19,11 @@
     .team-box.canvas-team {
         border-left: 4px solid #28a745;
     }
-    
+
+    .team-box.canvas-team.placeholder-id {
+        border-left: 4px solid #ffc107;
+    }
+
     .team-box.manual-team {
         border-left: 4px solid #17a2b8;
     }
@@ -45,15 +49,28 @@
         border-radius: 8px;
         transition: all 0.2s ease;
         box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        /* Remove cursor: grab from the whole item as we use handles now */
+        cursor: grab;
+        user-select: none;
     }
 
     .sortable-ghost {
-        opacity: 0.4;
+        opacity: 0.5;
+        background-color: #e2f0ff !important;
+        border: 1px dashed #4c9aff !important;
+        transform: rotate(1deg);
+        box-shadow: 0 0 15px rgba(76, 154, 255, 0.3) !important;
     }
 
     .sortable-chosen {
-        background-color: #e9f7fe;
+        background-color: #e9f7fe !important;
+        border: 1px solid #4c9aff !important;
+        box-shadow: 0 3px 10px rgba(76, 154, 255, 0.2) !important;
+        transform: scale(1.02);
+        z-index: 9999;
+    }
+
+    .student-item:active {
+        cursor: grabbing;
     }
     
     .student-item:hover {
@@ -207,28 +224,23 @@
 
     /* Drag handle styling */
     .drag-handle {
-        color: #6c757d;
-        cursor: grab;
-        padding: 8px 10px;
+        color: #adb5bd;
+        padding: 6px 8px;
         border-radius: 4px;
-        background-color: rgba(0,0,0,0.05);
+        background-color: rgba(0,0,0,0.03);
         margin-left: 8px;
         transition: all 0.2s ease;
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
     }
 
-    .drag-handle:hover {
-        color: #495057;
-        background-color: rgba(0,0,0,0.1);
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    .student-item:hover .drag-handle {
+        color: #6c757d;
     }
 
-    .drag-handle:active {
-        cursor: grabbing;
-        box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+    .sortable-chosen .drag-handle {
+        color: #4c9aff;
     }
 
     .drag-handle i {
@@ -256,6 +268,23 @@
 
     body.dragging .team-box:hover {
         transform: scale(1.01);
+    }
+
+    /* Sync button pulse animation */
+    .btn-pulse {
+        animation: button-pulse 2s infinite;
+    }
+
+    @keyframes button-pulse {
+        0% {
+            box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7);
+        }
+        70% {
+            box-shadow: 0 0 0 10px rgba(255, 193, 7, 0);
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(255, 193, 7, 0);
+        }
     }
 </style>
 {% endblock %}
@@ -291,7 +320,11 @@
                     <button id="autoDistributeBtn" class="btn btn-success me-2">
                         <i class="fa fa-random"></i> Auto-Distribute Students
                     </button>
-                    
+
+                    <button id="syncChangesBtn" class="btn btn-warning me-2" disabled>
+                        <i class="fa fa-sync"></i> Sync Changes <span id="pendingChangesCount" class="badge bg-light text-dark ms-1" style="display: none;">0</span>
+                    </button>
+
                     {% if group_categories %}
                     <div class="dropdown me-2">
                         <button class="btn btn-outline-success dropdown-toggle" type="button" id="syncDropdown" data-bs-toggle="dropdown" aria-expanded="false">
@@ -571,6 +604,25 @@
 {% block canvas_js %}
 <script src="{% static 'js/plugins/sortablejs/Sortable.min.js' %}"></script>
 <script>
+    // Mark teams with placeholder IDs
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.team-box.canvas-team').forEach(teamBox => {
+            const idText = teamBox.textContent.match(/Canvas ID: (\d+)/);
+            if (idText && idText[1] === '999999') {
+                teamBox.classList.add('placeholder-id');
+
+                // Add a warning badge next to the canvas badge
+                const canvasBadge = teamBox.querySelector('.badge-canvas');
+                if (canvasBadge) {
+                    const warningBadge = document.createElement('span');
+                    warningBadge.className = 'badge bg-warning text-dark ms-1';
+                    warningBadge.title = 'This team has a placeholder Canvas ID and cannot be synced';
+                    warningBadge.innerHTML = '<i class="fa fa-exclamation-triangle"></i>';
+                    canvasBadge.insertAdjacentElement('afterend', warningBadge);
+                }
+            }
+        });
+    });
     // Initialize variables
     const courseId = {{ course.canvas_id }};
     let selectedCategoryId = null;
@@ -593,7 +645,6 @@
         animation: 150,
         ghostClass: 'student-ghost',
         chosenClass: 'student-chosen',
-        handle: '.drag-handle',
         onStart: function(evt) {
             // Add active class to all team member lists to highlight drop zones
             document.querySelectorAll('.team-members-list').forEach(list => {
@@ -643,7 +694,6 @@
             animation: 150,
             ghostClass: 'student-ghost',
             chosenClass: 'student-chosen',
-            handle: '.drag-handle',
             onStart: function(evt) {
                 // Add active class to all team member lists to highlight drop zones
                 document.querySelectorAll('.team-members-list').forEach(list => {
@@ -715,107 +765,85 @@
     });
     
     // Assign student to team
-    function assignStudentToTeam(studentId, teamId, itemElement) {
-        showLoading('Assigning student to team...');
-        
-        fetch('{% url "canvas_assign_student_to_team" %}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCsrfToken()
-            },
-            body: JSON.stringify({
-                student_id: studentId,
-                team_id: teamId
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            hideLoading();
-            if (data.status === 'success') {
-                // Success - do nothing, the UI is already updated
-                console.log('Student assigned successfully');
-                
-                // Update UI elements
-                const flexDiv = itemElement.querySelector('.d-flex');
-                if (flexDiv) {
-                    // Add remove button if needed
-                    const removeBtn = itemElement.querySelector('.remove-student-btn');
-                    if (!removeBtn) {
-                        const newBtn = document.createElement('button');
-                        newBtn.className = 'btn btn-sm btn-outline-danger remove-student-btn';
-                        newBtn.setAttribute('data-student-id', studentId);
-                        // Get student name from the first div in the flex-grow-1 container
-                        const nameElement = itemElement.querySelector('.flex-grow-1 div:first-child');
-                        const studentName = nameElement ? nameElement.textContent : 'Student';
-                        newBtn.setAttribute('data-student-name', studentName);
-                        newBtn.setAttribute('title', 'Remove from team');
-                        newBtn.innerHTML = '<i class="fa fa-times"></i>';
-                        newBtn.addEventListener('click', onRemoveStudentClick);
-                        flexDiv.appendChild(newBtn);
-                    }
+    // Track changes to sync later
+    let pendingChanges = [];
 
-                    // Add drag handle if needed
-                    const dragHandle = itemElement.querySelector('.drag-handle');
-                    if (!dragHandle) {
-                        const newHandle = document.createElement('div');
-                        newHandle.className = 'drag-handle';
-                        newHandle.setAttribute('title', 'Drag to move student');
-                        newHandle.innerHTML = '<i class="fa fa-arrows-alt"></i>';
-                        flexDiv.appendChild(newHandle);
-                    }
-                }
-            } else {
-                // Handle error
-                alert('Error: ' + (data.error || 'Failed to assign student'));
-                // Move back to original position
-                window.location.reload();
-            }
-        })
-        .catch(error => {
-            hideLoading();
-            console.error('Error:', error);
-            alert('An error occurred. Please try again.');
-            window.location.reload();
+    function assignStudentToTeam(studentId, teamId, itemElement) {
+        // Add to pending changes instead of making immediate API call
+        pendingChanges.push({
+            type: 'assign',
+            student_id: studentId,
+            team_id: teamId,
+            element: itemElement
         });
+
+        // Update pending changes counter and enable sync button
+        document.getElementById('syncChangesBtn').disabled = false;
+        document.getElementById('syncChangesBtn').classList.add('btn-pulse');
+        const counter = document.getElementById('pendingChangesCount');
+        counter.textContent = pendingChanges.length;
+        counter.style.display = 'inline-block';
+
+        // Update UI immediately without making API call
+        updateStudentUI(itemElement, teamId);
+    }
+
+    // Helper function to update the UI for a student element
+    function updateStudentUI(itemElement, teamId) {
+        // Update UI elements
+        const flexDiv = itemElement.querySelector('.d-flex');
+        if (flexDiv) {
+            // Add remove button if needed
+            const removeBtn = itemElement.querySelector('.remove-student-btn');
+            if (!removeBtn) {
+                const studentId = itemElement.dataset.id;
+                const newBtn = document.createElement('button');
+                newBtn.className = 'btn btn-sm btn-outline-danger remove-student-btn';
+                newBtn.setAttribute('data-student-id', studentId);
+                // Get student name from the first div in the flex-grow-1 container
+                const nameElement = itemElement.querySelector('.flex-grow-1 div:first-child');
+                const studentName = nameElement ? nameElement.textContent : 'Student';
+                newBtn.setAttribute('data-student-name', studentName);
+                newBtn.setAttribute('title', 'Remove from team');
+                newBtn.innerHTML = '<i class="fa fa-times"></i>';
+                newBtn.addEventListener('click', onRemoveStudentClick);
+                flexDiv.appendChild(newBtn);
+            }
+
+            // Add drag handle if needed
+            const dragHandle = itemElement.querySelector('.drag-handle');
+            if (!dragHandle) {
+                const newHandle = document.createElement('div');
+                newHandle.className = 'drag-handle';
+                newHandle.setAttribute('title', 'Drag to move student');
+                newHandle.innerHTML = '<i class="fa fa-arrows-alt"></i>';
+                flexDiv.appendChild(newHandle);
+            }
+        }
     }
     
     // Remove student from team
     function removeStudentFromTeam(studentId, itemElement) {
-        showLoading('Removing student from team...');
-        
-        fetch('{% url "canvas_remove_student_from_team" %}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCsrfToken()
-            },
-            body: JSON.stringify({
-                student_id: studentId
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            hideLoading();
-            if (data.status === 'success') {
-                // Success - remove the button
-                const removeBtn = itemElement.querySelector('.remove-student-btn');
-                if (removeBtn) {
-                    removeBtn.remove();
-                }
-            } else {
-                // Handle error
-                alert('Error: ' + (data.error || 'Failed to remove student'));
-                // Move back to original position
-                window.location.reload();
-            }
-        })
-        .catch(error => {
-            hideLoading();
-            console.error('Error:', error);
-            alert('An error occurred. Please try again.');
-            window.location.reload();
+        // Add to pending changes
+        pendingChanges.push({
+            type: 'remove',
+            student_id: studentId,
+            element: itemElement
         });
+
+        // Update pending changes counter and enable sync button
+        document.getElementById('syncChangesBtn').disabled = false;
+        document.getElementById('syncChangesBtn').classList.add('btn-pulse');
+        const counter = document.getElementById('pendingChangesCount');
+        counter.textContent = pendingChanges.length;
+        counter.style.display = 'inline-block';
+
+        // Update UI immediately
+        // Remove the button
+        const removeBtn = itemElement.querySelector('.remove-student-btn');
+        if (removeBtn) {
+            removeBtn.remove();
+        }
     }
     
     // Handle remove button click
@@ -968,6 +996,9 @@
         // Show the auto-distribute modal
         new bootstrap.Modal(document.getElementById('autoDistributeModal')).show();
     });
+
+    // Sync changes
+    document.getElementById('syncChangesBtn').addEventListener('click', syncChanges);
     
     // Handle distribution type change
     document.getElementById('distributionType').addEventListener('change', function() {
@@ -1210,7 +1241,6 @@
             animation: 150,
             ghostClass: 'student-ghost',
             chosenClass: 'student-chosen',
-            handle: '.drag-handle',
             onStart: function(evt) {
                 // Add active class to all team member lists to highlight drop zones
                 document.querySelectorAll('.team-members-list').forEach(list => {
@@ -1324,6 +1354,173 @@
         }
     });
     
+    // Process pending changes and sync with the server
+    function syncChanges() {
+        if (pendingChanges.length === 0) {
+            alert('No changes to sync');
+            return;
+        }
+
+        showLoading('Syncing changes...');
+
+        // Process changes sequentially
+        const processChanges = async () => {
+            // First, process all the local database changes
+            for (const change of pendingChanges) {
+                try {
+                    if (change.type === 'assign') {
+                        await assignStudentToTeamAPI(change.student_id, change.team_id);
+                    } else if (change.type === 'remove') {
+                        await removeStudentFromTeamAPI(change.student_id);
+                    }
+                } catch (error) {
+                    console.error('Error processing change:', error);
+                    // Continue with other changes even if one fails
+                }
+            }
+
+            // Now, push changes to Canvas if needed
+            try {
+                // Get all teams that have Canvas group IDs
+                const teamElements = document.querySelectorAll('.team-box[data-id]');
+                const teams = Array.from(teamElements).map(el => {
+                    // Extract the Canvas group ID from the element's content if available
+                    const groupIdText = el.textContent.match(/Canvas ID: (\d+)/);
+                    const canvasGroupId = groupIdText ? parseInt(groupIdText[1]) : null;
+
+                    return {
+                        id: el.dataset.id,
+                        hasCanvasGroup: el.classList.contains('canvas-team'),
+                        canvasGroupId: canvasGroupId
+                    };
+                }).filter(team => {
+                    // Filter teams that have a valid Canvas group (not the placeholder 999999)
+                    return team.hasCanvasGroup && team.canvasGroupId !== 999999;
+                });
+
+                // If we have Canvas teams, push the membership update
+                if (teams.length > 0) {
+                    showLoading('Pushing team changes to Canvas...');
+
+                    // For each team with a Canvas group, push membership changes
+                    for (const team of teams) {
+                        await pushTeamToCanvas(team.id);
+                    }
+                }
+            } catch (error) {
+                console.error('Error pushing to Canvas:', error);
+
+                // Create a more user-friendly error message
+                let errorMessage = 'Team changes were saved locally but there was an error pushing to Canvas.';
+
+                // Handle specific error cases
+                if (error.message.includes('999999')) {
+                    errorMessage = 'Teams cannot be synced with Canvas because they use placeholder IDs. Please create proper Canvas groups first.';
+                } else if (error.message.includes('403 Forbidden')) {
+                    errorMessage = 'Access denied when trying to update Canvas groups. Check your Canvas API permissions.';
+                } else if (error.message.includes('404 Not Found')) {
+                    errorMessage = 'Canvas group not found. The group may have been deleted in Canvas.';
+                }
+
+                alert(errorMessage);
+            }
+
+            // Clear pending changes after processing
+            pendingChanges = [];
+
+            // Disable sync button and hide counter
+            document.getElementById('syncChangesBtn').disabled = true;
+            document.getElementById('syncChangesBtn').classList.remove('btn-pulse');
+            const counter = document.getElementById('pendingChangesCount');
+            counter.textContent = '0';
+            counter.style.display = 'none';
+
+            hideLoading();
+            alert('All changes have been synced successfully');
+        };
+
+        processChanges();
+    }
+
+    // Function to push a team's current membership to Canvas
+    async function pushTeamToCanvas(teamId) {
+        console.log(`Pushing team ${teamId} to Canvas`);
+
+        const response = await fetch(`/canvas/push-team-to-canvas/${teamId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            }
+        });
+
+        const data = await response.json();
+        console.log('Push team response:', data);
+
+        if (data.status !== 'success') {
+            throw new Error(data.error || 'Failed to push team to Canvas');
+        }
+
+        return data;
+    }
+
+    // API function to assign student to team
+    async function assignStudentToTeamAPI(studentId, teamId) {
+        // Log the request for debugging
+        console.log(`Assigning student ${studentId} to team ${teamId}`);
+
+        const response = await fetch('{% url "canvas_assign_student_to_team" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: JSON.stringify({
+                student_id: studentId,
+                team_id: teamId,
+                sync_to_canvas: false // Don't try to sync to Canvas immediately, will do it later
+            })
+        });
+
+        const data = await response.json();
+        console.log('API response:', data); // Log the response
+
+        if (data.status !== 'success') {
+            console.error('Error assigning student to team:', data.error);
+            throw new Error(data.error || 'Failed to assign student');
+        }
+
+        return data;
+    }
+
+    // API function to remove student from team
+    async function removeStudentFromTeamAPI(studentId) {
+        // Log the request for debugging
+        console.log(`Removing student ${studentId} from team`);
+
+        const response = await fetch('{% url "canvas_remove_student_from_team" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: JSON.stringify({
+                student_id: studentId,
+                sync_to_canvas: false // Don't try to sync to Canvas immediately
+            })
+        });
+
+        const data = await response.json();
+        console.log('API response:', data); // Log the response
+
+        if (data.status !== 'success') {
+            console.error('Error removing student from team:', data.error);
+            throw new Error(data.error || 'Failed to remove student');
+        }
+
+        return data;
+    }
+
     // Utility function to shuffle array in-place (Fisher-Yates algorithm)
     function shuffleArray(array) {
         for (let i = array.length - 1; i > 0; i--) {

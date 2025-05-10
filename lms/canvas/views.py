@@ -844,7 +844,7 @@ def create_team(request, course_id):
 def assign_student_to_team(request):
     """
     Assign a student to a team.
-    Expects a POST with JSON: { "student_id": 123, "team_id": 456 }
+    Expects a POST with JSON: { "student_id": 123, "team_id": 456, "sync_to_canvas": true|false }
     """
     import json
     integration = get_integration_for_user(request.user)
@@ -855,6 +855,7 @@ def assign_student_to_team(request):
         data = json.loads(request.body)
         student_id = data.get('student_id')
         team_id = data.get('team_id')
+        sync_to_canvas = data.get('sync_to_canvas', True)  # Default to True for backward compatibility
 
         if not student_id or not team_id:
             return JsonResponse({'error': 'Student ID and Team ID are required'}, status=400)
@@ -875,8 +876,8 @@ def assign_student_to_team(request):
         student.team = team
         student.save()
 
-        # If the team has a Canvas group_id, update in Canvas
-        if team.canvas_group_id:
+        # If sync_to_canvas is True and the team has a Canvas group_id, update in Canvas
+        if sync_to_canvas and team.canvas_group_id:
             client = Client(integration)
 
             # Run in a background thread to avoid blocking
@@ -939,7 +940,7 @@ def assign_student_to_team(request):
 def remove_student_from_team(request):
     """
     Remove a student from their team.
-    Expects a POST with JSON: { "student_id": 123 }
+    Expects a POST with JSON: { "student_id": 123, "sync_to_canvas": true|false }
     """
     import json
     integration = get_integration_for_user(request.user)
@@ -949,6 +950,7 @@ def remove_student_from_team(request):
     try:
         data = json.loads(request.body)
         student_id = data.get('student_id')
+        sync_to_canvas = data.get('sync_to_canvas', True)  # Default to True for backward compatibility
 
         if not student_id:
             return JsonResponse({'error': 'Student ID is required'}, status=400)
@@ -976,7 +978,7 @@ def remove_student_from_team(request):
         }
 
         # Update Canvas if needed
-        if team.canvas_group_id:
+        if sync_to_canvas and team.canvas_group_id:
             client = Client(integration)
 
             # Run in a background thread to avoid blocking
@@ -1027,6 +1029,88 @@ def remove_student_from_team(request):
         return JsonResponse({'error': 'Student not found'}, status=404)
     except Exception as e:
         return JsonResponse({'error': f'Failed to remove student from team: {str(e)}'}, status=500)
+
+
+@csrf_exempt
+@require_POST
+@login_required
+def push_team_to_canvas(request, team_id):
+    """
+    Push a team's membership to Canvas.
+    This can be used to sync specific teams with Canvas after multiple changes.
+    """
+    import json
+    integration = get_integration_for_user(request.user)
+    if not integration:
+        return JsonResponse({'error': 'Canvas integration not set up'}, status=400)
+
+    try:
+        # Get the team
+        team = Team.objects.get(id=team_id)
+
+        # Check if user has access to the course this team belongs to
+        if team.canvas_course and team.canvas_course.integration != integration:
+            return JsonResponse({'error': 'You do not have access to this team'}, status=403)
+
+        # Ensure team has Canvas group ID
+        if not team.canvas_group_id:
+            return JsonResponse({'error': 'Team is not linked to a Canvas group'}, status=400)
+
+        # Get all student IDs for this team
+        canvas_user_ids = list(
+            Student.objects.filter(team=team)
+            .exclude(canvas_user_id__isnull=True)
+            .values_list('canvas_user_id', flat=True)
+        )
+
+        # Log details for debugging
+        logger.info(f"Pushing team {team.id} to Canvas: Group ID={team.canvas_group_id}, Student Count={len(canvas_user_ids)}")
+
+        # If Canvas group ID is 999999, it's likely a placeholder - return an informative error
+        if team.canvas_group_id == 999999:
+            return JsonResponse({
+                'status': 'error',
+                'error': 'Cannot push to Canvas: Team has a placeholder Canvas group ID (999999)'
+            }, status=400)
+
+        # Create Canvas client
+        client = Client(integration)
+        logger.info(f"Canvas URL: {client.base_url}, Integration ID: {integration.id}")
+
+        # Update group membership in Canvas
+        try:
+            import asyncio
+            result = asyncio.run(client.set_group_members(
+                group_id=team.canvas_group_id,
+                user_ids=canvas_user_ids
+            ))
+
+            # Update last sync timestamp
+            team.last_synced_at = timezone.now()
+            team.save()
+
+            return JsonResponse({
+                'status': 'success',
+                'team': {
+                    'id': team.id,
+                    'name': team.name,
+                    'canvas_group_id': team.canvas_group_id,
+                    'last_synced_at': team.last_synced_at.isoformat() if team.last_synced_at else None
+                },
+                'student_count': len(canvas_user_ids)
+            })
+        except Exception as e:
+            logger.error(f"Error pushing team {team.id} to Canvas: {e}")
+            return JsonResponse({
+                'status': 'error',
+                'error': f'Failed to update Canvas group: {str(e)}'
+            }, status=500)
+
+    except Team.DoesNotExist:
+        return JsonResponse({'error': 'Team not found'}, status=404)
+    except Exception as e:
+        logger.error(f"Error in push_team_to_canvas: {e}")
+        return JsonResponse({'error': f'Failed to push team to Canvas: {str(e)}'}, status=500)
 
 
 @csrf_exempt

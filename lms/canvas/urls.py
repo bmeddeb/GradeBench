@@ -68,6 +68,8 @@ urlpatterns = [
          views.assign_student_to_team, name='canvas_assign_student_to_team'),
     path('remove-student-from-team/',
          views.remove_student_from_team, name='canvas_remove_student_from_team'),
+    path('push-team-to-canvas/<int:team_id>/',
+         views.push_team_to_canvas, name='canvas_push_team_to_canvas'),
     path('course/<int:course_id>/create-group-category/',
          views.create_canvas_group_category, name='canvas_create_group_category'),
 ]
