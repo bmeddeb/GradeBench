@@ -178,9 +178,17 @@ class Client:
 
     async def set_group_members(self, group_id: int, user_ids: List[int]):
         """Set the members of a group"""
+        data = {}
+        # Format the data properly for Canvas API
+        for uid in user_ids:
+            data[f'members[]'] = uid
+
+        # Log the request details for debugging
+        logger.info(f"Setting members for group {group_id}: {user_ids}")
+
         return await self.request(
             'PUT', f'groups/{group_id}',
-            data={'members[]': user_ids}
+            data=data
         )
 
     @sync_to_async

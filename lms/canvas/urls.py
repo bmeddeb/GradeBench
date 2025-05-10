@@ -70,6 +70,8 @@ urlpatterns = [
          views.remove_student_from_team, name='canvas_remove_student_from_team'),
     path('push-team-to-canvas/<int:team_id>/',
          views.push_team_to_canvas, name='canvas_push_team_to_canvas'),
+    path('fetch-groups-in-category/<int:category_id>/',
+         views.fetch_groups_in_category, name='canvas_fetch_groups_in_category'),
     path('course/<int:course_id>/create-group-category/',
          views.create_canvas_group_category, name='canvas_create_group_category'),
 ]

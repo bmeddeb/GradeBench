@@ -1113,6 +1113,61 @@ def push_team_to_canvas(request, team_id):
         return JsonResponse({'error': f'Failed to push team to Canvas: {str(e)}'}, status=500)
 
 
+@login_required
+def fetch_groups_in_category(request, category_id):
+    """
+    Fetch all groups in a given Canvas group category.
+    """
+    import asyncio
+
+    # Get the course ID from query parameters
+    course_id = request.GET.get('course_id')
+    if not course_id:
+        return JsonResponse({'error': 'Course ID is required'}, status=400)
+
+    try:
+        course_id = int(course_id)
+    except ValueError:
+        return JsonResponse({'error': 'Invalid course ID'}, status=400)
+
+    # Get the course
+    try:
+        course = CanvasCourse.objects.get(canvas_id=course_id)
+    except CanvasCourse.DoesNotExist:
+        return JsonResponse({'error': 'Course not found'}, status=404)
+
+    # Check if user has access to this course
+    integration = get_integration_for_user(request.user)
+    if course.integration != integration:
+        return JsonResponse({'error': 'You do not have access to this course'}, status=403)
+
+    # Create Canvas client and fetch groups
+    client = Client(integration)
+
+    try:
+        # Fetch groups in this category
+        groups = asyncio.run(client.get_groups(category_id=category_id))
+
+        # If no groups found, return empty list
+        if not groups:
+            return JsonResponse({
+                'status': 'success',
+                'groups': []
+            })
+
+        # Return the groups
+        return JsonResponse({
+            'status': 'success',
+            'groups': groups
+        })
+    except Exception as e:
+        logger.error(f"Error fetching groups in category {category_id}: {e}")
+        return JsonResponse({
+            'status': 'error',
+            'error': f'Failed to fetch groups: {str(e)}'
+        }, status=500)
+
+
 @csrf_exempt
 @require_POST
 @login_required
@@ -1133,6 +1188,9 @@ def create_canvas_group_category(request, course_id):
         data = json.loads(request.body)
         name = data.get('name', '').strip()
         self_signup = data.get('self_signup', 'restricted')
+        auto_create_groups = data.get('auto_create_groups', False)
+        group_count = data.get('group_count', 0)
+        group_prefix = data.get('group_prefix', 'Group')
 
         if not name:
             return JsonResponse({'error': 'Category name is required'}, status=400)
@@ -1145,6 +1203,9 @@ def create_canvas_group_category(request, course_id):
     import asyncio
 
     try:
+        # Create group category
+        logger.info(f"Creating group category: {name} for course {course_id}")
+
         result = asyncio.run(client.create_group_category(
             course_id=course_id,
             name=name,
@@ -1154,15 +1215,50 @@ def create_canvas_group_category(request, course_id):
         if not result or 'id' not in result:
             return JsonResponse({'error': 'Failed to create group category in Canvas'}, status=500)
 
+        # If auto-creating groups is requested
+        created_groups = []
+        if auto_create_groups and group_count > 0:
+            category_id = result['id']
+
+            # Create groups
+            for i in range(1, group_count + 1):
+                group_name = f"{group_prefix} {i}"
+                try:
+                    group_result = asyncio.run(client.create_group(
+                        category_id=category_id,
+                        name=group_name,
+                        description=f"Auto-created for {name}"
+                    ))
+
+                    if group_result and 'id' in group_result:
+                        created_groups.append({
+                            'id': group_result['id'],
+                            'name': group_result['name']
+                        })
+
+                        # Create a local Team record for this Canvas group
+                        Team.objects.create(
+                            name=group_result['name'],
+                            description=f"Auto-created for {name}",
+                            canvas_course=course,
+                            canvas_group_id=group_result['id'],
+                            last_synced_at=timezone.now()
+                        )
+                except Exception as e:
+                    logger.error(f"Error creating group {group_name}: {e}")
+                    # Continue with other groups even if one fails
+
         return JsonResponse({
             'status': 'success',
             'category': {
                 'id': result['id'],
                 'name': result['name'],
                 'self_signup': result.get('self_signup', 'restricted')
-            }
+            },
+            'created_groups': created_groups
         })
     except Exception as e:
+        logger.error(f"Failed to create group category: {e}")
         return JsonResponse({'error': f'Failed to create group category: {str(e)}'}, status=500)
 
 

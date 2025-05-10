@@ -309,7 +309,17 @@
             </div>
             <div class="card-body">
                 <div class="alert alert-info">
-                    <i class="fa fa-info-circle"></i> Drag students between teams to rearrange them. Changes are saved automatically.
+                    <i class="fa fa-info-circle"></i> Drag students between teams to rearrange them. Click <strong>Sync Changes</strong> when you're ready to save your changes.
+                </div>
+
+                <div id="canvasGroupWarning" class="alert alert-warning" style="display: none;">
+                    <i class="fa fa-exclamation-triangle"></i> <strong>Warning:</strong> Some teams have placeholder Canvas group IDs (marked with <span class="badge bg-warning text-dark"><i class="fa fa-exclamation-triangle"></i></span>).
+                    <span id="warningText">These teams can't be synced with Canvas. To fix this:</span>
+                    <ol id="warningSteps" class="mt-2 mb-1">
+                        <li>First create a group category in Canvas using the <strong>Create Canvas Group Category</strong> button</li>
+                        <li>Choose <strong>Automatically create groups</strong> in the modal</li>
+                        <li>After creation, refresh the page to see the new Canvas groups</li>
+                    </ol>
                 </div>
                 
                 <div class="btn-toolbar mb-3">
@@ -328,14 +338,27 @@
                     {% if group_categories %}
                     <div class="dropdown me-2">
                         <button class="btn btn-outline-success dropdown-toggle" type="button" id="syncDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fa fa-cloud-download"></i> Push to Canvas
+                            <i class="fa fa-cloud-download"></i> Canvas Group Categories
                         </button>
                         <ul class="dropdown-menu" aria-labelledby="syncDropdown">
+                            <li class="dropdown-header">Select a Group Category:</li>
                             {% for category in group_categories %}
-                            <li><a class="dropdown-item" href="#" data-category-id="{{ category.id }}" onclick="selectGroupCategory({{ category.id }}, '{{ category.name|escapejs }}')">{{ category.name }}</a></li>
+                            <li><a class="dropdown-item" href="#" data-category-id="{{ category.id }}" onclick="selectGroupCategory({{ category.id }}, '{{ category.name|escapejs }}')">
+                                <i class="fa fa-object-group"></i> {{ category.name }}
+                            </a></li>
                             {% endfor %}
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#createCategoryModal">Create New Category</a></li>
+                            <li><span class="dropdown-item-text text-muted small">
+                                <i class="fa fa-info-circle"></i> <strong>How Canvas Groups Work:</strong><br>
+                                1. Select a Group Category<br>
+                                2. View/create groups in that category<br>
+                                3. Create teams linked to Canvas groups<br>
+                                4. Sync team assignments back to Canvas
+                            </span></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#createCategoryModal">
+                                <i class="fa fa-plus-circle"></i> Create New Category
+                            </a></li>
                         </ul>
                     </div>
                     {% else %}
@@ -538,17 +561,23 @@
                         <label for="teamDescription" class="form-label">Description (Optional)</label>
                         <textarea class="form-control" id="teamDescription" rows="3"></textarea>
                     </div>
-                    
+
                     {% if group_categories %}
+                    <hr>
+                    <h6>Canvas Integration</h6>
+                    <div class="alert alert-info small">
+                        <i class="fa fa-info-circle"></i> Creating a team in Canvas allows you to sync team assignments back to Canvas.
+                    </div>
+
                     <div class="mb-3">
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="pushToCanvas">
                             <label class="form-check-label" for="pushToCanvas">
-                                Create in Canvas
+                                <strong>Link this team to a Canvas group</strong>
                             </label>
                         </div>
                     </div>
-                    
+
                     <div id="canvasCategoryDiv" class="mb-3" style="display: none;">
                         <label for="canvasCategory" class="form-label">Canvas Group Category</label>
                         <select class="form-select" id="canvasCategory">
@@ -556,6 +585,9 @@
                             <option value="{{ category.id }}">{{ category.name }}</option>
                             {% endfor %}
                         </select>
+                        <div class="form-text">
+                            This will create a new group in the selected category and link this team to it.
+                        </div>
                     </div>
                     {% endif %}
                 </form>
@@ -590,6 +622,28 @@
                             <option value="required">Required (Students must sign up)</option>
                         </select>
                     </div>
+
+                    <hr>
+                    <h6>Auto-create Groups</h6>
+
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="autoCreateGroups">
+                        <label class="form-check-label" for="autoCreateGroups">
+                            Automatically create groups
+                        </label>
+                    </div>
+
+                    <div id="groupCreationOptions" style="display: none;">
+                        <div class="mb-3">
+                            <label for="groupCount" class="form-label">Number of Groups</label>
+                            <input type="number" class="form-control" id="groupCount" min="1" value="4">
+                        </div>
+                        <div class="mb-3">
+                            <label for="groupPrefix" class="form-label">Group Name Prefix</label>
+                            <input type="text" class="form-control" id="groupPrefix" value="Team">
+                            <div class="form-text">Groups will be named: "Team 1", "Team 2", etc.</div>
+                        </div>
+                    </div>
                 </form>
             </div>
             <div class="modal-footer">
@@ -606,9 +660,12 @@
 <script>
     // Mark teams with placeholder IDs
     document.addEventListener('DOMContentLoaded', function() {
+        let hasPlaceholderIds = false;
+
         document.querySelectorAll('.team-box.canvas-team').forEach(teamBox => {
             const idText = teamBox.textContent.match(/Canvas ID: (\d+)/);
             if (idText && idText[1] === '999999') {
+                hasPlaceholderIds = true;
                 teamBox.classList.add('placeholder-id');
 
                 // Add a warning badge next to the canvas badge
@@ -622,6 +679,46 @@
                 }
             }
         });
+
+        // Show warning if placeholder IDs exist
+        if (hasPlaceholderIds) {
+            document.getElementById('canvasGroupWarning').style.display = 'block';
+
+            // Check if we have group categories
+            const hasCategories = {% if group_categories %}true{% else %}false{% endif %};
+
+            if (hasCategories) {
+                document.getElementById('warningText').textContent =
+                    'These teams can\'t be synced with Canvas. To fix this, select a category from the "Push to Canvas" dropdown, then:';
+                document.getElementById('warningSteps').innerHTML = `
+                    <li>Create new teams using the proper Canvas group category</li>
+                    <li>Move students to the new teams</li>
+                    <li>Delete the old teams with placeholder IDs</li>
+                `;
+            }
+        }
+
+        // Also check the number of teams to show appropriate guidance
+        const teamCount = document.querySelectorAll('.team-box').length;
+        const hasCanvasTeams = document.querySelectorAll('.team-box.canvas-team').length > 0;
+
+        if (teamCount === 0) {
+            const noTeamsAlert = document.createElement('div');
+            noTeamsAlert.className = 'alert alert-info mt-3';
+            noTeamsAlert.innerHTML = `
+                <i class="fa fa-info-circle"></i>
+                No teams found. You can create teams manually or import them from Canvas.
+                <div class="mt-2">
+                    <button class="btn btn-sm btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#createTeamModal">
+                        <i class="fa fa-plus-circle"></i> Create Manual Team
+                    </button>
+                    <button class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#createCategoryModal">
+                        <i class="fa fa-cloud-download"></i> Create Canvas Teams
+                    </button>
+                </div>
+            `;
+            document.querySelector('.card-body').appendChild(noTeamsAlert);
+        }
     });
     // Initialize variables
     const courseId = {{ course.canvas_id }};
@@ -940,18 +1037,32 @@
         });
     }
     
+    // Toggle auto-create groups options
+    document.getElementById('autoCreateGroups').addEventListener('change', function() {
+        document.getElementById('groupCreationOptions').style.display =
+            this.checked ? 'block' : 'none';
+    });
+
     // Create a new Canvas group category
     document.getElementById('createCategoryBtn').addEventListener('click', function() {
         const categoryName = document.getElementById('categoryName').value.trim();
         const selfSignup = document.getElementById('selfSignup').value;
-        
+        const autoCreateGroups = document.getElementById('autoCreateGroups').checked;
+        const groupCount = parseInt(document.getElementById('groupCount').value) || 0;
+        const groupPrefix = document.getElementById('groupPrefix').value.trim() || 'Team';
+
         if (!categoryName) {
             alert('Category name is required');
             return;
         }
-        
+
+        if (autoCreateGroups && (groupCount <= 0 || isNaN(groupCount))) {
+            alert('Please enter a valid number of groups to create');
+            return;
+        }
+
         showLoading('Creating Canvas group category...');
-        
+
         fetch(`{% url "canvas_create_group_category" course_id=course.canvas_id %}`, {
             method: 'POST',
             headers: {
@@ -960,7 +1071,10 @@
             },
             body: JSON.stringify({
                 name: categoryName,
-                self_signup: selfSignup
+                self_signup: selfSignup,
+                auto_create_groups: autoCreateGroups,
+                group_count: groupCount,
+                group_prefix: groupPrefix
             })
         })
         .then(response => response.json())
@@ -970,13 +1084,23 @@
                 // Close the modal
                 const modal = bootstrap.Modal.getInstance(document.getElementById('createCategoryModal'));
                 modal.hide();
-                
+
                 // Reset form
                 document.getElementById('createCategoryForm').reset();
-                
+
+                // Build success message with info about created groups
+                let successMessage = `Canvas group category "${data.category.name}" created successfully.`;
+
+                if (data.created_groups && data.created_groups.length > 0) {
+                    successMessage += `\n\nCreated ${data.created_groups.length} groups:`;
+                    data.created_groups.forEach(group => {
+                        successMessage += `\n- ${group.name} (ID: ${group.id})`;
+                    });
+                }
+
                 // Success message
-                alert('Canvas group category created successfully');
-                
+                alert(successMessage);
+
                 // Reload the page to refresh the categories
                 window.location.reload();
             } else {
@@ -1188,8 +1312,67 @@
     function selectGroupCategory(categoryId, categoryName) {
         selectedCategoryId = categoryId;
         selectedCategoryName = categoryName;
-        
-        alert(`Selected category: ${categoryName}. You can now create teams in this Canvas group category.`);
+
+        // Update the dropdown button to show the selected category
+        document.getElementById('syncDropdown').innerHTML = `
+            <i class="fa fa-cloud-download"></i> Category: ${categoryName} <span class="caret"></span>
+        `;
+
+        // Show loading while fetching groups
+        showLoading(`Fetching groups from category "${categoryName}"...`);
+
+        // Fetch the groups in this category from the server
+        fetch(`/canvas/fetch-groups-in-category/${categoryId}/?course_id=${courseId}`, {
+            headers: {
+                'X-CSRFToken': getCsrfToken()
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            hideLoading();
+
+            if (data.status === 'success' && data.groups.length > 0) {
+                // Show success message with groups
+                let message = `Selected category: ${categoryName}\n\nAvailable groups in this category:`;
+                data.groups.forEach(group => {
+                    message += `\n- ${group.name} (ID: ${group.id})`;
+                });
+
+                message += "\n\nYou can now create teams that sync with this category's groups.";
+                alert(message);
+
+                // Update create team modal to pre-select this category
+                const canvasCategorySelect = document.getElementById('canvasCategory');
+                if (canvasCategorySelect) {
+                    for (let i = 0; i < canvasCategorySelect.options.length; i++) {
+                        if (canvasCategorySelect.options[i].value == categoryId) {
+                            canvasCategorySelect.selectedIndex = i;
+                            break;
+                        }
+                    }
+
+                    // Auto-check the "push to Canvas" checkbox
+                    const pushToCanvasCheckbox = document.getElementById('pushToCanvas');
+                    if (pushToCanvasCheckbox) {
+                        pushToCanvasCheckbox.checked = true;
+                        // Trigger the change event to show the category dropdown
+                        const event = new Event('change');
+                        pushToCanvasCheckbox.dispatchEvent(event);
+                    }
+                }
+            } else if (data.status === 'success' && data.groups.length === 0) {
+                // No groups found in this category
+                alert(`Selected category: ${categoryName}\n\nThis category has no groups yet. You can create groups in this category.`);
+            } else {
+                // Error fetching groups
+                alert('Error fetching groups: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            hideLoading();
+            console.error('Error:', error);
+            alert(`Selected category: ${categoryName}. Error fetching groups: ${error}`);
+        });
     }
     
     // Add a new team to the page
