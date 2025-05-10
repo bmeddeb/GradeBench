@@ -111,6 +111,9 @@
 {% endblock %}
 
 {% block canvas_content %}
+<!-- CSRF Token -->
+{% csrf_token %}
+
 <div class="loading-overlay" style="display: none;">
     <div class="spinner-border mb-3" role="status">
         <span class="visually-hidden">Loading...</span>
