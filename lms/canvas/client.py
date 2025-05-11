@@ -433,11 +433,16 @@ class Client:
                 from .syncer import CanvasSyncer
                 syncer = CanvasSyncer(self)
 
+                # Log that we're starting group sync
+                logger.info(f"Starting group sync for course {course.name} (ID: {course.canvas_id})")
+
                 # Sync Canvas groups to teams and get current group IDs
                 current_group_ids = await syncer.sync_canvas_groups(course, user_id)
+                logger.info(f"Synced {len(current_group_ids)} groups for course {course.name}")
 
                 # Sync group memberships to Student.team assignments
                 await syncer.sync_group_memberships(course, user_id)
+                logger.info(f"Synced group memberships for course {course.name}")
 
                 # Optional: Clean up teams no longer in Canvas
                 # (This is commented out by default as it could remove manually created teams)
@@ -447,7 +452,9 @@ class Client:
                 # ).exclude(canvas_group_id__in=current_group_ids).adelete()
             except Exception as e:
                 logger.error(f"Error syncing Canvas groups: {e}")
-                # Continue with the rest of the sync process even if group sync fails
+                # We'll log the error but continue with the rest of the sync process
+                import traceback
+                logger.error(f"Traceback: {traceback.format_exc()}")
 
             # Update last sync timestamp
             from django.utils import timezone
@@ -515,9 +522,13 @@ class Client:
         )
 
     async def get_group_members(self, group_id: int) -> List[Dict]:
-        """Get all members for a group"""
+        """Get all members for a group with detailed information including email"""
         return await self.request(
-            'GET', f'groups/{group_id}/users', params={'per_page': 100}
+            'GET', f'groups/{group_id}/users',
+            params={
+                'per_page': 100,
+                'include[]': ['email', 'avatar_url', 'bio', 'enrollments']
+            }
         )
 
     async def invite_user_to_group(self, group_id: int, user_ids: List[int]):
@@ -566,12 +577,17 @@ class Client:
         from .models import CanvasGroup
         from django.utils import timezone
 
+        # Safely handle description which might be None
+        description = group_data.get('description', '')
+        if description is None:
+            description = ''
+
         group, created = CanvasGroup.objects.update_or_create(
             canvas_id=group_data['id'],
             defaults={
                 'category': category,
                 'name': group_data.get('name', 'Unnamed Group'),
-                'description': group_data.get('description', ''),
+                'description': description,
                 'created_at': datetime.fromisoformat(group_data['created_at'].replace('Z', '+00:00')) if group_data.get('created_at') else None,
                 'last_synced_at': timezone.now(),
             }
@@ -581,16 +597,45 @@ class Client:
     @sync_to_async
     def _save_group_membership(self, member_data: Dict, group):
         """Save group membership data to the database (sync function)"""
-        from .models import CanvasGroupMembership
+        from .models import CanvasGroupMembership, CanvasEnrollment
         from core.models import Student
+        import logging
+        logger = logging.getLogger(__name__)
 
-        # Try to find matching student
+        # Try to find matching student - first by canvas_user_id
         student = None
         if 'id' in member_data:
             try:
+                # First try exact match by canvas_user_id
                 student = Student.objects.filter(canvas_user_id=str(member_data['id'])).first()
-            except:
-                pass
+
+                # If student not found, try to find by enrollment
+                if student is None:
+                    # Look for enrollment with this user_id to find a linked student
+                    enrollment = CanvasEnrollment.objects.filter(
+                        user_id=member_data['id'],
+                        course=group.category.course
+                    ).first()
+
+                    if enrollment and enrollment.student:
+                        student = enrollment.student
+                        # Update the student's canvas_user_id for future lookups
+                        if not student.canvas_user_id:
+                            student.canvas_user_id = str(member_data['id'])
+                            student.save(update_fields=['canvas_user_id'])
+                            logger.info(f"Updated student {student.full_name} with Canvas user ID {member_data['id']}")
+
+                # If still not found, look by email as a last resort
+                if student is None and member_data.get('email'):
+                    student = Student.objects.filter(email=member_data['email']).first()
+                    if student:
+                        # Update the student's canvas_user_id
+                        student.canvas_user_id = str(member_data['id'])
+                        student.save(update_fields=['canvas_user_id'])
+                        logger.info(f"Matched student {student.full_name} by email with Canvas user ID {member_data['id']}")
+
+            except Exception as e:
+                logger.error(f"Error finding student for member {member_data.get('name')}: {str(e)}")
 
         membership, created = CanvasGroupMembership.objects.update_or_create(
             group=group,
@@ -601,6 +646,10 @@ class Client:
                 'email': member_data.get('email'),
             }
         )
+
+        if created:
+            logger.info(f"Created new group membership for {membership.name} in {group.name}")
+
         return membership
 
     async def sync_all_courses(self, user_id: int = None) -> List[CanvasCourse]:

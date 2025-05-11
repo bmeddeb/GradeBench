@@ -24,15 +24,16 @@ class CanvasSyncer:
     async def sync_canvas_groups(self, course: CanvasCourse, user_id=None) -> List[int]:
         """
         Sync Canvas groups for a course to Teams
-        
+
         Args:
             course: CanvasCourse to sync groups for
             user_id: Optional user ID for progress tracking
-            
+
         Returns:
             List of Canvas group IDs that were synced
         """
         from .progress import SyncProgress
+        import traceback
 
         if user_id:
             await SyncProgress.async_update(
@@ -41,61 +42,99 @@ class CanvasSyncer:
                 message="Fetching group categories from Canvas..."
             )
 
-        # 1. Fetch group‑sets
-        categories = await self.client.get_group_categories(course.canvas_id)
+        try:
+            # 1. Fetch group categories
+            logger.info(f"Fetching group categories for course {course.name} (ID: {course.canvas_id})")
+            categories = await self.client.get_group_categories(course.canvas_id)
+            logger.info(f"Found {len(categories)} group categories in course {course.name}")
 
-        # Track all Canvas group IDs to handle cleanup later
-        current_group_ids = []
+            # Track all Canvas group IDs to handle cleanup later
+            current_group_ids = []
 
-        # 2. Upsert Teams for each Canvas group
-        for cat in categories:
-            # Save category
-            category = await self.client._save_group_category(cat, course)
-            
-            if user_id:
-                await SyncProgress.async_update(
-                    user_id, course.canvas_id,
-                    status="fetching_groups",
-                    message=f"Fetching groups in category: {cat.get('name', 'Unnamed Category')}"
-                )
+            # 2. Upsert Teams for each Canvas group
+            for cat in categories:
+                logger.info(f"Processing category: {cat.get('name')} (ID: {cat.get('id')})")
+                try:
+                    # Save category
+                    category = await self.client._save_group_category(cat, course)
+                    logger.info(f"Saved category {category.name} (ID: {category.id})")
 
-            groups = await self.client.get_groups(cat['id'])
+                    if user_id:
+                        await SyncProgress.async_update(
+                            user_id, course.canvas_id,
+                            status="fetching_groups",
+                            message=f"Fetching groups in category: {cat.get('name', 'Unnamed Category')}"
+                        )
 
-            if user_id and groups:
-                await SyncProgress.async_update(
-                    user_id, course.canvas_id,
-                    status="saving_groups",
-                    message=f"Saving {len(groups)} groups to database..."
-                )
+                    # Get groups in this category
+                    groups = await self.client.get_groups(cat['id'])
+                    logger.info(f"Found {len(groups)} groups in category {category.name}")
 
-            for grp in groups:
-                current_group_ids.append(grp['id'])
+                    if user_id and groups:
+                        await SyncProgress.async_update(
+                            user_id, course.canvas_id,
+                            status="saving_groups",
+                            message=f"Saving {len(groups)} groups to database..."
+                        )
 
-                # Save the Canvas group
-                canvas_group = await self.client._save_group(grp, category)
+                    # Process each group
+                    for grp in groups:
+                        logger.info(f"Processing group: {grp.get('name')} (ID: {grp.get('id')})")
+                        try:
+                            current_group_ids.append(grp['id'])
 
-                # Update or create team with timestamp
-                team, created = await Team.objects.aupdate_or_acreate(
-                    canvas_group_id=grp['id'],
-                    canvas_course=course,
-                    defaults={
-                        'name': grp.get('name')[:100],
-                        'description': grp.get('description','')[:500],
-                        'last_synced_at': timezone.now()
-                    }
-                )
-                
-                # Link team to Canvas group
-                if canvas_group.core_team != team:
-                    canvas_group.core_team = team
-                    await canvas_group.asave(update_fields=['core_team'])
+                            # Save the Canvas group
+                            canvas_group = await self.client._save_group(grp, category)
+                            logger.info(f"Saved Canvas group {canvas_group.name} (ID: {canvas_group.id})")
 
-                # Log when new teams are created
-                if created and logger:
-                    logger.info(f"Created new team from Canvas group: {team.name} (ID: {grp['id']})")
+                            # Update or create team with timestamp
+                            # Safely handle description which might be None
+                            description = grp.get('description', '')
+                            if description is None:
+                                description = ''
 
-        # Return group IDs for potential cleanup
-        return current_group_ids
+                            team, created = await Team.objects.aupdate_or_create(
+                                canvas_group_id=grp['id'],
+                                canvas_course=course,
+                                defaults={
+                                    'name': grp.get('name', '')[:100],
+                                    'description': description,
+                                    'last_synced_at': timezone.now()
+                                }
+                            )
+                            logger.info(f"{'Created' if created else 'Updated'} team {team.name} (ID: {team.id})")
+
+                            # Link team to Canvas group - using sync_to_async to avoid async context errors
+                            from asgiref.sync import sync_to_async
+
+                            # Get core_team through sync_to_async
+                            core_team = await sync_to_async(lambda: canvas_group.core_team)()
+
+                            if core_team != team:
+                                canvas_group.core_team = team
+                                await canvas_group.asave(update_fields=['core_team'])
+                                logger.info(f"Linked Canvas group {canvas_group.name} to team {team.name}")
+
+                            # Log when new teams are created
+                            if created:
+                                logger.info(f"Created new team from Canvas group: {team.name} (ID: {grp['id']})")
+                        except Exception as e:
+                            logger.error(f"Error processing group {grp.get('name', 'unknown')} (ID: {grp.get('id', 'unknown')}): {e}")
+                            logger.error(traceback.format_exc())
+                            # Continue with next group
+                except Exception as e:
+                    logger.error(f"Error processing category {cat.get('name', 'unknown')} (ID: {cat.get('id', 'unknown')}): {e}")
+                    logger.error(traceback.format_exc())
+                    # Continue with next category
+
+            # Return group IDs for potential cleanup
+            logger.info(f"Completed syncing {len(current_group_ids)} groups for course {course.name}")
+            return current_group_ids
+        except Exception as e:
+            logger.error(f"Error syncing Canvas groups for course {course.name}: {e}")
+            logger.error(traceback.format_exc())
+            # Return empty list to indicate no groups were synced
+            return []
 
     async def sync_group_memberships(self, course: CanvasCourse, user_id=None):
         """
@@ -108,10 +147,13 @@ class CanvasSyncer:
         from .progress import SyncProgress
 
         # 3. Assign students to teams based on membership
-        teams = await Team.objects.filter(
-            canvas_course=course, 
+        # Convert query to list with async iteration
+        teams = []
+        async for team in Team.objects.filter(
+            canvas_course=course,
             canvas_group_id__isnull=False
-        ).to_list()
+        ):
+            teams.append(team)
 
         if user_id:
             await SyncProgress.async_update(
@@ -137,60 +179,91 @@ class CanvasSyncer:
                     canvas_id=team.canvas_group_id
                 )
                 
+                # Get more detailed member information including email
                 members = await self.client.get_group_members(team.canvas_group_id)
 
+                if logger:
+                    logger.info(f"Found {len(members)} members in Canvas group {team.name} (ID: {team.canvas_group_id})")
+
                 for m in members:
+                    # Save the group membership record first regardless of enrollment
+                    # This ensures we capture all group members even if not enrolled
+                    await self.client._save_group_membership(m, canvas_group)
+
+                    # Now try to find enrollment to link the student to the team
                     try:
                         enroll = await CanvasEnrollment.objects.aget(
                             user_id=m['id'], course=course)
                     except CanvasEnrollment.DoesNotExist:
+                        # We'll still create the membership, but won't link to a student
                         if logger:
                             logger.warning(
                                 f"Enrollment not found for user ID {m['id']} in team {team.name}"
                             )
                         continue
 
-                    # Save the group membership record
-                    await self.client._save_group_membership(m, canvas_group)
+                    # Link or create Student, then assign team - use sync_to_async to avoid async context errors
+                    from asgiref.sync import sync_to_async
 
-                    # Link or create Student, then assign team
-                    student = enroll.student
+                    # Get student through sync_to_async
+                    student = await sync_to_async(lambda: enroll.student)()
+
                     if not student:
                         # Handle potential missing data with safe defaults
                         try:
-                            user_name_parts = enroll.user_name.split()
+                            # Get user_name through sync_to_async
+                            user_name = await sync_to_async(lambda: enroll.user_name)()
+                            user_name_parts = user_name.split()
                             first_name = user_name_parts[0] if user_name_parts else "Unknown"
                             last_name = " ".join(user_name_parts[1:]) if len(user_name_parts) > 1 else ""
 
-                            student, created = await Student.objects.aupdate_or_acreate(
-                                canvas_user_id=str(enroll.user_id),
+                            # Get email through sync_to_async
+                            email = await sync_to_async(lambda: enroll.email)()
+                            user_id = await sync_to_async(lambda: enroll.user_id)()
+                            email = email or f"canvas-user-{user_id}@example.com"
+
+                            student, created = await Student.objects.aupdate_or_create(
+                                canvas_user_id=str(user_id),
                                 defaults={
-                                    'email': enroll.email or f"canvas-user-{enroll.user_id}@example.com",
+                                    'email': email,
                                     'first_name': first_name,
                                     'last_name': last_name,
                                 }
                             )
 
                             if created and logger:
-                                logger.info(f"Created new student from Canvas enrollment: {student.full_name}")
+                                student_name = await sync_to_async(lambda: student.full_name)()
+                                logger.info(f"Created new student from Canvas enrollment: {student_name}")
 
                             enroll.student = student
                             await enroll.asave(update_fields=['student'])
                         except Exception as e:
                             if logger:
-                                logger.error(f"Error creating student for enrollment {enroll.id}: {str(e)}")
+                                enroll_id = await sync_to_async(lambda: enroll.id)()
+                                logger.error(f"Error creating student for enrollment {enroll_id}: {str(e)}")
                             continue
 
-                    # Only update if team has changed
-                    if student.team != team:
-                        old_team = student.team
+                    # Only update if team has changed - use sync_to_async to avoid async context errors
+                    from asgiref.sync import sync_to_async
+                    current_team = await sync_to_async(lambda: student.team)()
+
+                    if current_team != team:
+                        # Get old team name for logging
+                        old_team_name = 'None'
+                        if current_team:
+                            old_team_name = await sync_to_async(lambda: current_team.name)()
+
+                        # Update team
                         student.team = team
                         await student.asave(update_fields=['team'])
 
+                        # Get student name for logging
+                        student_name = await sync_to_async(lambda: student.full_name)()
+
                         if logger:
                             logger.info(
-                                f"Updated student {student.full_name} team assignment: " +
-                                f"{old_team.name if old_team else 'None'} → {team.name}"
+                                f"Updated student {student_name} team assignment: " +
+                                f"{old_team_name} → {team.name}"
                             )
             except Exception as e:
                 if logger:
