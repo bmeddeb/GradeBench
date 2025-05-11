@@ -449,6 +449,28 @@ document.addEventListener('DOMContentLoaded', function() {
     window.randomAssignStudents = async function(categoryId) {
         if (!categoryId) return;
 
+        // Check if there are any groups in this category
+        const tabContent = document.getElementById(`groupset-${categoryId}-content`);
+        if (tabContent) {
+            const groupCards = tabContent.querySelectorAll('.group-card');
+            if (!groupCards || groupCards.length === 0) {
+                // Show error notification if there are no groups
+                if (typeof $ !== 'undefined' && typeof $.notify === 'function') {
+                    $.notify({
+                        title: '<strong>No Groups Available</strong>',
+                        message: 'Please create at least one group before randomly assigning students.',
+                        icon: 'fa fa-exclamation-triangle'
+                    }, {
+                        type: 'warning',
+                        placement: { from: 'top', align: 'center' },
+                        z_index: 2000,
+                        delay: 5000
+                    });
+                }
+                return;
+            }
+        }
+
         // Show confirmation notification with buttons
         if (typeof $ !== 'undefined' && typeof $.notify === 'function') {
             // Create a custom notification with action buttons

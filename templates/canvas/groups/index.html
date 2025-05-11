@@ -351,6 +351,36 @@
             const container = document.getElementById(`groups-container-${categoryId}`);
             if (!container) return;
 
+            // Verify we have all necessary data
+            if (!data) {
+                container.innerHTML = '<div class="alert alert-danger">Error: No data received from server</div>';
+                return;
+            }
+
+            // Make sure we have a category object
+            if (!data.category) {
+                data.category = { id: categoryId, name: "Unknown" };
+            }
+
+            // Make sure we have a groups array
+            if (!data.groups) {
+                data.groups = [];
+            }
+
+            // Make sure we have an unassigned_students array
+            if (!data.unassigned_students) {
+                data.unassigned_students = [];
+            }
+
+            // Add course reference for creating links
+            if (!data.course) {
+                // Try to get from URL
+                const courseIdMatch = window.location.pathname.match(/\/course\/(\d+)/);
+                if (courseIdMatch && courseIdMatch[1]) {
+                    data.course = { id: courseIdMatch[1] };
+                }
+            }
+
             // Clear existing content
             container.innerHTML = '';
 
@@ -364,14 +394,18 @@
             const row = document.createElement('div');
             row.className = 'row';
             
+            // Check if there are any groups
+            const hasGroups = data.groups && data.groups.length > 0;
+
             // Render each group
-            data.groups.forEach(group => {
-                const col = document.createElement('div');
-                col.className = 'col-md-4 col-sm-6 mb-3';
-                
-                // Clone group template
-                const template = document.getElementById('group-template');
-                const groupCard = template.content.cloneNode(true);
+            if (hasGroups) {
+                data.groups.forEach(group => {
+                    const col = document.createElement('div');
+                    col.className = 'col-md-4 col-sm-6 mb-3';
+
+                    // Clone group template
+                    const template = document.getElementById('group-template');
+                    const groupCard = template.content.cloneNode(true);
 
                 // Add data attributes to the card for drag-and-drop
                 const cardElement = groupCard.querySelector('.group-card');
@@ -428,10 +462,57 @@
                     emptyItem.innerHTML = '<i class="fa fa-users me-2"></i>No members - drag students here';
                     membersList.appendChild(emptyItem);
                 }
-                
-                col.appendChild(groupCard);
-                row.appendChild(col);
-            });
+
+                    col.appendChild(groupCard);
+                    row.appendChild(col);
+                });
+            } else {
+                // Show message if no groups exist
+                const noGroupsCol = document.createElement('div');
+                noGroupsCol.className = 'col-12 mb-3';
+
+                const noGroupsCard = document.createElement('div');
+                noGroupsCard.className = 'card no-groups-message';
+
+                const cardBody = document.createElement('div');
+                cardBody.className = 'card-body text-center py-4';
+
+                const icon = document.createElement('i');
+                icon.className = 'fa fa-users-slash fa-3x mb-3 text-muted';
+
+                const heading = document.createElement('h5');
+                heading.className = 'mb-3';
+                heading.textContent = 'No Groups Available';
+
+                const message = document.createElement('p');
+                message.className = 'mb-3';
+                message.textContent = 'There are no groups in this category yet. Create groups to manually or randomly assign students.';
+
+                // Get course ID from meta tag or data
+                const courseId = document.querySelector('meta[name="course-id"]')?.content ||
+                                (data.course && data.course.id ? data.course.id : null);
+
+                const createGroupBtn = document.createElement('a');
+                if (courseId && data.category && data.category.id) {
+                    createGroupBtn.href = `/canvas/course/${courseId}/group_set/${data.category.id}/group/create/`;
+                    createGroupBtn.className = 'btn btn-primary';
+                    createGroupBtn.innerHTML = '<i class="fa fa-plus"></i> Create Group';
+                } else {
+                    // If we can't build the URL, make it a disabled button instead
+                    createGroupBtn.className = 'btn btn-secondary disabled';
+                    createGroupBtn.innerHTML = '<i class="fa fa-plus"></i> Create Group';
+                    createGroupBtn.setAttribute('aria-disabled', 'true');
+                }
+
+                cardBody.appendChild(icon);
+                cardBody.appendChild(heading);
+                cardBody.appendChild(message);
+                cardBody.appendChild(createGroupBtn);
+
+                noGroupsCard.appendChild(cardBody);
+                noGroupsCol.appendChild(noGroupsCard);
+                row.appendChild(noGroupsCol);
+            }
             
             // Add unassigned students if any
             if (data.unassigned_students && data.unassigned_students.length > 0) {
@@ -448,13 +529,28 @@
                 const unassignedList = unassignedCard.querySelector('.unassigned-list');
                 const randomAssignBtn = unassignedCard.querySelector('.random-assign-btn');
                 
-                // Set category data for random assignment
-                randomAssignBtn.setAttribute('data-category-id', data.category.id);
-                
-                // Add event listener for random assignment
-                randomAssignBtn.addEventListener('click', function() {
-                    randomAssignStudents(data.category.id);
-                });
+                // Set category data for random assignment if available
+                if (data.category && data.category.id) {
+                    randomAssignBtn.setAttribute('data-category-id', data.category.id);
+                }
+
+                // Disable random assign button if there are no groups
+                if (!hasGroups) {
+                    randomAssignBtn.disabled = true;
+                    randomAssignBtn.setAttribute('title', 'Create groups first before randomly assigning students');
+                    randomAssignBtn.classList.add('disabled');
+
+                    // Add info icon with tooltip
+                    const infoIcon = document.createElement('i');
+                    infoIcon.className = 'fa fa-info-circle ms-1';
+                    infoIcon.setAttribute('title', 'Create groups first before randomly assigning students');
+                    randomAssignBtn.appendChild(infoIcon);
+                } else {
+                    // Add event listener for random assignment (only if groups exist)
+                    randomAssignBtn.addEventListener('click', function() {
+                        randomAssignStudents(data.category.id);
+                    });
+                }
                 
                 // Add sortable class to unassigned list
                 unassignedList.classList.add('sortable-container');
