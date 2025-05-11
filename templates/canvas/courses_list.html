@@ -90,15 +90,15 @@
       </div>
       <div class="modal-body">
         <div id="coursesLoading">Loading courses...</div>
-        <div id="coursesList" style="display:none;">
+        <div id="coursesList" class="initially-hidden">
           <button class="btn btn-link" onclick="selectAllCourses(true)">Select All</button>
           <button class="btn btn-link" onclick="selectAllCourses(false)">Deselect All</button>
-          <ul id="coursesCheckboxList" class="list-unstyled mt-2"></ul>
+          <ul id="coursesCheckboxList" class="courses-checkbox-list list-unstyled mt-2"></ul>
         </div>
-        <div id="coursesError" class="alert alert-danger" style="display:none;"></div>
+        <div id="coursesError" class="alert alert-danger initially-hidden"></div>
       </div>
       <div class="modal-footer">
-        <div id="syncProgressIndicator" style="display:none;" class="me-auto">
+        <div id="syncProgressIndicator" class="initially-hidden me-auto">
           <div class="spinner-border spinner-border-sm text-primary" role="status">
             <span class="visually-hidden">Syncing courses...</span>
           </div>

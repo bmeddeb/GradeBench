@@ -17,5 +17,8 @@
 {% endblock %}
 
 {% block extra_css %}
+    {% load static %}
+    <!-- Canvas custom styles -->
+    <link href="{% static 'css/canvas-custom.css' %}" rel="stylesheet" />
     {% block canvas_css %}{% endblock %}
 {% endblock %}

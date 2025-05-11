@@ -1,0 +1,72 @@
+/**
+ * Canvas-specific custom styles
+ */
+
+/* Modal elements initial states */
+.initially-hidden {
+    display: none;
+}
+
+/* Progress bar styles */
+.progress-container {
+    margin-bottom: 1rem;
+}
+
+/* Sync button styles */
+.sync-button-container {
+    text-align: center;
+}
+
+/* Canvas course cards */
+.course-card {
+    margin-bottom: 1.5rem;
+    transition: transform 0.2s ease;
+}
+.course-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Canvas modal styles */
+.canvas-modal .modal-body {
+    padding: 1.5rem;
+}
+
+/* Syllabus content */
+.syllabus-content img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Course list container */
+.courses-checkbox-list {
+    max-height: 400px;
+    overflow-y: auto;
+    padding-left: 0;
+}
+
+/* Canvas groups styles */
+.group-members-list {
+    margin-top: 0.5rem;
+    padding-left: 1rem;
+}
+
+/* Student details */
+.student-detail-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+.student-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    margin-right: 1rem;
+}
+
+/* Responsive fixes */
+@media (max-width: 767px) {
+    .canvas-stats-card {
+        margin-bottom: 1rem;
+    }
+}

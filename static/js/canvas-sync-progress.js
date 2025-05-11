@@ -487,9 +487,11 @@ function syncCurrentCourse() {
  * Load courses for the modal
  */
 function loadCoursesForModal() {
-    document.getElementById('coursesLoading').style.display = 'block';
-    document.getElementById('coursesList').style.display = 'none';
-    document.getElementById('coursesError').style.display = 'none';
+    // Show loading indicator, hide other elements
+    document.getElementById('coursesLoading').classList.remove('initially-hidden');
+    document.getElementById('coursesList').classList.add('initially-hidden');
+    document.getElementById('coursesError').classList.add('initially-hidden');
+
     fetch('/canvas/list_available_courses/')
         .then(response => response.json())
         .then(data => {
@@ -501,18 +503,21 @@ function loadCoursesForModal() {
                     li.innerHTML = `<label><input type="checkbox" class="course-checkbox" value="${course.id}"> ${course.name} (${course.course_code})</label>`;
                     list.appendChild(li);
                 });
-                document.getElementById('coursesLoading').style.display = 'none';
-                document.getElementById('coursesList').style.display = 'block';
+                // Hide loading, show course list
+                document.getElementById('coursesLoading').classList.add('initially-hidden');
+                document.getElementById('coursesList').classList.remove('initially-hidden');
             } else {
-                document.getElementById('coursesLoading').style.display = 'none';
+                // Hide loading, show error
+                document.getElementById('coursesLoading').classList.add('initially-hidden');
                 document.getElementById('coursesError').innerText = data.error || 'Failed to load courses.';
-                document.getElementById('coursesError').style.display = 'block';
+                document.getElementById('coursesError').classList.remove('initially-hidden');
             }
         })
         .catch(() => {
-            document.getElementById('coursesLoading').style.display = 'none';
+            // Hide loading, show error on exception
+            document.getElementById('coursesLoading').classList.add('initially-hidden');
             document.getElementById('coursesError').innerText = 'Failed to load courses.';
-            document.getElementById('coursesError').style.display = 'block';
+            document.getElementById('coursesError').classList.remove('initially-hidden');
         });
 }
 
