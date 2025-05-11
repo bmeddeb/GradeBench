@@ -2,15 +2,18 @@
 Sync service for Canvas API data.
 """
 import logging
-from typing import List, Dict, Optional
+import traceback
+from typing import List, Dict, Optional, Union, Tuple, Any
 from django.utils import timezone
+from asgiref.sync import sync_to_async
 
 from lms.canvas.client import Client
 from lms.canvas.models import (
-    CanvasCourse, CanvasEnrollment, CanvasGroupCategory, 
+    CanvasCourse, CanvasEnrollment, CanvasGroupCategory,
     CanvasGroup, CanvasGroupMembership
 )
 from core.models import Student, Team
+from lms.utils import SafeAsyncAccessor
 
 logger = logging.getLogger(__name__)
 
@@ -104,11 +107,8 @@ class CanvasSyncer:
                             )
                             logger.info(f"{'Created' if created else 'Updated'} team {team.name} (ID: {team.id})")
 
-                            # Link team to Canvas group - using sync_to_async to avoid async context errors
-                            from asgiref.sync import sync_to_async
-
-                            # Get core_team through sync_to_async
-                            core_team = await sync_to_async(lambda: canvas_group.core_team)()
+                            # Link team to Canvas group - using SafeAsyncAccessor to avoid async context errors
+                            core_team = await SafeAsyncAccessor.get_attr(canvas_group, 'core_team')
 
                             if core_team != team:
                                 canvas_group.core_team = team
@@ -202,26 +202,26 @@ class CanvasSyncer:
                             )
                         continue
 
-                    # Link or create Student, then assign team - use sync_to_async to avoid async context errors
-                    from asgiref.sync import sync_to_async
-
-                    # Get student through sync_to_async
-                    student = await sync_to_async(lambda: enroll.student)()
+                    # Link or create Student, then assign team - use SafeAsyncAccessor to avoid async context errors
+                    student = await SafeAsyncAccessor.get_attr(enroll, 'student')
 
                     if not student:
                         # Handle potential missing data with safe defaults
                         try:
-                            # Get user_name through sync_to_async
-                            user_name = await sync_to_async(lambda: enroll.user_name)()
+                            # Get enrollment attributes safely
+                            user_name = await SafeAsyncAccessor.get_attr(enroll, 'user_name')
+                            email = await SafeAsyncAccessor.get_attr(enroll, 'email')
+                            user_id = await SafeAsyncAccessor.get_attr(enroll, 'user_id')
+
+                            # Parse user name
                             user_name_parts = user_name.split()
                             first_name = user_name_parts[0] if user_name_parts else "Unknown"
                             last_name = " ".join(user_name_parts[1:]) if len(user_name_parts) > 1 else ""
 
-                            # Get email through sync_to_async
-                            email = await sync_to_async(lambda: enroll.email)()
-                            user_id = await sync_to_async(lambda: enroll.user_id)()
+                            # Ensure email has a fallback
                             email = email or f"canvas-user-{user_id}@example.com"
 
+                            # Create or update student
                             student, created = await Student.objects.aupdate_or_create(
                                 canvas_user_id=str(user_id),
                                 defaults={
@@ -231,34 +231,35 @@ class CanvasSyncer:
                                 }
                             )
 
+                            # Log new student creation
                             if created and logger:
-                                student_name = await sync_to_async(lambda: student.full_name)()
+                                student_name = await SafeAsyncAccessor.get_attr(student, 'full_name')
                                 logger.info(f"Created new student from Canvas enrollment: {student_name}")
 
+                            # Link student to enrollment
                             enroll.student = student
                             await enroll.asave(update_fields=['student'])
                         except Exception as e:
                             if logger:
-                                enroll_id = await sync_to_async(lambda: enroll.id)()
+                                enroll_id = await SafeAsyncAccessor.get_attr(enroll, 'id')
                                 logger.error(f"Error creating student for enrollment {enroll_id}: {str(e)}")
                             continue
 
-                    # Only update if team has changed - use sync_to_async to avoid async context errors
-                    from asgiref.sync import sync_to_async
-                    current_team = await sync_to_async(lambda: student.team)()
+                    # Only update if team has changed
+                    current_team = await SafeAsyncAccessor.get_attr(student, 'team')
 
                     if current_team != team:
                         # Get old team name for logging
                         old_team_name = 'None'
                         if current_team:
-                            old_team_name = await sync_to_async(lambda: current_team.name)()
+                            old_team_name = await SafeAsyncAccessor.get_attr(current_team, 'name')
 
                         # Update team
                         student.team = team
                         await student.asave(update_fields=['team'])
 
                         # Get student name for logging
-                        student_name = await sync_to_async(lambda: student.full_name)()
+                        student_name = await SafeAsyncAccessor.get_attr(student, 'full_name')
 
                         if logger:
                             logger.info(
