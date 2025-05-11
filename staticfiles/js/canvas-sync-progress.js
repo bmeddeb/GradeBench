@@ -420,7 +420,130 @@ function checkSyncInProgress() {
         });
 }
 
-// When DOM is loaded, check if a sync is in progress
+// Page-specific functions that are currently duplicated in template files
+/**
+ * Sync the courses selected in the modal
+ */
+function syncSelectedCourses() {
+    const selected = Array.from(document.querySelectorAll('.course-checkbox:checked')).map(cb => cb.value);
+    if (selected.length === 0) {
+        alert('Please select at least one course.');
+        return;
+    }
+
+    // Hide the modal
+    const syncModal = bootstrap.Modal.getInstance(document.getElementById('syncCoursesModal'));
+    if (syncModal) {
+        syncModal.hide();
+    }
+
+    // Start sync with progress tracking
+    startSyncWithProgress(
+        '/canvas/sync_selected_courses/',
+        {course_ids: selected}
+    );
+}
+
+/**
+ * Sync all courses by selecting all checkboxes and then syncing selected
+ */
+function syncAllCourses() {
+    selectAllCourses(true);
+    syncSelectedCourses();
+}
+
+/**
+ * Sync the current course (used on course detail page)
+ */
+function syncCurrentCourse() {
+    // Start a simple loading animation for the button
+    const syncButton = document.getElementById('syncCourseBtn');
+    if (syncButton) {
+        syncButton.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
+        syncButton.disabled = true;
+    }
+
+    // Get course ID from the URL
+    const pathParts = window.location.pathname.split('/');
+    const courseId = pathParts[pathParts.indexOf('course') + 1];
+
+    // Start sync with progress tracking
+    startSyncWithProgress(
+        '/canvas/sync_selected_courses/',
+        {course_ids: [courseId]},
+        courseId
+    );
+
+    // Reset button after starting the sync
+    if (syncButton) {
+        setTimeout(() => {
+            syncButton.innerHTML = '<i class="fa fa-refresh"></i>';
+            syncButton.disabled = false;
+        }, 1000);
+    }
+}
+
+/**
+ * Load courses for the modal
+ */
+function loadCoursesForModal() {
+    document.getElementById('coursesLoading').style.display = 'block';
+    document.getElementById('coursesList').style.display = 'none';
+    document.getElementById('coursesError').style.display = 'none';
+    fetch('/canvas/list_available_courses/')
+        .then(response => response.json())
+        .then(data => {
+            if (data.courses) {
+                const list = document.getElementById('coursesCheckboxList');
+                list.innerHTML = '';
+                data.courses.forEach(course => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `<label><input type="checkbox" class="course-checkbox" value="${course.id}"> ${course.name} (${course.course_code})</label>`;
+                    list.appendChild(li);
+                });
+                document.getElementById('coursesLoading').style.display = 'none';
+                document.getElementById('coursesList').style.display = 'block';
+            } else {
+                document.getElementById('coursesLoading').style.display = 'none';
+                document.getElementById('coursesError').innerText = data.error || 'Failed to load courses.';
+                document.getElementById('coursesError').style.display = 'block';
+            }
+        })
+        .catch(() => {
+            document.getElementById('coursesLoading').style.display = 'none';
+            document.getElementById('coursesError').innerText = 'Failed to load courses.';
+            document.getElementById('coursesError').style.display = 'block';
+        });
+}
+
+/**
+ * Set selection state for all course checkboxes
+ */
+function selectAllCourses(select) {
+    document.querySelectorAll('.course-checkbox').forEach(cb => cb.checked = select);
+}
+
+/**
+ * Initialize event handlers for all Canvas pages
+ */
+function initCanvasEventHandlers() {
+    // Sync courses modal setup
+    var syncCoursesModal = document.getElementById('syncCoursesModal');
+    if (syncCoursesModal) {
+        syncCoursesModal.addEventListener('show.bs.modal', function() {
+            loadCoursesForModal();
+        });
+    }
+
+    // Sync current course button
+    var syncCourseBtn = document.getElementById('syncCourseBtn');
+    if (syncCourseBtn) {
+        syncCourseBtn.addEventListener('click', syncCurrentCourse);
+    }
+}
+
+// When DOM is loaded, check if a sync is in progress and initialize event handlers
 document.addEventListener('DOMContentLoaded', function() {
     checkSyncInProgress();
+    initCanvasEventHandlers();
 });
