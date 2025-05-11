@@ -5,6 +5,11 @@
 {% block page_title %}{{ course.course_code }}: {{ course.name }} - Group Management{% endblock %}
 {% block nav_canvas_dashboard %}active{% endblock %}
 
+{% block extra_head %}
+<!-- Add course ID for JavaScript access -->
+<meta name="course-id" content="{{ course.id }}">
+{% endblock %}
+
 {% block canvas_content %}
 <div class="row mb-3">
     <div class="col-md-12">
@@ -222,8 +227,12 @@
 {% block canvas_js %}
 <!-- Directly include SortableJS first -->
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-<!-- Use the more robust version -->
-<script src="{% static 'js/canvas-group-sortable-v2.js' %}"></script>
+<!-- Use debug version 2 for troubleshooting - makes entire items draggable without handles -->
+<script src="{% static 'js/canvas-group-sortable-debug2.js' %}"></script>
+<!-- Include debug CSS -->
+<style>
+{% include 'canvas/groups/debug-style.html' %}
+</style>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Initialize tabs with data loading
