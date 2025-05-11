@@ -367,7 +367,12 @@
                 // Clone group template
                 const template = document.getElementById('group-template');
                 const groupCard = template.content.cloneNode(true);
-                
+
+                // Add data attributes to the card for drag-and-drop
+                const cardElement = groupCard.querySelector('.group-card');
+                cardElement.setAttribute('data-group-id', group.id);
+                cardElement.setAttribute('data-canvas-group-id', group.canvas_id);
+
                 // Fill group data
                 groupCard.querySelector('.group-name').textContent = group.name;
                 
@@ -430,7 +435,11 @@
                 
                 const template = document.getElementById('unassigned-students-template');
                 const unassignedCard = template.content.cloneNode(true);
-                
+
+                // Add class to unassigned card for identification
+                const unassignedCardElement = unassignedCard.querySelector('.unassigned-students-card');
+                unassignedCardElement.setAttribute('data-is-unassigned', 'true');
+
                 const unassignedList = unassignedCard.querySelector('.unassigned-list');
                 const randomAssignBtn = unassignedCard.querySelector('.random-assign-btn');
                 

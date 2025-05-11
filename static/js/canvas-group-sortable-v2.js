@@ -67,15 +67,36 @@ document.addEventListener('DOMContentLoaded', function() {
         // Create a Sortable instance for each members list
         memberLists.forEach(list => {
             try {
-                const groupCard = list.closest('.group-card');
-                if (!groupCard) {
-                    console.warn('Could not find group card for list', list);
+                // Check if this is a group card list or unassigned list
+                const cardElement = list.closest('.card');
+                if (!cardElement) {
+                    console.warn('Could not find card for list', list);
                     return;
                 }
-                
-                const groupId = groupCard.dataset.groupId;
+
+                // Check if it's an unassigned list
+                if (cardElement.classList.contains('unassigned-students-card')) {
+                    // Skip - we'll handle the unassigned list separately
+                    console.log('Skipping unassigned list - will initialize separately');
+                    return;
+                }
+
+                // It's a group card
+                const groupId = cardElement.dataset.groupId;
                 if (!groupId) {
-                    console.warn('Group card is missing data-group-id attribute', groupCard);
+                    console.warn('Group card is missing data-group-id attribute', cardElement);
+                    // Try to initialize anyway using a fallback ID
+                    const fallbackId = 'unknown-' + Math.random().toString(36).substr(2, 9);
+                    console.log(`Using fallback ID for group: ${fallbackId}`);
+                    // Create a new Sortable instance with the fallback ID
+                    sortableInstances[`group-${fallbackId}`] = new Sortable(list, {
+                        group: `category-${categoryId}`,
+                        animation: 150,
+                        handle: '.drag-handle',
+                        chosenClass: 'sortable-chosen',
+                        dragClass: 'sortable-drag',
+                        ghostClass: 'sortable-ghost'
+                    });
                     return;
                 }
                 
@@ -117,9 +138,14 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         // Get the unassigned students list
+        const unassignedCard = tabContent.querySelector('.unassigned-students-card');
         const unassignedList = tabContent.querySelector('.unassigned-list');
+
         if (unassignedList) {
             try {
+                console.log('Initializing unassigned list for category', categoryId);
+
+                // Create Sortable instance for the unassigned list
                 const sortable = new Sortable(unassignedList, {
                     group: `category-${categoryId}`,  // Group name to allow dragging between lists
                     animation: 150,                    // Animation speed in ms
@@ -133,15 +159,20 @@ document.addEventListener('DOMContentLoaded', function() {
                     bubbleScroll: true,                // Bubble scroll through parents
                     scrollSensitivity: 80,             // Scroll sensitivity in px
                     scrollSpeed: 10,                   // Scroll speed in px/s
-                    
+
                     // Element is dragged from one list to another
                     onAdd: function(evt) {
                         const studentId = evt.item.dataset.studentId;
-                        const fromElement = evt.from.closest('.group-card');
-                        const oldGroupId = fromElement ? fromElement.dataset.groupId : null;
-                        
-                        console.log(`Student ${studentId} moved from ${oldGroupId || 'unassigned'} to unassigned`);
-                        
+                        const fromElement = evt.from.closest('.card');
+                        let oldGroupId = null;
+
+                        // Try to get the group ID from the card element
+                        if (fromElement && fromElement.classList.contains('group-card')) {
+                            oldGroupId = fromElement.dataset.groupId;
+                        }
+
+                        console.log(`Student ${studentId} moved from ${oldGroupId || 'unknown'} to unassigned`);
+
                         // Mark unsaved changes and show banner
                         if (!hasUnsavedChanges) {
                             hasUnsavedChanges = true;
@@ -149,11 +180,15 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     }
                 });
-                
+
+                // Store the instance
                 sortableInstances['unassigned'] = sortable;
+                console.log('Successfully initialized unassigned list');
             } catch (err) {
                 console.error('Error creating Sortable instance for unassigned list:', err);
             }
+        } else {
+            console.warn('Unassigned list not found in category', categoryId);
         }
         
         console.log('Sortable instances created:', Object.keys(sortableInstances));
