@@ -17,6 +17,9 @@ from .models import (
     CanvasEnrollment,
     CanvasAssignment,
     CanvasSubmission,
+    CanvasGroupCategory,
+    CanvasGroup,
+    CanvasGroupMembership,
 )
 from .client import Client
 
@@ -702,3 +705,258 @@ def canvas_sync_selected_courses(request):
             "course_ids": course_ids,
         }
     )
+
+
+@login_required
+def course_groups(request, course_id):
+    """
+    View the groups for a course, organized by group sets (categories).
+    This is the main page for the group management module.
+    """
+    if not request.user.is_authenticated:
+        return redirect("login")
+
+    course = get_object_or_404(CanvasCourse, canvas_id=course_id)
+
+    # Check if user has access to this course
+    integration = get_integration_for_user(request.user)
+    if course.integration != integration:
+        messages.error(request, "You do not have access to this course")
+        return redirect("canvas_dashboard")
+
+    # Get all group categories (sets) for this course
+    group_categories = CanvasGroupCategory.objects.filter(course=course).order_by("name")
+
+    # Get all groups for each category to display counts
+    category_data = []
+    for category in group_categories:
+        groups_count = CanvasGroup.objects.filter(category=category).count()
+
+        # Count members across all groups in this category
+        memberships_count = CanvasGroupMembership.objects.filter(
+            group__category=category
+        ).count()
+
+        category_data.append({
+            "category": category,
+            "groups_count": groups_count,
+            "members_count": memberships_count,
+        })
+
+    # Get all student enrollments for this course
+    enrollments = CanvasEnrollment.objects.filter(
+        course=course, role="StudentEnrollment"
+    ).order_by("sortable_name")
+
+    # Get total number of students and unassigned students count
+    total_students = enrollments.count()
+
+    # Find students who have group memberships
+    students_with_groups = CanvasGroupMembership.objects.filter(
+        group__category__course=course
+    ).values_list("user_id", flat=True).distinct()
+
+    # Count students without group memberships
+    unassigned_students = CanvasEnrollment.objects.filter(
+        course=course,
+        role="StudentEnrollment"
+    ).exclude(
+        user_id__in=students_with_groups
+    ).count()
+
+    # Pass first category as default selected if exists
+    default_category = None
+    if category_data:
+        default_category = category_data[0]["category"]
+
+    # Sync status info
+    last_sync = course.updated_at if hasattr(course, "updated_at") else None
+
+    context = {
+        "course": course,
+        "category_data": category_data,
+        "total_students": total_students,
+        "unassigned_students": unassigned_students,
+        "last_sync": last_sync,
+        "default_category": default_category,
+    }
+
+    return render(request, "canvas/groups/index.html", context)
+
+
+@login_required
+def group_set_detail(request, course_id, group_set_id):
+    """
+    AJAX endpoint to get detailed information about a specific group set,
+    including all groups and their members.
+    """
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Authentication required"}, status=401)
+
+    course = get_object_or_404(CanvasCourse, canvas_id=course_id)
+
+    # Check if user has access to this course
+    integration = get_integration_for_user(request.user)
+    if course.integration != integration:
+        return JsonResponse({"error": "Access denied"}, status=403)
+
+    # Get the group category (set)
+    try:
+        category = get_object_or_404(CanvasGroupCategory, id=group_set_id, course=course)
+    except CanvasGroupCategory.DoesNotExist:
+        return JsonResponse({"error": "Group set not found"}, status=404)
+
+    # Get all groups in this category
+    groups = CanvasGroup.objects.filter(category=category).order_by("name")
+
+    # Build response with groups and their members
+    group_data = []
+    for group in groups:
+        # Get members for this group
+        memberships = CanvasGroupMembership.objects.filter(group=group)
+
+        # Get the associated core team if it exists
+        core_team = None
+        if hasattr(group, "core_team") and group.core_team:
+            core_team = {
+                "id": group.core_team.id,
+                "name": group.core_team.name,
+            }
+
+        # Add to response
+        group_data.append({
+            "id": group.id,
+            "canvas_id": group.canvas_id,
+            "name": group.name,
+            "description": group.description,
+            "created_at": group.created_at.isoformat() if group.created_at else None,
+            "members": [
+                {
+                    "id": membership.id,
+                    "user_id": membership.user_id,
+                    "name": membership.name,
+                    "email": membership.email,
+                    "student_id": membership.student_id if hasattr(membership, "student") else None,
+                }
+                for membership in memberships
+            ],
+            "core_team": core_team,
+        })
+
+    # Get unassigned students (those without a group in this category)
+    assigned_student_ids = CanvasGroupMembership.objects.filter(
+        group__category=category
+    ).values_list("user_id", flat=True)
+
+    unassigned_students = CanvasEnrollment.objects.filter(
+        course=course,
+        role="StudentEnrollment"
+    ).exclude(
+        user_id__in=assigned_student_ids
+    ).values("user_id", "user_name", "email")
+
+    # Build response
+    response_data = {
+        "category": {
+            "id": category.id,
+            "canvas_id": category.canvas_id,
+            "name": category.name,
+            "self_signup": category.self_signup,
+            "group_limit": category.group_limit,
+            "auto_leader": category.auto_leader,
+            "created_at": category.created_at.isoformat() if category.created_at else None,
+        },
+        "groups": group_data,
+        "unassigned_students": list(unassigned_students),
+    }
+
+    return JsonResponse(response_data)
+
+
+@login_required
+def canvas_sync_course_groups(request, course_id):
+    """
+    Sync only the groups and group memberships for a course.
+    This is more efficient than syncing the entire course when only group data is needed.
+    """
+    if not request.user.is_authenticated:
+        return redirect("login")
+
+    integration = get_integration_for_user(request.user)
+    if not integration:
+        messages.error(request, "Canvas integration not set up")
+        return redirect("canvas_setup")
+
+    # Initialize the sync in a background thread
+    user_id = request.user.id
+    import threading
+    import asyncio
+    from .progress import SyncProgress
+    from .sync_utils import sync_course_groups
+
+    # Initialize progress tracking before starting the thread
+    SyncProgress.start_sync(user_id, course_id, total_steps=5)
+    SyncProgress.update(
+        user_id,
+        course_id,
+        current=1,
+        total=5,
+        status="starting",
+        message="Starting group sync..."
+    )
+
+    def run_sync():
+        try:
+            # Use the targeted sync function from sync_utils
+            result = asyncio.run(sync_course_groups(integration, course_id, user_id))
+
+            if result.get("success", False):
+                # Update progress with success
+                SyncProgress.complete_sync(
+                    user_id,
+                    course_id,
+                    success=True,
+                    message=f"Successfully synced groups for course {course_id}",
+                )
+            else:
+                # Update progress with error
+                SyncProgress.complete_sync(
+                    user_id,
+                    course_id,
+                    success=False,
+                    message="Failed to sync groups",
+                    error=result.get("error", "Unknown error"),
+                )
+        except Exception as e:
+            logger.error(f"Error syncing groups for course {course_id}: {e}")
+            # Update progress with error
+            SyncProgress.complete_sync(
+                user_id,
+                course_id,
+                success=False,
+                message="Group sync failed with an error.",
+                error=str(e),
+            )
+
+    # Start the sync in a background thread
+    sync_thread = threading.Thread(target=run_sync)
+    sync_thread.daemon = True
+    sync_thread.start()
+
+    # If this is an AJAX request, return JSON
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({
+            "status": "started",
+            "message": "Group sync has started",
+        })
+
+    # Otherwise redirect with message
+    messages.info(
+        request,
+        "Group sync has started. This may take a moment. You can check progress below.",
+    )
+
+    # Add a session flag to indicate sync is in progress
+    request.session[f"canvas_sync_groups_{course_id}_in_progress"] = True
+
+    return redirect("canvas_course_groups", course_id=course_id)

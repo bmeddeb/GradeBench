@@ -65,13 +65,17 @@
                 <div class="row">
                     <div class="col-5 col-md-4">
                         <div class="icon-big text-center icon-warning">
-                            <i class="nc-icon nc-hat-3 text-primary"></i>
+                            <i class="nc-icon nc-vector text-info"></i>
                         </div>
                     </div>
                     <div class="col-7 col-md-8">
                         <div class="numbers">
-                            <p class="card-category">Instructors</p>
-                            <p class="card-title">{{ instructor_count }}</p>
+                            <p class="card-category">Groups</p>
+                            <p class="card-title">
+                                <a href="{% url 'canvas_course_groups' course_id=course.canvas_id %}" class="btn btn-xs btn-info">
+                                    <i class="fa fa-users"></i>
+                                </a>
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -79,7 +83,7 @@
             <div class="card-footer">
                 <hr>
                 <div class="stats">
-                    <i class="fa fa-user"></i> Teachers & TAs
+                    <i class="fa fa-users"></i> <a href="{% url 'canvas_course_groups' course_id=course.canvas_id %}">Manage Groups</a>
                 </div>
             </div>
         </div>

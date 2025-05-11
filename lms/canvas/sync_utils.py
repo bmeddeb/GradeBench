@@ -168,3 +168,121 @@ async def push_team_assignments_to_canvas(
     except Exception as e:
         logger.error(f"Error pushing team assignments for course {course_id}: {e}")
         return {"course_id": course_id, "success": False, "error": str(e)}
+
+
+async def sync_course_groups(
+    integration: CanvasIntegration, course_id: int, user_id: Optional[int] = None
+) -> Dict[str, Any]:
+    """
+    Sync only the groups and group memberships for a Canvas course.
+    This is more efficient than syncing an entire course when only group data is needed.
+
+    Args:
+        integration: The Canvas integration to use
+        course_id: Canvas course ID to sync groups for
+        user_id: Optional user ID for progress tracking
+
+    Returns:
+        Dictionary with sync results
+    """
+    client = Client(integration)
+    from lms.canvas.syncer import CanvasSyncer
+
+    try:
+        # Update progress if tracking
+        if user_id:
+            await SyncProgress.async_update(
+                user_id,
+                course_id,
+                current=1,
+                total=5,
+                status="fetching_course",
+                message="Getting course information..."
+            )
+
+        # First, get the course
+        try:
+            course = await CanvasCourse.objects.aget(
+                canvas_id=course_id, integration=integration
+            )
+        except CanvasCourse.DoesNotExist:
+            # Course not in database, fetch basic info first
+            if user_id:
+                await SyncProgress.async_update(
+                    user_id,
+                    course_id,
+                    current=2,
+                    total=5,
+                    status="fetching_course_api",
+                    message="Fetching course from Canvas API..."
+                )
+            course_data = await client.get_course(course_id)
+            course = await client._save_course(course_data)
+
+        # Update progress
+        if user_id:
+            await SyncProgress.async_update(
+                user_id,
+                course_id,
+                current=2,
+                total=5,
+                status="fetching_groups",
+                message="Fetching group categories and groups..."
+            )
+
+        # Create syncer instance
+        syncer = CanvasSyncer(client)
+
+        # Fetch and process group categories and groups
+        group_ids = await syncer.sync_canvas_groups(course, user_id)
+
+        # Update progress
+        if user_id:
+            await SyncProgress.async_update(
+                user_id,
+                course_id,
+                current=3,
+                total=5,
+                status="syncing_members",
+                message="Syncing group memberships..."
+            )
+
+        # Sync group memberships
+        await syncer.sync_group_memberships(course, user_id)
+
+        # Update progress
+        if user_id:
+            await SyncProgress.async_update(
+                user_id,
+                course_id,
+                current=4,
+                total=5,
+                status="updating_timestamp",
+                message="Updating timestamps..."
+            )
+
+        # Update last sync timestamp on the course
+        from django.utils import timezone
+        course.last_synced_at = timezone.now()
+        await course.asave(update_fields=["last_synced_at"])
+
+        return {
+            "course": course,
+            "group_count": len(group_ids),
+            "group_ids": group_ids,
+            "success": True,
+        }
+
+    except Exception as e:
+        logger.error(f"Error syncing groups for course {course_id}: {e}")
+
+        if user_id:
+            await SyncProgress.async_complete_sync(
+                user_id,
+                course_id,
+                success=False,
+                message=f"Failed to sync groups for course {course_id}",
+                error=str(e),
+            )
+
+        return {"course_id": course_id, "success": False, "error": str(e)}

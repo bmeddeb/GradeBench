@@ -54,4 +54,22 @@ urlpatterns = [
         views.student_detail,
         name="canvas_student_detail",
     ),
+    # Group management
+    path(
+        "course/<int:course_id>/groups/",
+        views.course_groups,
+        name="canvas_course_groups",
+    ),
+    # Group set detail (AJAX)
+    path(
+        "course/<int:course_id>/group_set/<int:group_set_id>/",
+        views.group_set_detail,
+        name="canvas_group_set_detail",
+    ),
+    # Sync only groups for a course
+    path(
+        "course/<int:course_id>/sync_groups/",
+        views.canvas_sync_course_groups,
+        name="canvas_sync_course_groups",
+    ),
 ]
