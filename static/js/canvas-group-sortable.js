@@ -3,7 +3,34 @@
  * Implements student assignment to groups via drag and drop.
  */
 
+// Function to wait for a library to load
+function waitForSortable(callback, maxAttempts = 20, interval = 100) {
+    let attempts = 0;
+
+    const checkSortable = function() {
+        attempts++;
+        if (typeof Sortable !== 'undefined') {
+            console.log('SortableJS loaded successfully');
+            callback();
+        } else if (attempts < maxAttempts) {
+            console.log('Waiting for SortableJS to load... (attempt ' + attempts + ')');
+            setTimeout(checkSortable, interval);
+        } else {
+            console.error('SortableJS failed to load after ' + maxAttempts + ' attempts');
+            alert('SortableJS library could not be loaded. Drag and drop functionality will not work.');
+        }
+    };
+
+    checkSortable();
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    // Wait for SortableJS to load before initializing
+    waitForSortable(initializeGroupManagement);
+});
+
+// Main initialization function, runs after SortableJS is loaded
+function initializeGroupManagement() {
     // Track changes to student assignments across groups
     let hasUnsavedChanges = false;
     let originalAssignments = {};  // Store original student assignments for comparison
@@ -450,18 +477,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
     
-    // Check for browser support and warn if SortableJS might not work
-    if (typeof Sortable === 'undefined') {
-        console.error('SortableJS is not loaded. Drag and drop will not work.');
-        if ($.notify) {
-            $.notify({
-                message: 'SortableJS is not loaded. Drag and drop will not work.'
-            }, {
-                type: 'danger',
-                placement: { from: 'top', align: 'center' },
-                z_index: 2000,
-                delay: 5000
-            });
-        }
-    }
-});
+    // We don't need to check if Sortable is defined here because
+    // we already confirmed it's available through waitForSortable
+} // End of initializeGroupManagement
