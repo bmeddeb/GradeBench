@@ -1,6 +1,14 @@
 from django.urls import path
 from . import views
 
+# Import Phase 3 views for SortableJS implementation
+from .views_group_assignment import (
+    add_student_to_group,
+    remove_student_from_group,
+    batch_assign_students,
+    random_assign_students,
+)
+
 urlpatterns = [
     # Main Canvas dashboard
     path("", views.canvas_dashboard, name="canvas_dashboard"),
@@ -107,5 +115,32 @@ urlpatterns = [
         "course/<int:course_id>/group/<int:group_id>/delete/",
         views.delete_group,
         name="canvas_delete_group",
+    ),
+
+    # Phase 3: Drag and drop student assignment (SortableJS implementation)
+
+    # Add student to group (AJAX)
+    path(
+        "course/<int:course_id>/group/<int:group_id>/add_student/",
+        add_student_to_group,
+        name="canvas_add_student_to_group",
+    ),
+    # Remove student from group (AJAX)
+    path(
+        "course/<int:course_id>/group_set/<int:category_id>/remove_student/",
+        remove_student_from_group,
+        name="canvas_remove_student_from_group",
+    ),
+    # Batch assignment of students (AJAX)
+    path(
+        "course/<int:course_id>/group_set/<int:category_id>/batch_assign/",
+        batch_assign_students,
+        name="canvas_batch_assign_students",
+    ),
+    # Random assignment of students (AJAX)
+    path(
+        "course/<int:course_id>/group_set/<int:category_id>/random_assign/",
+        random_assign_students,
+        name="canvas_random_assign_students",
     ),
 ]
