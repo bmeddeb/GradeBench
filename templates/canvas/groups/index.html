@@ -453,9 +453,7 @@
                 
                 // Add event listener for random assignment
                 randomAssignBtn.addEventListener('click', function() {
-                    if (confirm(`Randomly assign all unassigned students to groups in "${data.category.name}"?`)) {
-                        randomAssignStudents(data.category.id);
-                    }
+                    randomAssignStudents(data.category.id);
                 });
                 
                 // Add sortable class to unassigned list

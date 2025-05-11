@@ -23,3 +23,4 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Naming**: Use snake_case for variables/functions, PascalCase for classes
 - **Datetime**: Always use timezone-aware datetimes (`from django.utils import timezone`)
 - **Sensitive data**: Use EncryptedCharField for tokens, keys, and credentials
+- **UI/UX**: Never use blocking JavaScript alerts/confirms/prompts; use asynchronous notifications (Bootstrap notify, modals, or toast notifications) instead

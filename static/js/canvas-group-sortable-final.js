@@ -448,12 +448,54 @@ document.addEventListener('DOMContentLoaded', function() {
     // Make global randomAssignStudents function available
     window.randomAssignStudents = async function(categoryId) {
         if (!categoryId) return;
-        
-        // Confirm with the user
-        if (!confirm('Randomly assign all unassigned students to groups in this category?')) {
-            return;
+
+        // Show confirmation notification with buttons
+        if (typeof $ !== 'undefined' && typeof $.notify === 'function') {
+            // Create a custom notification with action buttons
+            const confirmNotify = $.notify({
+                title: '<strong>Confirm Random Assignment</strong>',
+                message: 'This will randomly assign all unassigned students to groups. Proceed?',
+                icon: 'fa fa-question-circle'
+            }, {
+                type: 'info',
+                delay: 0, // No auto-close
+                placement: { from: 'top', align: 'center' },
+                z_index: 2000,
+                template: '<div data-notify="container" class="col-xs-11 col-sm-4 alert alert-{0}" role="alert">' +
+                    '<button type="button" aria-hidden="true" class="close" data-notify="dismiss">×</button>' +
+                    '<span data-notify="icon"></span> ' +
+                    '<span data-notify="title">{1}</span> ' +
+                    '<span data-notify="message">{2}</span>' +
+                    '<div class="progress" data-notify="progressbar">' +
+                    '<div class="progress-bar progress-bar-{0}" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%;"></div>' +
+                    '</div>' +
+                    '<div class="notify-actions" style="margin-top: 10px; text-align: right;">' +
+                    '<button class="btn btn-sm btn-light cancel-btn">Cancel</button> ' +
+                    '<button class="btn btn-sm btn-primary confirm-btn">Proceed</button>' +
+                    '</div>' +
+                    '</div>'
+            });
+
+            // Handle buttons in the notification
+            const container = confirmNotify.$ele;
+            container.find('.confirm-btn').on('click', async function() {
+                confirmNotify.close();
+                await performRandomAssignment(categoryId);
+            });
+
+            container.find('.cancel-btn').on('click', function() {
+                confirmNotify.close();
+            });
+
+            return; // Exit the function - user will click button to proceed
         }
-        
+
+        // Fallback if notify isn't available (shouldn't happen)
+        await performRandomAssignment(categoryId);
+    };
+
+    // Separate function to actually perform the random assignment
+    async function performRandomAssignment(categoryId) {
         try {
             // Show loading notification
             if (typeof $ !== 'undefined' && typeof $.notify === 'function') {
@@ -505,7 +547,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     window.location.reload();
                 }
-                
+
                 // Reset flags and hide banner if it was showing
                 hasUnsavedChanges = false;
                 hideSaveChangesBanner();
@@ -514,7 +556,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         } catch (error) {
             console.error('Error during random assignment:', error);
-            
+
             // Show error notification
             if (typeof $ !== 'undefined' && typeof $.notify === 'function') {
                 $.notify({
@@ -526,7 +568,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     delay: 5000
                 });
             } else {
-                alert(`Error during random assignment: ${error.message}`);
+                console.error(`Error during random assignment: ${error.message}`);
             }
         }
     };
