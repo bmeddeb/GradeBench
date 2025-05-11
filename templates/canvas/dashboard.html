@@ -364,11 +364,35 @@ function syncSelectedCourses() {
     // Hide progress indicator
     showSyncProgress(false);
     
-    if (data.synced && data.synced.length > 0) {
-      alert('Successfully synced ' + data.synced.length + ' course(s)');
-      location.reload();
+    if (data.status === 'started') {
+      // Success! The sync has been scheduled
+      console.log('Sync started successfully:', data);
+
+      // Start polling for progress updates
+      initSyncProgressUI();
+      showSyncProgress(false);
+      pollSyncProgress();
+
+      // Close the modal and handle focus correctly
+      const modal = bootstrap.Modal.getInstance(document.getElementById('syncCoursesModal'));
+
+      // Store the button to focus after modal closes
+      const syncModalButton = document.querySelector('[data-bs-target="#syncCoursesModal"]');
+
+      // First focus a neutral element to avoid focus being trapped in modal
+      document.activeElement.blur();
+
+      // Then hide the modal
+      modal.hide();
+
+      // After modal is hidden, focus the sync button
+      setTimeout(() => {
+        if (syncModalButton) syncModalButton.focus();
+      }, 300);
+    } else if (data.error) {
+      alert('No courses were synced. Error: ' + data.error);
     } else {
-      alert('No courses were synced. Errors: ' + JSON.stringify(data.errors));
+      alert('No courses were synced. Unknown error occurred.');
     }
   })
   .catch(error => {
@@ -386,8 +410,45 @@ function syncAllCourses() {
 
 // Bootstrap 5: load courses when modal is shown
 var syncCoursesModal = document.getElementById('syncCoursesModal');
-syncCoursesModal && syncCoursesModal.addEventListener('show.bs.modal', function (event) {
-  loadCoursesForModal();
-});
+if (syncCoursesModal) {
+  syncCoursesModal.addEventListener('show.bs.modal', function (event) {
+    loadCoursesForModal();
+  });
+
+  // Handle focus properly when modal is hidden to prevent ARIA warnings
+  syncCoursesModal.addEventListener('hide.bs.modal', function (event) {
+    // Blur any active elements in the modal before closing
+    if (document.activeElement && syncCoursesModal.contains(document.activeElement)) {
+      document.activeElement.blur();
+    }
+  });
+
+  // Keep focus within the modal when it's open (focus trap)
+  syncCoursesModal.addEventListener('keydown', function(event) {
+    // Only handle Tab key events
+    if (event.key !== 'Tab') return;
+
+    // Get all focusable elements
+    const focusableElements = syncCoursesModal.querySelectorAll(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+
+    if (focusableElements.length === 0) return;
+
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+
+    // If shift + tab on first element, move to last element
+    if (event.shiftKey && document.activeElement === firstElement) {
+      event.preventDefault();
+      lastElement.focus();
+    }
+    // If tab on last element, move to first element
+    else if (!event.shiftKey && document.activeElement === lastElement) {
+      event.preventDefault();
+      firstElement.focus();
+    }
+  });
+}
 </script>
 {% endblock %}
