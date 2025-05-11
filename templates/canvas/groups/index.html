@@ -227,12 +227,8 @@
 {% block canvas_js %}
 <!-- Directly include SortableJS first -->
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-<!-- Use debug version 3 for troubleshooting - extracts course ID from URL -->
-<script src="{% static 'js/canvas-group-sortable-debug3.js' %}"></script>
-<!-- Include debug CSS -->
-<style>
-{% include 'canvas/groups/debug-style.html' %}
-</style>
+<!-- Use final version with drag and drop functionality -->
+<script src="{% static 'js/canvas-group-sortable-final.js' %}"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Initialize tabs with data loading
@@ -684,7 +680,7 @@
     /* Drag and drop styling */
     .student-item {
         cursor: grab;
-        transition: background-color 0.2s, transform 0.1s;
+        transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s;
         border-radius: 4px;
         padding: 8px 10px;
         margin-bottom: 8px;
