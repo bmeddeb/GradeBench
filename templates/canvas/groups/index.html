@@ -227,8 +227,8 @@
 {% block canvas_js %}
 <!-- Directly include SortableJS first -->
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-<!-- Use debug version 2 for troubleshooting - makes entire items draggable without handles -->
-<script src="{% static 'js/canvas-group-sortable-debug2.js' %}"></script>
+<!-- Use debug version 3 for troubleshooting - extracts course ID from URL -->
+<script src="{% static 'js/canvas-group-sortable-debug3.js' %}"></script>
 <!-- Include debug CSS -->
 <style>
 {% include 'canvas/groups/debug-style.html' %}
