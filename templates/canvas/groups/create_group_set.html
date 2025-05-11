@@ -1,0 +1,93 @@
+{% extends 'canvas/base.html' %}
+{% load static %}
+
+{% block title %}Create Group Set: {{ course.name }} | GradeBench Canvas{% endblock %}
+{% block page_title %}Create Group Set: {{ course.name }}{% endblock %}
+{% block nav_canvas_dashboard %}active{% endblock %}
+
+{% block canvas_content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <h4 class="card-title mb-0">Create Group Set</h4>
+                    <p class="card-category">Add a new group set to {{ course.name }}</p>
+                </div>
+                <a href="{% url 'canvas_course_groups' course_id=course.canvas_id %}" class="btn btn-sm btn-outline-primary">
+                    <i class="fa fa-arrow-left"></i> Back to Groups
+                </a>
+            </div>
+            <div class="card-body">
+                {% if error %}
+                <div class="alert alert-danger">
+                    <p><i class="fa fa-exclamation-triangle"></i> {{ error }}</p>
+                </div>
+                {% endif %}
+                
+                <form method="post" action="{% url 'canvas_create_group_set' course_id=course.canvas_id %}">
+                    {% csrf_token %}
+                    
+                    <div class="form-group mb-3">
+                        <label for="name">Group Set Name <span class="text-danger">*</span></label>
+                        <input type="text" id="name" name="name" class="form-control" required>
+                        <small class="form-text text-muted">Example: "Project Teams" or "Lab Partners"</small>
+                    </div>
+                    
+                    <div class="form-group mb-3">
+                        <label for="self_signup">Self Sign-up</label>
+                        <select id="self_signup" name="self_signup" class="form-control">
+                            <option value="">Disabled</option>
+                            <option value="enabled">Enabled</option>
+                            <option value="restricted">Restricted (students can join only one group)</option>
+                        </select>
+                        <small class="form-text text-muted">Allow students to self-sign-up for groups. If "Restricted", students can only join one group.</small>
+                    </div>
+                    
+                    <div class="form-group mb-3">
+                        <label for="auto_leader">Group Leader</label>
+                        <select id="auto_leader" name="auto_leader" class="form-control">
+                            <option value="">None</option>
+                            <option value="first">First Student to Join</option>
+                            <option value="random">Random Student</option>
+                        </select>
+                        <small class="form-text text-muted">Automatically set a group leader.</small>
+                    </div>
+                    
+                    <div class="form-group mb-3">
+                        <label for="group_limit">Group Member Limit</label>
+                        <input type="number" id="group_limit" name="group_limit" class="form-control" min="1">
+                        <small class="form-text text-muted">Maximum number of members allowed in each group. Leave blank for no limit.</small>
+                    </div>
+                    
+                    <div class="form-group d-flex justify-content-end mt-4">
+                        <a href="{% url 'canvas_course_groups' course_id=course.canvas_id %}" class="btn btn-outline-secondary me-2">
+                            Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fa fa-save"></i> Create Group Set
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block canvas_css %}
+<style>
+    .form-group label {
+        font-weight: 500;
+    }
+    
+    .form-text {
+        font-size: 0.85rem;
+    }
+    
+    .form-control:focus {
+        border-color: #80bdff;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    }
+</style>
+{% endblock %}

@@ -960,3 +960,486 @@ def canvas_sync_course_groups(request, course_id):
     request.session[f"canvas_sync_groups_{course_id}_in_progress"] = True
 
     return redirect("canvas_course_groups", course_id=course_id)
+
+
+@login_required
+def create_group_set(request, course_id):
+    """
+    Create a new group set (category) for a course.
+    This creates both in the local database and in Canvas.
+    """
+    if not request.user.is_authenticated:
+        return redirect("login")
+
+    # Get the course
+    course = get_object_or_404(CanvasCourse, canvas_id=course_id)
+
+    # Check if user has access to this course
+    integration = get_integration_for_user(request.user)
+    if course.integration != integration:
+        messages.error(request, "You do not have access to this course")
+        return redirect("canvas_dashboard")
+
+    if request.method == "POST":
+        # Create the group set in Canvas and locally
+        name = request.POST.get("name")
+        self_signup = request.POST.get("self_signup")
+        auto_leader = request.POST.get("auto_leader")
+        group_limit = request.POST.get("group_limit")
+
+        if not name:
+            messages.error(request, "Group set name is required")
+            return render(request, "canvas/groups/create_group_set.html", {
+                "course": course,
+            })
+
+        # Convert empty string to None for numeric field
+        if group_limit == "":
+            group_limit = None
+
+        try:
+            # Create in Canvas via API
+            client = Client(integration)
+
+            # Build data for API request
+            category_data = {
+                "name": name,
+            }
+
+            # Only add optional parameters if they are provided
+            if self_signup:
+                category_data["self_signup"] = self_signup
+
+            if auto_leader:
+                category_data["auto_leader"] = auto_leader
+
+            if group_limit:
+                try:
+                    category_data["group_limit"] = int(group_limit)
+                except (ValueError, TypeError):
+                    pass
+
+            # Make the API request
+            import asyncio
+            try:
+                # Run the API call asynchronously
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                # If there's no event loop, create one
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+
+            # Execute the API call
+            canvas_response = loop.run_until_complete(
+                client.request("POST", f"courses/{course_id}/group_categories", data=category_data)
+            )
+
+            # Save to our database
+            category = loop.run_until_complete(
+                client._save_group_category(canvas_response, course)
+            )
+
+            messages.success(request, f"Group set '{name}' created successfully")
+            return redirect("canvas_course_groups", course_id=course_id)
+
+        except Exception as e:
+            messages.error(request, f"Error creating group set: {str(e)}")
+            return render(request, "canvas/groups/create_group_set.html", {
+                "course": course,
+                "error": str(e),
+            })
+
+    # GET request - show the form
+    return render(request, "canvas/groups/create_group_set.html", {
+        "course": course,
+    })
+
+
+@login_required
+def edit_group_set(request, course_id, group_set_id):
+    """
+    Edit a group set (category).
+    This updates both the local database and Canvas.
+    """
+    if not request.user.is_authenticated:
+        return redirect("login")
+
+    # Get the course and group set
+    course = get_object_or_404(CanvasCourse, canvas_id=course_id)
+    group_set = get_object_or_404(CanvasGroupCategory, id=group_set_id, course=course)
+
+    # Check if user has access to this course
+    integration = get_integration_for_user(request.user)
+    if course.integration != integration:
+        messages.error(request, "You do not have access to this course")
+        return redirect("canvas_dashboard")
+
+    if request.method == "POST":
+        # Update the group set in Canvas and locally
+        name = request.POST.get("name")
+        self_signup = request.POST.get("self_signup")
+        auto_leader = request.POST.get("auto_leader")
+        group_limit = request.POST.get("group_limit")
+
+        if not name:
+            messages.error(request, "Group set name is required")
+            return render(request, "canvas/groups/edit_group_set.html", {
+                "course": course,
+                "group_set": group_set,
+            })
+
+        # Convert empty string to None for numeric field
+        if group_limit == "":
+            group_limit = None
+
+        try:
+            # Update in Canvas via API
+            client = Client(integration)
+
+            # Build data for API request
+            category_data = {
+                "name": name,
+            }
+
+            # Only add optional parameters if they are provided
+            if self_signup:
+                category_data["self_signup"] = self_signup
+
+            if auto_leader:
+                category_data["auto_leader"] = auto_leader
+
+            if group_limit:
+                try:
+                    category_data["group_limit"] = int(group_limit)
+                except (ValueError, TypeError):
+                    pass
+
+            # Make the API request
+            import asyncio
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+
+            # Execute the API call
+            canvas_response = loop.run_until_complete(
+                client.request(
+                    "PUT",
+                    f"group_categories/{group_set.canvas_id}",
+                    data=category_data
+                )
+            )
+
+            # Update our database
+            group_set.name = name
+            group_set.self_signup = self_signup
+            group_set.auto_leader = auto_leader
+
+            if group_limit:
+                try:
+                    group_set.group_limit = int(group_limit)
+                except (ValueError, TypeError):
+                    pass
+            else:
+                group_set.group_limit = None
+
+            group_set.save()
+
+            messages.success(request, f"Group set '{name}' updated successfully")
+            return redirect("canvas_course_groups", course_id=course_id)
+
+        except Exception as e:
+            messages.error(request, f"Error updating group set: {str(e)}")
+            return render(request, "canvas/groups/edit_group_set.html", {
+                "course": course,
+                "group_set": group_set,
+                "error": str(e),
+            })
+
+    # GET request - show the form
+    return render(request, "canvas/groups/edit_group_set.html", {
+        "course": course,
+        "group_set": group_set,
+    })
+
+
+@login_required
+@require_POST
+def delete_group_set(request, course_id, group_set_id):
+    """
+    Delete a group set (category).
+    This deletes from both the local database and Canvas.
+    """
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Authentication required"}, status=401)
+
+    # Get the course and group set
+    course = get_object_or_404(CanvasCourse, canvas_id=course_id)
+    group_set = get_object_or_404(CanvasGroupCategory, id=group_set_id, course=course)
+
+    # Check if user has access to this course
+    integration = get_integration_for_user(request.user)
+    if course.integration != integration:
+        return JsonResponse({"error": "Access denied"}, status=403)
+
+    try:
+        # Delete from Canvas via API
+        client = Client(integration)
+
+        # Make the API request
+        import asyncio
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+        # Execute the API call
+        try:
+            # This might fail if the category doesn't exist in Canvas anymore
+            loop.run_until_complete(
+                client.request("DELETE", f"group_categories/{group_set.canvas_id}")
+            )
+        except Exception as api_error:
+            # Log the error but continue with local deletion
+            logger.warning(f"Error deleting group set from Canvas: {str(api_error)}")
+
+        # Delete from our database
+        group_set_name = group_set.name
+        group_set.delete()
+
+        return JsonResponse({
+            "success": True,
+            "message": f"Group set '{group_set_name}' deleted successfully",
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            "success": False,
+            "error": f"Error deleting group set: {str(e)}",
+        }, status=500)
+
+
+@login_required
+def create_group(request, course_id, group_set_id):
+    """
+    Create a new group within a group set.
+    This creates both in the local database and in Canvas.
+    """
+    if not request.user.is_authenticated:
+        return redirect("login")
+
+    # Get the course and group set
+    course = get_object_or_404(CanvasCourse, canvas_id=course_id)
+    group_set = get_object_or_404(CanvasGroupCategory, id=group_set_id, course=course)
+
+    # Check if user has access to this course
+    integration = get_integration_for_user(request.user)
+    if course.integration != integration:
+        messages.error(request, "You do not have access to this course")
+        return redirect("canvas_dashboard")
+
+    if request.method == "POST":
+        # Create the group in Canvas and locally
+        name = request.POST.get("name")
+        description = request.POST.get("description", "")
+
+        if not name:
+            messages.error(request, "Group name is required")
+            return render(request, "canvas/groups/create_group.html", {
+                "course": course,
+                "group_set": group_set,
+            })
+
+        try:
+            # Create in Canvas via API
+            client = Client(integration)
+
+            # Build data for API request
+            group_data = {
+                "name": name,
+                "description": description,
+            }
+
+            # Make the API request
+            import asyncio
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+
+            # Execute the API call
+            canvas_response = loop.run_until_complete(
+                client.request(
+                    "POST",
+                    f"group_categories/{group_set.canvas_id}/groups",
+                    data=group_data
+                )
+            )
+
+            # Save to our database
+            group = loop.run_until_complete(
+                client._save_group(canvas_response, group_set)
+            )
+
+            messages.success(request, f"Group '{name}' created successfully")
+            return redirect("canvas_course_groups", course_id=course_id)
+
+        except Exception as e:
+            messages.error(request, f"Error creating group: {str(e)}")
+            return render(request, "canvas/groups/create_group.html", {
+                "course": course,
+                "group_set": group_set,
+                "error": str(e),
+            })
+
+    # GET request - show the form
+    return render(request, "canvas/groups/create_group.html", {
+        "course": course,
+        "group_set": group_set,
+    })
+
+
+@login_required
+def edit_group(request, course_id, group_id):
+    """
+    Edit a group.
+    This updates both the local database and Canvas.
+    """
+    if not request.user.is_authenticated:
+        return redirect("login")
+
+    # Get the course and group
+    course = get_object_or_404(CanvasCourse, canvas_id=course_id)
+    group = get_object_or_404(CanvasGroup, id=group_id)
+
+    # Verify the group belongs to this course
+    if group.category.course != course:
+        messages.error(request, "Group does not belong to this course")
+        return redirect("canvas_course_groups", course_id=course_id)
+
+    # Check if user has access to this course
+    integration = get_integration_for_user(request.user)
+    if course.integration != integration:
+        messages.error(request, "You do not have access to this course")
+        return redirect("canvas_dashboard")
+
+    if request.method == "POST":
+        # Update the group in Canvas and locally
+        name = request.POST.get("name")
+        description = request.POST.get("description", "")
+
+        if not name:
+            messages.error(request, "Group name is required")
+            return render(request, "canvas/groups/edit_group.html", {
+                "course": course,
+                "group": group,
+            })
+
+        try:
+            # Update in Canvas via API
+            client = Client(integration)
+
+            # Build data for API request
+            group_data = {
+                "name": name,
+                "description": description,
+            }
+
+            # Make the API request
+            import asyncio
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+
+            # Execute the API call
+            canvas_response = loop.run_until_complete(
+                client.request("PUT", f"groups/{group.canvas_id}", data=group_data)
+            )
+
+            # Update our database
+            group.name = name
+            group.description = description
+            group.save()
+
+            messages.success(request, f"Group '{name}' updated successfully")
+            return redirect("canvas_course_groups", course_id=course_id)
+
+        except Exception as e:
+            messages.error(request, f"Error updating group: {str(e)}")
+            return render(request, "canvas/groups/edit_group.html", {
+                "course": course,
+                "group": group,
+                "error": str(e),
+            })
+
+    # GET request - show the form
+    return render(request, "canvas/groups/edit_group.html", {
+        "course": course,
+        "group": group,
+    })
+
+
+@login_required
+@require_POST
+def delete_group(request, course_id, group_id):
+    """
+    Delete a group.
+    This deletes from both the local database and Canvas.
+    """
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Authentication required"}, status=401)
+
+    # Get the course and group
+    course = get_object_or_404(CanvasCourse, canvas_id=course_id)
+    group = get_object_or_404(CanvasGroup, id=group_id)
+
+    # Verify the group belongs to this course
+    if group.category.course != course:
+        return JsonResponse({"error": "Group does not belong to this course"}, status=403)
+
+    # Check if user has access to this course
+    integration = get_integration_for_user(request.user)
+    if course.integration != integration:
+        return JsonResponse({"error": "Access denied"}, status=403)
+
+    try:
+        # Delete from Canvas via API
+        client = Client(integration)
+
+        # Make the API request
+        import asyncio
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+        # Execute the API call
+        try:
+            # This might fail if the group doesn't exist in Canvas anymore
+            loop.run_until_complete(
+                client.request("DELETE", f"groups/{group.canvas_id}")
+            )
+        except Exception as api_error:
+            # Log the error but continue with local deletion
+            logger.warning(f"Error deleting group from Canvas: {str(api_error)}")
+
+        # Delete from our database
+        group_name = group.name
+        group.delete()
+
+        return JsonResponse({
+            "success": True,
+            "message": f"Group '{group_name}' deleted successfully",
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            "success": False,
+            "error": f"Error deleting group: {str(e)}",
+        }, status=500)

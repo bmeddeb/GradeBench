@@ -72,4 +72,40 @@ urlpatterns = [
         views.canvas_sync_course_groups,
         name="canvas_sync_course_groups",
     ),
+    # Create group set
+    path(
+        "course/<int:course_id>/group_set/create/",
+        views.create_group_set,
+        name="canvas_create_group_set",
+    ),
+    # Edit group set
+    path(
+        "course/<int:course_id>/group_set/<int:group_set_id>/edit/",
+        views.edit_group_set,
+        name="canvas_edit_group_set",
+    ),
+    # Delete group set (AJAX)
+    path(
+        "course/<int:course_id>/group_set/<int:group_set_id>/delete/",
+        views.delete_group_set,
+        name="canvas_delete_group_set",
+    ),
+    # Create group
+    path(
+        "course/<int:course_id>/group_set/<int:group_set_id>/group/create/",
+        views.create_group,
+        name="canvas_create_group",
+    ),
+    # Edit group
+    path(
+        "course/<int:course_id>/group/<int:group_id>/edit/",
+        views.edit_group,
+        name="canvas_edit_group",
+    ),
+    # Delete group (AJAX)
+    path(
+        "course/<int:course_id>/group/<int:group_id>/delete/",
+        views.delete_group,
+        name="canvas_delete_group",
+    ),
 ]

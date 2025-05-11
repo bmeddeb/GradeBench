@@ -18,6 +18,9 @@
                     <a href="{% url 'canvas_course_detail' course_id=course.canvas_id %}" class="btn btn-sm btn-outline-primary">
                         <i class="fa fa-arrow-left"></i> Back to Course
                     </a>
+                    <a href="{% url 'canvas_create_group_set' course_id=course.canvas_id %}" class="btn btn-sm btn-success">
+                        <i class="fa fa-plus"></i> New Group Set
+                    </a>
                     <button id="syncGroupsBtn" class="btn btn-sm btn-primary">
                         <i class="fa fa-refresh"></i> Sync Groups
                     </button>
@@ -72,10 +75,17 @@
                                 <div class="d-flex justify-content-between">
                                     <h5>{{ cat_data.category.name }}</h5>
                                     <div class="category-actions">
-                                        <!-- Read-only in Phase 1 -->
-                                        <button class="btn btn-sm btn-primary" disabled>
-                                            <i class="fa fa-pencil"></i> Edit (Coming Soon)
+                                        <a href="{% url 'canvas_edit_group_set' course_id=course.canvas_id group_set_id=cat_data.category.id %}" class="btn btn-sm btn-primary">
+                                            <i class="fa fa-pencil"></i> Edit
+                                        </a>
+                                        <button class="btn btn-sm btn-danger delete-group-set-btn"
+                                                data-category-id="{{ cat_data.category.id }}"
+                                                data-category-name="{{ cat_data.category.name }}">
+                                            <i class="fa fa-trash"></i> Delete
                                         </button>
+                                        <a href="{% url 'canvas_create_group' course_id=course.canvas_id group_set_id=cat_data.category.id %}" class="btn btn-sm btn-success">
+                                            <i class="fa fa-plus"></i> Add Group
+                                        </a>
                                     </div>
                                 </div>
                                 <div class="category-details">
@@ -85,11 +95,11 @@
                                     <span class="badge bg-info">
                                         {{ cat_data.members_count }} Member{% if cat_data.members_count != 1 %}s{% endif %}
                                     </span>
-
+                                    
                                     {% if cat_data.category.self_signup %}
                                     <span class="badge bg-success ms-2">Self Sign-up Enabled</span>
                                     {% endif %}
-
+                                    
                                     {% if cat_data.category.group_limit %}
                                     <span class="badge bg-warning ms-2">
                                         Limit: {{ cat_data.category.group_limit }} per group
@@ -142,8 +152,11 @@
         <div class="card-header d-flex justify-content-between align-items-center py-2">
             <h6 class="mb-0 group-name"></h6>
             <div class="group-actions">
-                <button class="btn btn-sm btn-info view-group-btn" disabled>
-                    <i class="fa fa-eye"></i> View (Coming Soon)
+                <a href="#" class="btn btn-sm btn-primary edit-group-btn">
+                    <i class="fa fa-pencil"></i> Edit
+                </a>
+                <button class="btn btn-sm btn-danger delete-group-btn">
+                    <i class="fa fa-trash"></i>
                 </button>
             </div>
         </div>
@@ -173,8 +186,8 @@
         <div class="card-header d-flex justify-content-between align-items-center py-2">
             <h6 class="mb-0">Unassigned Students</h6>
             <div class="unassigned-actions">
-                <button class="btn btn-sm btn-warning random-assign-btn" disabled>
-                    <i class="fa fa-random"></i> Random Assign (Coming Soon)
+                <button class="btn btn-sm btn-warning random-assign-btn">
+                    <i class="fa fa-random"></i> Random Assign
                 </button>
             </div>
         </div>
@@ -185,6 +198,9 @@
         </div>
     </div>
 </template>
+
+<!-- CSRF token for AJAX requests -->
+{% csrf_token %}
 {% endblock %}
 
 {% block canvas_js %}
@@ -216,6 +232,50 @@
         if (syncButton) {
             syncButton.addEventListener('click', function() {
                 syncGroups();
+            });
+        }
+        
+        // Add event delegation for delete group set buttons
+        document.addEventListener('click', function(e) {
+            if (e.target && e.target.closest('.delete-group-set-btn')) {
+                const btn = e.target.closest('.delete-group-set-btn');
+                const categoryId = btn.getAttribute('data-category-id');
+                const categoryName = btn.getAttribute('data-category-name');
+                
+                if (confirm(`Are you sure you want to delete the group set "${categoryName}"? This will delete all groups within this set.`)) {
+                    deleteGroupSet(categoryId);
+                }
+            }
+        });
+        
+        // Function to delete a group set
+        function deleteGroupSet(categoryId) {
+            // Create a POST request with CSRF token
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            
+            fetch(`/canvas/course/{{ course.canvas_id }}/group_set/${categoryId}/delete/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success message
+                    alert(data.message);
+                    
+                    // Reload the page
+                    window.location.reload();
+                } else {
+                    alert(`Error: ${data.error}`);
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting group set:', error);
+                alert('An error occurred while deleting the group set. Please try again.');
             });
         }
         
@@ -285,6 +345,20 @@
                 // Fill group data
                 groupCard.querySelector('.group-name').textContent = group.name;
                 
+                // Set up edit link
+                const editLink = groupCard.querySelector('.edit-group-btn');
+                editLink.href = `/canvas/course/{{ course.canvas_id }}/group/${group.id}/edit/`;
+                
+                // Set up delete button
+                const deleteBtn = groupCard.querySelector('.delete-group-btn');
+                deleteBtn.setAttribute('data-group-id', group.id);
+                deleteBtn.setAttribute('data-group-name', group.name);
+                deleteBtn.addEventListener('click', function() {
+                    if (confirm(`Are you sure you want to delete the group "${group.name}"?`)) {
+                        deleteGroup(group.id);
+                    }
+                });
+                
                 const description = groupCard.querySelector('.group-description');
                 if (group.description) {
                     description.textContent = group.description;
@@ -324,6 +398,17 @@
                 const unassignedCard = template.content.cloneNode(true);
                 
                 const unassignedList = unassignedCard.querySelector('.unassigned-list');
+                const randomAssignBtn = unassignedCard.querySelector('.random-assign-btn');
+                
+                // Set category data for random assignment
+                randomAssignBtn.setAttribute('data-category-id', data.category.id);
+                
+                // Add event listener for random assignment
+                randomAssignBtn.addEventListener('click', function() {
+                    if (confirm(`Randomly assign all unassigned students to groups in "${data.category.name}"?`)) {
+                        randomAssignStudents(data.category.id);
+                    }
+                });
                 
                 data.unassigned_students.forEach(student => {
                     const memberTemplate = document.getElementById('member-template');
@@ -344,23 +429,68 @@
             container.style.display = 'block';
         }
         
+        // Function to delete a group
+        function deleteGroup(groupId) {
+            // Create a POST request with CSRF token
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            
+            fetch(`/canvas/course/{{ course.canvas_id }}/group/${groupId}/delete/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success message
+                    alert(data.message);
+                    
+                    // Reload the active tab data
+                    const activeTab = document.querySelector('#groupSetTabs .nav-link.active');
+                    if (activeTab) {
+                        const categoryId = activeTab.getAttribute('data-category-id');
+                        const container = document.getElementById(`groups-container-${categoryId}`);
+                        if (container) {
+                            container.removeAttribute('data-loaded');
+                        }
+                        loadGroupSetData(categoryId);
+                    }
+                } else {
+                    alert(`Error: ${data.error}`);
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting group:', error);
+                alert('An error occurred while deleting the group. Please try again.');
+            });
+        }
+        
+        // Function to random assign students
+        function randomAssignStudents(categoryId) {
+            // This would be implemented in Phase 3
+            alert('Random assignment will be implemented in Phase 3.');
+        }
+        
         // Function to sync groups
         function syncGroups() {
             // Show sync progress
             const syncProgress = document.getElementById('syncProgress');
             const syncProgressBar = document.getElementById('syncProgressBar');
             const syncStatusMessage = document.getElementById('syncStatusMessage');
-
+            
             syncProgress.style.display = 'block';
             syncProgressBar.style.width = '0%';
             syncStatusMessage.textContent = 'Starting group sync...';
-
+            
             // Disable sync button
             const syncButton = document.getElementById('syncGroupsBtn');
             if (syncButton) {
                 syncButton.disabled = true;
             }
-
+            
             // Use the groups-specific sync endpoint for better efficiency
             fetch(`/canvas/course/{{ course.canvas_id }}/sync_groups/`, {
                 method: 'GET',
@@ -455,121 +585,116 @@
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         border: 1px solid #dee2e6;
     }
-
+    
     .group-card .card-header {
         background-color: #f8f9fa;
         border-bottom: 1px solid #dee2e6;
         font-weight: 600;
     }
-
+    
     .group-card .card-body {
         max-height: 250px;
         overflow-y: auto;
         padding: 1rem;
     }
-
+    
     /* Unassigned students styling */
     .unassigned-students-card {
         height: 100%;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         border: 1px solid #ffeeba;
     }
-
+    
     .unassigned-students-card .card-body {
         max-height: 250px;
         overflow-y: auto;
         padding: 1rem;
     }
-
+    
     .unassigned-students-card .card-header {
         background-color: #fff3cd;
         border-bottom: 1px solid #ffeeba;
         color: #856404;
         font-weight: 600;
     }
-
+    
     /* Button styling */
     .btn-outline-secondary {
         border-color: #6c757d;
         color: #6c757d;
     }
-
+    
     .btn-outline-secondary:disabled {
         color: #6c757d;
         background-color: transparent;
         border-color: #6c757d;
         opacity: 0.65;
     }
-
-    .view-group-btn, .random-assign-btn {
-        color: #495057;
-        border-color: #6c757d;
-    }
-
+    
     /* Progress container */
     .progress-container {
         margin-bottom: 20px;
     }
-
+    
     .progress-message {
         display: block;
         margin-bottom: 5px;
         font-weight: 500;
     }
-
+    
     .progress {
         height: 0.75rem;
         background-color: #e9ecef;
     }
-
+    
     .progress-bar {
         background-color: #007bff;
     }
-
+    
     /* Member lists */
-    .members-list .list-group-item,
+    .members-list .list-group-item, 
     .unassigned-list .list-group-item {
         border-left: none;
         border-right: none;
         padding: 0.5rem 0.75rem;
     }
-
+    
     .members-list .list-group-item:first-child,
     .unassigned-list .list-group-item:first-child {
         border-top: none;
     }
-
+    
     .member-name {
         font-weight: 500;
         color: #212529;
     }
-
+    
     .member-email {
         color: #6c757d;
         font-size: 0.85rem;
     }
-
+    
     /* Tab styling */
     .nav-tabs {
         border-bottom: 1px solid #dee2e6;
     }
-
+    
     .nav-tabs .nav-link {
         color: #495057;
         border: 1px solid transparent;
     }
-
+    
     .nav-tabs .nav-link.active {
         color: #007bff;
         background-color: #fff;
         border-color: #dee2e6 #dee2e6 #fff;
         font-weight: 600;
     }
-
+    
     .nav-tabs .nav-link:hover {
         border-color: #e9ecef #e9ecef #dee2e6;
     }
-
+    
     /* Category details */
     .category-info {
         background-color: #f8f9fa;
@@ -577,23 +702,32 @@
         border-radius: 0.25rem;
         border: 1px solid #e9ecef;
     }
-
+    
     .category-details {
         margin-top: 0.5rem;
     }
-
+    
     .badge {
         padding: 0.4em 0.6em;
     }
-
+    
     .initially-hidden {
         display: none;
     }
-
+    
     /* Group description */
     .group-description {
         margin-bottom: 0.75rem;
         color: #495057;
+    }
+    
+    /* Space between category action buttons */
+    .category-actions .btn {
+        margin-left: 0.25rem;
+    }
+    
+    .group-actions .btn {
+        margin-left: 0.25rem;
     }
 </style>
 {% endblock %}
