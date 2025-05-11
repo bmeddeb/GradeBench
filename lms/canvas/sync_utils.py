@@ -261,10 +261,9 @@ async def sync_course_groups(
                 message="Updating timestamps..."
             )
 
-        # Update last sync timestamp on the course
-        from django.utils import timezone
-        course.last_synced_at = timezone.now()
-        await course.asave(update_fields=["last_synced_at"])
+        # Force an update to the course's updated_at timestamp
+        # The updated_at field has auto_now=True so it will update automatically
+        await course.asave()
 
         return {
             "course": course,

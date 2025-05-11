@@ -121,7 +121,6 @@ class CanvasSyncer:
                                 defaults={
                                     "name": grp.get("name", "")[:100],
                                     "description": description,
-                                    "last_synced_at": timezone.now(),
                                 },
                             )
                             logger.info(
