@@ -420,31 +420,60 @@ class Client:
                 for submission_data in submissions_data:
                     await self._save_submission(submission_data, assignment)
 
+            # Step 8: Sync Canvas groups and teams
+            if user_id:
+                await SyncProgress.async_update(
+                    user_id, course_id, current=9, total=10,
+                    status="syncing_groups",
+                    message="Syncing Canvas groups and team memberships..."
+                )
+
+            try:
+                # Import and use CanvasSyncer
+                from .syncer import CanvasSyncer
+                syncer = CanvasSyncer(self)
+
+                # Sync Canvas groups to teams and get current group IDs
+                current_group_ids = await syncer.sync_canvas_groups(course, user_id)
+
+                # Sync group memberships to Student.team assignments
+                await syncer.sync_group_memberships(course, user_id)
+
+                # Optional: Clean up teams no longer in Canvas
+                # (This is commented out by default as it could remove manually created teams)
+                # await Team.objects.filter(
+                #    canvas_course=course,
+                #    canvas_group_id__isnull=False
+                # ).exclude(canvas_group_id__in=current_group_ids).adelete()
+            except Exception as e:
+                logger.error(f"Error syncing Canvas groups: {e}")
+                # Continue with the rest of the sync process even if group sync fails
+
             # Update last sync timestamp
             from django.utils import timezone
             self.integration.last_sync = timezone.now()
             await sync_to_async(self.integration.save)()
-            
+
             # Mark sync as complete
             if user_id:
                 await SyncProgress.async_update(
-                    user_id, course_id, 
-                    current=9.5, 
+                    user_id, course_id,
+                    current=9.5,
                     total=10,
                     status=SyncProgress.STATUS_SAVING_DATA,
                     message="Finalizing sync and updating timestamps..."
                 )
-                
+
                 # Small delay to ensure the UI gets updated before completion
                 import asyncio
                 await asyncio.sleep(0.5)
-                
+
                 await SyncProgress.async_complete_sync(
-                    user_id, course_id, 
+                    user_id, course_id,
                     success=True,
                     message=f"Successfully synced {course.name} with {len(enrollments_data)} enrollments and {assignment_count} assignments"
                 )
-                
+
             return course
             
         except Exception as e:
@@ -473,15 +502,116 @@ class Client:
                 )
             raise
 
+    async def get_group_categories(self, course_id: int) -> List[Dict]:
+        """Get all group categories for a course"""
+        return await self.request(
+            'GET', f'courses/{course_id}/group_categories', params={'per_page': 100}
+        )
+
+    async def get_groups(self, category_id: int) -> List[Dict]:
+        """Get all groups for a category"""
+        return await self.request(
+            'GET', f'group_categories/{category_id}/groups', params={'per_page': 100}
+        )
+
+    async def get_group_members(self, group_id: int) -> List[Dict]:
+        """Get all members for a group"""
+        return await self.request(
+            'GET', f'groups/{group_id}/users', params={'per_page': 100}
+        )
+
+    async def invite_user_to_group(self, group_id: int, user_ids: List[int]):
+        """Invite users to a group"""
+        return await self.request(
+            'POST', f'groups/{group_id}/invite',
+            data={'invitees[]': user_ids}
+        )
+
+    async def set_group_members(self, group_id: int, user_ids: List[int]):
+        """Set the members of a group (overwrites existing members)"""
+        return await self.request(
+            'PUT', f'groups/{group_id}',
+            data=[('members[]', uid) for uid in user_ids]
+        )
+
+    async def assign_unassigned(self, category_id: int, sync: bool = True):
+        """Assign unassigned members to groups in a category"""
+        params = {'sync': 'true'} if sync else {}
+        return await self.request(
+            'POST', f'group_categories/{category_id}/assign_unassigned_members',
+            params=params
+        )
+
+    @sync_to_async
+    def _save_group_category(self, category_data: Dict, course: CanvasCourse):
+        """Save group category data to the database (sync function)"""
+        from .models import CanvasGroupCategory
+
+        category, created = CanvasGroupCategory.objects.update_or_create(
+            canvas_id=category_data['id'],
+            defaults={
+                'course': course,
+                'name': category_data.get('name', 'Unnamed Category'),
+                'self_signup': category_data.get('self_signup'),
+                'auto_leader': category_data.get('auto_leader'),
+                'group_limit': category_data.get('group_limit'),
+                'created_at': datetime.fromisoformat(category_data['created_at'].replace('Z', '+00:00')) if category_data.get('created_at') else None,
+            }
+        )
+        return category
+
+    @sync_to_async
+    def _save_group(self, group_data: Dict, category):
+        """Save group data to the database (sync function)"""
+        from .models import CanvasGroup
+        from django.utils import timezone
+
+        group, created = CanvasGroup.objects.update_or_create(
+            canvas_id=group_data['id'],
+            defaults={
+                'category': category,
+                'name': group_data.get('name', 'Unnamed Group'),
+                'description': group_data.get('description', ''),
+                'created_at': datetime.fromisoformat(group_data['created_at'].replace('Z', '+00:00')) if group_data.get('created_at') else None,
+                'last_synced_at': timezone.now(),
+            }
+        )
+        return group
+
+    @sync_to_async
+    def _save_group_membership(self, member_data: Dict, group):
+        """Save group membership data to the database (sync function)"""
+        from .models import CanvasGroupMembership
+        from core.models import Student
+
+        # Try to find matching student
+        student = None
+        if 'id' in member_data:
+            try:
+                student = Student.objects.filter(canvas_user_id=str(member_data['id'])).first()
+            except:
+                pass
+
+        membership, created = CanvasGroupMembership.objects.update_or_create(
+            group=group,
+            user_id=member_data['id'],
+            defaults={
+                'student': student,
+                'name': member_data.get('name', member_data.get('display_name', 'Unknown')),
+                'email': member_data.get('email'),
+            }
+        )
+        return membership
+
     async def sync_all_courses(self, user_id: int = None) -> List[CanvasCourse]:
         """
         Sync all available courses
-        
+
         Args:
             user_id: ID of the user initiating the sync (for progress tracking)
         """
         from .progress import SyncProgress
-        
+
         try:
             # Step 1: Get available courses from Canvas API
             if user_id:
@@ -493,10 +623,10 @@ class Client:
                     status=SyncProgress.STATUS_FETCHING_COURSE,
                     message="Fetching available courses from Canvas API..."
                 )
-                
+
             courses_data = await self.get_courses()
             synced_courses = []
-            
+
             if not courses_data:
                 if user_id:
                     await SyncProgress.async_complete_sync(
@@ -505,11 +635,11 @@ class Client:
                         message="No courses found to sync."
                     )
                 return []
-            
+
             # Update progress based on course count
             course_count = len(courses_data)
             progress_per_course = 95 / max(course_count, 1)  # 95% of progress for courses, 5% for setup/cleanup
-            
+
             # Update progress to show found courses
             if user_id:
                 await SyncProgress.async_update(
@@ -517,60 +647,60 @@ class Client:
                     status=SyncProgress.STATUS_PENDING,
                     message=f"Found {course_count} courses to sync"
                 )
-    
+
             # Sync each course
             errors = []
             for i, course_data in enumerate(courses_data):
                 course_name = course_data.get('name', f"Course {course_data.get('id', 'unknown')}")
                 progress_start = 5 + (i * progress_per_course)
-                
+
                 try:
                     # Update progress at the overall level
                     if user_id:
                         await SyncProgress.async_update(
-                            user_id, 
-                            current=progress_start, 
+                            user_id,
+                            current=progress_start,
                             total=100,
                             status="syncing_course",
                             message=f"Syncing course {i+1} of {course_count}: {course_name}"
                         )
-                    
+
                     # Sync the individual course (this will track its own progress if user_id is provided)
                     # Note: we pass None for the user_id to avoid nested progress tracking
                     # We'll handle all progress tracking here for the overall process
                     course = await self.sync_course(course_data['id'], None)
                     synced_courses.append(course)
-                    
+
                     # Update progress after successfully syncing this course
                     if user_id:
                         percentage = int((i + 1) / course_count * 100)
                         await SyncProgress.async_update(
-                            user_id, 
-                            current=progress_start + progress_per_course, 
+                            user_id,
+                            current=progress_start + progress_per_course,
                             total=100,
                             status=SyncProgress.STATUS_COMPLETED,
                             message=f"Completed course {i+1} of {course_count}: {course_name} ({percentage}% complete)"
                         )
-                        
+
                 except Exception as e:
                     errors.append({"course": course_name, "error": str(e)})
                     logger.error(f"Error syncing course {course_data.get('id')}: {e}")
-                    
+
                     # Update progress to show error for this course
                     if user_id:
                         await SyncProgress.async_update(
-                            user_id, 
-                            current=progress_start + progress_per_course, 
+                            user_id,
+                            current=progress_start + progress_per_course,
                             total=100,
                             status=SyncProgress.STATUS_ERROR,
                             message=f"Error syncing course {i+1} of {course_count}: {course_name}"
                         )
-                    
+
             # Mark the overall sync as complete
             if user_id:
                 success_message = (f"Successfully synced {len(synced_courses)} out of {course_count} courses. "
                                   f"{len(errors)} courses had errors.")
-                
+
                 # Add more detail if there were errors
                 error_detail = None
                 if errors:
@@ -578,33 +708,33 @@ class Client:
                     if len(errors) > 3:
                         error_courses += f", and {len(errors) - 3} more"
                     error_detail = f"Errors in courses: {error_courses}"
-                
+
                 await SyncProgress.async_complete_sync(
-                    user_id, 
+                    user_id,
                     success=len(synced_courses) > 0,
                     message=success_message,
                     error=error_detail
                 )
-    
+
             return synced_courses
-            
+
         except Exception as e:
             # Handle any overall errors
             if user_id:
                 error_message = str(e)
                 friendly_message = "Failed to sync courses."
-                
+
                 if "401" in error_message:
                     friendly_message = "Authentication failed. Your Canvas API key may be invalid or expired."
                 elif "Connection" in error_message:
                     friendly_message = "Connection error. Please check your internet connection."
-                
+
                 await SyncProgress.async_complete_sync(
-                    user_id, 
+                    user_id,
                     success=False,
                     message=friendly_message,
                     error=error_message
                 )
-            
+
             logger.error(f"Error in sync_all_courses: {e}")
             raise

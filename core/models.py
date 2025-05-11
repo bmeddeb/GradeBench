@@ -106,7 +106,7 @@ class TAProfile(StaffProfile):
 
 
 class Team(models.Model, AsyncModelMixin):
-    "Student team model"
+    """Student team model"""
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True, null=True)
     github_organization = models.CharField(
@@ -116,8 +116,28 @@ class Team(models.Model, AsyncModelMixin):
     taiga_project_id = models.CharField(
         max_length=100, blank=True, null=True
     )
+    # Canvas integration fields
+    canvas_course = models.ForeignKey(
+        'lms.CanvasCourse',
+        on_delete=models.CASCADE,
+        related_name="teams",
+        null=True, blank=True,
+    )
+    canvas_group_id = models.PositiveIntegerField(
+        null=True, blank=True, db_index=True,
+        help_text="Canvas /api/v1/groups/:id"
+    )
+    last_synced_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text="When this team was last synced with Canvas"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['canvas_course', 'canvas_group_id'])
+        ]
 
     def __str__(self):
         return self.name

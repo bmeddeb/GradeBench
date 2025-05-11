@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from encrypted_model_fields.fields import EncryptedCharField
+from core.async_utils import AsyncModelMixin
 
 
 class CanvasIntegration(models.Model):
@@ -78,6 +79,13 @@ class CanvasEnrollment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     grades = models.JSONField(default=dict, blank=True)
+    # Link to student in the core app
+    student = models.ForeignKey(
+        'core.Student',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='canvas_enrollments'
+    )
 
     class Meta:
         ordering = ['sortable_name']
@@ -207,3 +215,71 @@ class CanvasRubricRating(models.Model):
 
     def __str__(self):
         return f"{self.description} ({self.points} pts)"
+
+
+class CanvasGroupCategory(models.Model, AsyncModelMixin):
+    """Represents a Canvas Group Category/Group Set"""
+    canvas_id = models.PositiveIntegerField(unique=True)
+    course = models.ForeignKey(
+        CanvasCourse, on_delete=models.CASCADE, related_name='group_categories')
+    name = models.CharField(max_length=255)
+    self_signup = models.CharField(max_length=50, null=True, blank=True)
+    auto_leader = models.CharField(max_length=50, null=True, blank=True)
+    group_limit = models.IntegerField(null=True, blank=True)
+    created_at = models.DateTimeField(null=True, blank=True)
+    last_synced_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name_plural = "Canvas Group Categories"
+        ordering = ['name']
+
+    def __str__(self):
+        return f"{self.name} (Course: {self.course.name})"
+
+
+class CanvasGroup(models.Model, AsyncModelMixin):
+    """Represents a Canvas Group within a Group Category"""
+    canvas_id = models.PositiveIntegerField(unique=True)
+    category = models.ForeignKey(
+        CanvasGroupCategory, on_delete=models.CASCADE, related_name='groups')
+    name = models.CharField(max_length=255)
+    description = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(null=True, blank=True)
+    last_synced_at = models.DateTimeField(auto_now=True)
+
+    # Optional link to a Team in the core app
+    core_team = models.OneToOneField(
+        'core.Team',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='canvas_group_link'
+    )
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return f"{self.name} (Category: {self.category.name})"
+
+
+class CanvasGroupMembership(models.Model, AsyncModelMixin):
+    """Represents a student's membership in a Canvas Group"""
+    group = models.ForeignKey(
+        CanvasGroup, on_delete=models.CASCADE, related_name='memberships')
+    user_id = models.PositiveIntegerField()  # Canvas user ID
+    student = models.ForeignKey(
+        'core.Student',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='canvas_group_memberships'
+    )
+    name = models.CharField(max_length=255)
+    email = models.EmailField(null=True, blank=True)
+    added_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('group', 'user_id')
+        ordering = ['name']
+
+    def __str__(self):
+        return f"{self.name} in {self.group.name}"

@@ -233,7 +233,7 @@ out/
 # Visual Studio
 .vs/
 .claude/
-clause.md
+claude.md
 *.back
 *.bak
 *.suo
