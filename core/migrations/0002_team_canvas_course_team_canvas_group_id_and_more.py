@@ -7,28 +7,46 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0001_initial'),
-        ('lms', '0001_initial'),
+        ("core", "0001_initial"),
+        ("lms", "0001_initial"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='team',
-            name='canvas_course',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='teams', to='lms.canvascourse'),
+            model_name="team",
+            name="canvas_course",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="teams",
+                to="lms.canvascourse",
+            ),
         ),
         migrations.AddField(
-            model_name='team',
-            name='canvas_group_id',
-            field=models.PositiveIntegerField(blank=True, db_index=True, help_text='Canvas /api/v1/groups/:id', null=True),
+            model_name="team",
+            name="canvas_group_id",
+            field=models.PositiveIntegerField(
+                blank=True,
+                db_index=True,
+                help_text="Canvas /api/v1/groups/:id",
+                null=True,
+            ),
         ),
         migrations.AddField(
-            model_name='team',
-            name='last_synced_at',
-            field=models.DateTimeField(blank=True, help_text='When this team was last synced with Canvas', null=True),
+            model_name="team",
+            name="last_synced_at",
+            field=models.DateTimeField(
+                blank=True,
+                help_text="When this team was last synced with Canvas",
+                null=True,
+            ),
         ),
         migrations.AddIndex(
-            model_name='team',
-            index=models.Index(fields=['canvas_course', 'canvas_group_id'], name='core_team_canvas__d57672_idx'),
+            model_name="team",
+            index=models.Index(
+                fields=["canvas_course", "canvas_group_id"],
+                name="core_team_canvas__d57672_idx",
+            ),
         ),
     ]

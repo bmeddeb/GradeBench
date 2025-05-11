@@ -27,17 +27,21 @@ def home(request):
     """Home page view."""
     # Get all calendar events for the current user
     events = CalendarEvent.objects.filter(user=request.user)
-    return render(request, 'core/home.html', {
-        'user': request.user,
-        'profile': request.user.profile,
-    })
+    return render(
+        request,
+        "core/home.html",
+        {
+            "user": request.user,
+            "profile": request.user.profile,
+        },
+    )
 
 
 def login(request):
     """Login page view."""
     if request.user.is_authenticated:
-        return redirect('home')
-    return render(request, 'core/login.html')
+        return redirect("home")
+    return render(request, "core/login.html")
 
 
 @login_required
@@ -53,7 +57,8 @@ def profile(request):
     try:
         # Try to get the GitHub social auth
         social_auth = UserSocialAuth.objects.filter(
-            user=user, provider='github').first()
+            user=user, provider="github"
+        ).first()
 
         if social_auth:
             github_connected = True
@@ -66,21 +71,21 @@ def profile(request):
         profile = UserProfile.objects.create(user=user)
 
     # Handle profile update form submission
-    if request.method == 'POST':
+    if request.method == "POST":
         # Track if any changes were made
         changes_made = False
-        
+
         # Update user information
-        if user.first_name != request.POST.get('first_name', user.first_name):
-            user.first_name = request.POST.get('first_name', user.first_name)
+        if user.first_name != request.POST.get("first_name", user.first_name):
+            user.first_name = request.POST.get("first_name", user.first_name)
             changes_made = True
-            
-        if user.last_name != request.POST.get('last_name', user.last_name):
-            user.last_name = request.POST.get('last_name', user.last_name)
+
+        if user.last_name != request.POST.get("last_name", user.last_name):
+            user.last_name = request.POST.get("last_name", user.last_name)
             changes_made = True
-        
+
         # Handle username change
-        new_username = request.POST.get('username')
+        new_username = request.POST.get("username")
         if new_username and new_username != user.username:
             # Check if username is already taken
             if User.objects.filter(username=new_username).exclude(id=user.id).exists():
@@ -89,18 +94,18 @@ def profile(request):
                 user.username = new_username
                 messages.success(request, "Username updated successfully.")
                 changes_made = True
-        
-        email = request.POST.get('email')
+
+        email = request.POST.get("email")
         if email and email != user.email:
             user.email = email
             changes_made = True
-        
+
         # Update profile information
-        if profile.bio != request.POST.get('bio', profile.bio):
-            profile.bio = request.POST.get('bio', profile.bio)
+        if profile.bio != request.POST.get("bio", profile.bio):
+            profile.bio = request.POST.get("bio", profile.bio)
             changes_made = True
-            
-        phone_number = request.POST.get('phone_number')
+
+        phone_number = request.POST.get("phone_number")
         if phone_number and phone_number != profile.phone_number:
             profile.phone_number = phone_number
             changes_made = True
@@ -108,31 +113,36 @@ def profile(request):
         # Save changes
         user.save()
         profile.save()
-        
+
         # Show success message if changes were made (and not already shown for username)
         if changes_made and not messages.get_messages(request):
             messages.success(request, "Profile updated successfully.")
 
         # Redirect to avoid form resubmission
-        return redirect('profile')
+        return redirect("profile")
 
-    return render(request, 'core/profile.html', {
-        'user': user,
-        'profile': profile,
-        'github_connected': github_connected,
-        'github_username': github_username,
-        'social_auth': social_auth,
-    })
+    return render(
+        request,
+        "core/profile.html",
+        {
+            "user": user,
+            "profile": profile,
+            "github_connected": github_connected,
+            "github_username": github_username,
+            "social_auth": social_auth,
+        },
+    )
 
 
 @login_required
 def disconnect_github(request):
     """Disconnect GitHub from user account."""
-    if request.method == 'POST':
+    if request.method == "POST":
         # Find the GitHub association
         try:
             social_auth = UserSocialAuth.objects.filter(
-                user=request.user, provider='github').first()
+                user=request.user, provider="github"
+            ).first()
             if social_auth:
                 # Clear GitHub info from profile
                 profile = request.user.profile
@@ -143,48 +153,49 @@ def disconnect_github(request):
                 # Delete the social auth
                 social_auth.delete()
 
-                messages.success(
-                    request, "GitHub account disconnected successfully.")
+                messages.success(request, "GitHub account disconnected successfully.")
             else:
                 messages.info(request, "No GitHub account connected.")
         except Exception as e:
             messages.error(request, f"Error disconnecting GitHub: {str(e)}")
 
-    return redirect('profile')
+    return redirect("profile")
 
 
 async def async_github_profile(request):
     """Fetch GitHub profile data asynchronously."""
+
     def get_profile_and_token():
         user = request.user
         if not user.is_authenticated:
-            return None, None, 'Authentication required'
+            return None, None, "Authentication required"
         try:
             profile = UserProfile.objects.get(user=user)
             if not profile.github_access_token:
-                return None, None, 'No GitHub token found'
+                return None, None, "No GitHub token found"
             return user, profile, None
         except UserProfile.DoesNotExist:
-            return None, None, 'Profile does not exist'
+            return None, None, "Profile does not exist"
 
     user, profile, error = await sync_to_async(get_profile_and_token)()
     if error:
-        return HttpResponse(json.dumps({'error': error}), content_type='application/json')
+        return HttpResponse(
+            json.dumps({"error": error}), content_type="application/json"
+        )
 
     # Now do the async HTTP call
     async with httpx.AsyncClient() as client:
         headers = {
-            'Authorization': f'token {profile.github_access_token}',
-            'Accept': 'application/vnd.github.v3+json'
+            "Authorization": f"token {profile.github_access_token}",
+            "Accept": "application/vnd.github.v3+json",
         }
-        response = await client.get('https://api.github.com/user', headers=headers)
+        response = await client.get("https://api.github.com/user", headers=headers)
         if response.status_code == 200:
-            return HttpResponse(response.text, content_type='application/json')
+            return HttpResponse(response.text, content_type="application/json")
         else:
             return HttpResponse(
-                json.dumps(
-                    {'error': f'GitHub API error: {response.status_code}'}),
-                content_type='application/json'
+                json.dumps({"error": f"GitHub API error: {response.status_code}"}),
+                content_type="application/json",
             )
 
 
@@ -194,11 +205,11 @@ def logout_view(request):
     Custom logout view that handles both GET and POST requests.
     Shows a confirmation page on GET and logs out on POST.
     """
-    if request.method == 'POST':
+    if request.method == "POST":
         auth_logout(request)
         messages.success(request, "You have been successfully logged out.")
-        return redirect('login')
-    return render(request, 'core/logout.html')
+        return redirect("login")
+    return render(request, "core/logout.html")
 
 
 # Add new async profile update view for use with async API
@@ -219,37 +230,41 @@ def update_profile_ajax(request):
         changes_made = False
 
         # Update user information
-        if 'first_name' in data and data['first_name'] != user.first_name:
-            user.first_name = data['first_name']
+        if "first_name" in data and data["first_name"] != user.first_name:
+            user.first_name = data["first_name"]
             changes_made = True
-            
-        if 'last_name' in data and data['last_name'] != user.last_name:
-            user.last_name = data['last_name']
+
+        if "last_name" in data and data["last_name"] != user.last_name:
+            user.last_name = data["last_name"]
             changes_made = True
-        
+
         # Handle username change
-        if 'username' in data and data['username'] != user.username:
+        if "username" in data and data["username"] != user.username:
             # Check if username is already taken
-            username_exists = User.objects.filter(username=data['username']).exclude(id=user.id).exists()
+            username_exists = (
+                User.objects.filter(username=data["username"])
+                .exclude(id=user.id)
+                .exists()
+            )
             if username_exists:
-                return JsonResponse({
-                    'status': 'error', 
-                    'message': 'That username is already taken'
-                }, status=400)
-            user.username = data['username']
+                return JsonResponse(
+                    {"status": "error", "message": "That username is already taken"},
+                    status=400,
+                )
+            user.username = data["username"]
             changes_made = True
-            
-        if 'email' in data and data['email'] != user.email:
-            user.email = data['email']
+
+        if "email" in data and data["email"] != user.email:
+            user.email = data["email"]
             changes_made = True
 
         # Update profile information
-        if 'bio' in data and data['bio'] != profile.bio:
-            profile.bio = data['bio']
+        if "bio" in data and data["bio"] != profile.bio:
+            profile.bio = data["bio"]
             changes_made = True
-            
-        if 'phone_number' in data and data['phone_number'] != profile.phone_number:
-            profile.phone_number = data['phone_number']
+
+        if "phone_number" in data and data["phone_number"] != profile.phone_number:
+            profile.phone_number = data["phone_number"]
             changes_made = True
 
         # Only save if changes were made
@@ -257,21 +272,19 @@ def update_profile_ajax(request):
             # Save changes
             user.save()
             profile.save()
-            
+
             # Return success with a message about what was updated
-            return JsonResponse({
-                'status': 'success',
-                'message': 'Profile updated successfully'
-            })
+            return JsonResponse(
+                {"status": "success", "message": "Profile updated successfully"}
+            )
         else:
             # No changes were made
-            return JsonResponse({
-                'status': 'info',
-                'message': 'No changes were made to your profile'
-            })
-            
+            return JsonResponse(
+                {"status": "info", "message": "No changes were made to your profile"}
+            )
+
     except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+        return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
 
 # Calendar Views
@@ -283,37 +296,36 @@ def calendar_events(request):
     - start: Start date (YYYY-MM-DD)
     - end: End date (YYYY-MM-DD)
     """
-    start_date = request.GET.get('start')
-    end_date = request.GET.get('end')
-    
+    start_date = request.GET.get("start")
+    end_date = request.GET.get("end")
+
     # Default to showing events for the next 30 days if no date range provided
     if not start_date:
         start_date = timezone.now().date()
     else:
         start_date = datetime.fromisoformat(start_date).date()
-        
+
     if not end_date:
         end_date = start_date + timedelta(days=30)
     else:
         end_date = datetime.fromisoformat(end_date).date()
-    
+
     # Convert dates to datetime objects for filtering
-    start_datetime = timezone.make_aware(datetime.combine(start_date, datetime.min.time()))
+    start_datetime = timezone.make_aware(
+        datetime.combine(start_date, datetime.min.time())
+    )
     end_datetime = timezone.make_aware(datetime.combine(end_date, datetime.max.time()))
-    
+
     # Get events for the user within the date range
     events = CalendarEvent.objects.filter(
-        user=request.user,
-        dtstart__lte=end_datetime,
-        dtend__gte=start_datetime
+        user=request.user, dtstart__lte=end_datetime, dtend__gte=start_datetime
     ) | CalendarEvent.objects.filter(
-        user=request.user,
-        dtstart__range=(start_datetime, end_datetime)
+        user=request.user, dtstart__range=(start_datetime, end_datetime)
     )
-    
+
     # Convert to FullCalendar format
     event_data = [event.to_dict() for event in events]
-    
+
     return JsonResponse(event_data, safe=False)
 
 
@@ -323,33 +335,32 @@ def upload_ics(request):
     """
     Handle ICS file upload and import events.
     """
-    if 'ics_file' not in request.FILES:
-        return JsonResponse({
-            'status': 'error',
-            'message': 'No ICS file provided'
-        }, status=400)
-    
-    ics_file = request.FILES['ics_file']
-    source = request.POST.get('source', 'custom')
-    
+    if "ics_file" not in request.FILES:
+        return JsonResponse(
+            {"status": "error", "message": "No ICS file provided"}, status=400
+        )
+
+    ics_file = request.FILES["ics_file"]
+    source = request.POST.get("source", "custom")
+
     try:
         # Read the file into memory
         file_content = io.BytesIO(ics_file.read())
-        
+
         # Import events from the file
         events_created = CalendarEvent.from_ics(
-            file_content, 
-            source=source,
-            user=request.user
+            file_content, source=source, user=request.user
         )
-        
-        return JsonResponse({
-            'status': 'success',
-            'message': f'Successfully imported {events_created} events',
-            'events_created': events_created
-        })
+
+        return JsonResponse(
+            {
+                "status": "success",
+                "message": f"Successfully imported {events_created} events",
+                "events_created": events_created,
+            }
+        )
     except Exception as e:
-        return JsonResponse({
-            'status': 'error',
-            'message': f'Error importing ICS file: {str(e)}'
-        }, status=500)
+        return JsonResponse(
+            {"status": "error", "message": f"Error importing ICS file: {str(e)}"},
+            status=500,
+        )

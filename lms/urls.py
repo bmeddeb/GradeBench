@@ -9,7 +9,7 @@ canvas_patterns = [
 
 # Main lms URL patterns
 urlpatterns = [
-    path('canvas/', include((canvas_patterns, 'canvas'), namespace='canvas')),
+    path("canvas/", include((canvas_patterns, "canvas"), namespace="canvas")),
     # Add other LMS providers here, e.g.:
     # path('blackboard/', include((blackboard_patterns, 'blackboard'), namespace='blackboard')),
 ]

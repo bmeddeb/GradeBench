@@ -3,7 +3,7 @@ from django.db import connection
 
 
 class Command(BaseCommand):
-    help = 'Sets up the database tables for Canvas groups'
+    help = "Sets up the database tables for Canvas groups"
 
     def add_column_if_not_exists(self, cursor, table, column, definition):
         # Check if column exists
@@ -20,7 +20,8 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         with connection.cursor() as cursor:
             # Create Canvas Group Category table
-            cursor.execute("""
+            cursor.execute(
+                """
             CREATE TABLE IF NOT EXISTS "lms_canvasgroupcategory" (
                 "id" integer NOT NULL PRIMARY KEY AUTOINCREMENT,
                 "canvas_id" integer unsigned NOT NULL UNIQUE,
@@ -32,10 +33,12 @@ class Command(BaseCommand):
                 "last_synced_at" datetime NOT NULL,
                 "course_id" bigint NOT NULL REFERENCES "lms_canvascourse" ("id") DEFERRABLE INITIALLY DEFERRED
             );
-            """)
+            """
+            )
 
             # Create Canvas Group table
-            cursor.execute("""
+            cursor.execute(
+                """
             CREATE TABLE IF NOT EXISTS "lms_canvasgroup" (
                 "id" integer NOT NULL PRIMARY KEY AUTOINCREMENT,
                 "canvas_id" integer unsigned NOT NULL UNIQUE,
@@ -46,10 +49,12 @@ class Command(BaseCommand):
                 "category_id" bigint NOT NULL REFERENCES "lms_canvasgroupcategory" ("id") DEFERRABLE INITIALLY DEFERRED,
                 "core_team_id" bigint NULL REFERENCES "core_team" ("id") DEFERRABLE INITIALLY DEFERRED
             );
-            """)
+            """
+            )
 
             # Create Canvas Group Membership table
-            cursor.execute("""
+            cursor.execute(
+                """
             CREATE TABLE IF NOT EXISTS "lms_canvasgroupmembership" (
                 "id" integer NOT NULL PRIMARY KEY AUTOINCREMENT,
                 "user_id" integer unsigned NOT NULL,
@@ -60,34 +65,33 @@ class Command(BaseCommand):
                 "student_id" bigint NULL REFERENCES "core_student" ("id") DEFERRABLE INITIALLY DEFERRED,
                 UNIQUE ("group_id", "user_id")
             );
-            """)
+            """
+            )
 
             # Add new fields to Team model if they don't exist
             self.add_column_if_not_exists(
                 cursor,
                 '"core_team"',
                 '"canvas_course_id"',
-                'bigint NULL REFERENCES "lms_canvascourse" ("id") DEFERRABLE INITIALLY DEFERRED'
+                'bigint NULL REFERENCES "lms_canvascourse" ("id") DEFERRABLE INITIALLY DEFERRED',
             )
 
             self.add_column_if_not_exists(
-                cursor,
-                '"core_team"',
-                '"canvas_group_id"',
-                'integer unsigned NULL'
+                cursor, '"core_team"', '"canvas_group_id"', "integer unsigned NULL"
             )
 
             self.add_column_if_not_exists(
-                cursor,
-                '"core_team"',
-                '"last_synced_at"',
-                'datetime NULL'
+                cursor, '"core_team"', '"last_synced_at"', "datetime NULL"
             )
 
             # Create index on Team
-            cursor.execute("""
+            cursor.execute(
+                """
             CREATE INDEX IF NOT EXISTS "core_team_canvas__d57672_idx"
             ON "core_team" ("canvas_course_id", "canvas_group_id");
-            """)
+            """
+            )
 
-            self.stdout.write(self.style.SUCCESS('Successfully set up Canvas groups tables'))
+            self.stdout.write(
+                self.style.SUCCESS("Successfully set up Canvas groups tables")
+            )

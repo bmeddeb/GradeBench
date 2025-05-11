@@ -4,15 +4,15 @@ from core.models import UserProfile, ProfessorProfile, TAProfile, Student
 
 
 class Command(BaseCommand):
-    help = 'Fixes issues with user profiles and ensures consistency'
+    help = "Fixes issues with user profiles and ensures consistency"
 
     def handle(self, *args, **options):
         self.stdout.write("Checking user profiles for issues...")
 
         # Ensure groups exist
-        student_group, _ = Group.objects.get_or_create(name='Students')
-        professor_group, _ = Group.objects.get_or_create(name='Professors')
-        ta_group, _ = Group.objects.get_or_create(name='TAs')
+        student_group, _ = Group.objects.get_or_create(name="Students")
+        professor_group, _ = Group.objects.get_or_create(name="Professors")
+        ta_group, _ = Group.objects.get_or_create(name="TAs")
 
         # Get all users
         users = User.objects.all()
@@ -39,7 +39,7 @@ class Command(BaseCommand):
                 self.stdout.write(f"  - Has ProfessorProfile")
                 has_role = True
                 # Ensure they're in the Professors group
-                if not user.groups.filter(name='Professors').exists():
+                if not user.groups.filter(name="Professors").exists():
                     user.groups.add(professor_group)
                     self.stdout.write(f"  - Added to Professors group")
             except ProfessorProfile.DoesNotExist:
@@ -51,7 +51,7 @@ class Command(BaseCommand):
                 self.stdout.write(f"  - Has TAProfile")
                 has_role = True
                 # Ensure they're in the TAs group
-                if not user.groups.filter(name='TAs').exists():
+                if not user.groups.filter(name="TAs").exists():
                     user.groups.add(ta_group)
                     self.stdout.write(f"  - Added to TAs group")
             except TAProfile.DoesNotExist:
@@ -60,10 +60,10 @@ class Command(BaseCommand):
             # If they have no role, add them to Students group
             if not has_role:
                 # Add to Students group
-                if not user.groups.filter(name='Students').exists():
+                if not user.groups.filter(name="Students").exists():
                     user.groups.add(student_group)
                     self.stdout.write(f"  - Added to Students group")
-                
+
                 # Check if there's a corresponding Student record
                 try:
                     student = Student.objects.get(email=user.email)
@@ -76,12 +76,14 @@ class Command(BaseCommand):
                             last_name=user.last_name or "User",
                             email=user.email,
                             github_username=profile.github_username,
-                            created_by=user
+                            created_by=user,
                         )
                         self.stdout.write(f"  - Created Student record")
                     except Exception as e:
-                        self.stdout.write(self.style.ERROR(
-                            f"  - Error creating Student record: {str(e)}"))
+                        self.stdout.write(
+                            self.style.ERROR(
+                                f"  - Error creating Student record: {str(e)}"
+                            )
+                        )
 
-        self.stdout.write(self.style.SUCCESS(
-            "Profile check and fix completed"))
+        self.stdout.write(self.style.SUCCESS("Profile check and fix completed"))

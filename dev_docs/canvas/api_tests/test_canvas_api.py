@@ -25,7 +25,8 @@ async def test_canvas_api():
         integration = CanvasIntegration.objects.first()
         if not integration:
             logger.error(
-                "No Canvas integration found. Please set up Canvas integration first.")
+                "No Canvas integration found. Please set up Canvas integration first."
+            )
             return
 
         # Create API client
@@ -42,33 +43,32 @@ async def test_canvas_api():
         logger.info(f"Found {len(categories)} group categories")
 
         for category in categories:
-            logger.info(
-                f"Category: {category.get('name')} (ID: {category.get('id')})")
+            logger.info(f"Category: {category.get('name')} (ID: {category.get('id')})")
 
             # Test fetching groups in this category
-            logger.info(
-                f"Fetching groups for category {category.get('id')}...")
-            groups = await client.get_groups(category.get('id'))
+            logger.info(f"Fetching groups for category {category.get('id')}...")
+            groups = await client.get_groups(category.get("id"))
             logger.info(f"Found {len(groups)} groups in category")
 
             for group in groups:
-                logger.info(
-                    f"Group: {group.get('name')} (ID: {group.get('id')})")
+                logger.info(f"Group: {group.get('name')} (ID: {group.get('id')})")
 
                 # Test fetching group members
                 logger.info(f"Fetching members for group {group.get('id')}...")
-                members = await client.get_group_members(group.get('id'))
+                members = await client.get_group_members(group.get("id"))
                 logger.info(f"Found {len(members)} members in group")
 
                 for member in members:
                     logger.info(
-                        f"Member: {member.get('name')} (ID: {member.get('id')})")
+                        f"Member: {member.get('name')} (ID: {member.get('id')})"
+                    )
 
         logger.info("Canvas API test completed successfully!")
 
     except Exception as e:
         logger.error(f"Error in test_canvas_api: {e}")
         raise
+
 
 if __name__ == "__main__":
     asyncio.run(test_canvas_api())

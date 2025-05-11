@@ -2,27 +2,26 @@ from django.db import models
 from core.models import Team, Student
 from core.async_utils import AsyncModelMixin
 
+
 class Project(models.Model):  # Taiga Project
     name = models.CharField(max_length=255)
     slug = models.SlugField(unique=True)
-    team = models.ForeignKey(
-        Team, on_delete=models.CASCADE, related_name='projects'
-    )
+    team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="projects")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.name
 
+
 class Member(models.Model, AsyncModelMixin):  # Taiga Member
     # Relationship to Student model
     student = models.OneToOneField(
-        Student, on_delete=models.CASCADE,
-        related_name='taiga_member'
+        Student, on_delete=models.CASCADE, related_name="taiga_member"
     )
-    
+
     project = models.ForeignKey(
-        Project, on_delete=models.CASCADE, related_name='members'
+        Project, on_delete=models.CASCADE, related_name="members"
     )
     role_name = models.CharField(max_length=100)
     color = models.CharField(max_length=7)
@@ -30,10 +29,11 @@ class Member(models.Model, AsyncModelMixin):  # Taiga Member
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ('student', 'project')
+        unique_together = ("student", "project")
 
     def __str__(self):
         return f"{self.student.full_name} as {self.role_name}"
+
 
 class Sprint(models.Model):
     name = models.CharField(max_length=255)
@@ -43,13 +43,14 @@ class Sprint(models.Model):
     total_points = models.IntegerField(default=0)
     closed_points = models.IntegerField(default=0)
     project = models.ForeignKey(
-        Project, on_delete=models.CASCADE, related_name='sprints'
+        Project, on_delete=models.CASCADE, related_name="sprints"
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.name
+
 
 class UserStory(models.Model):
     ref = models.CharField(max_length=50)
@@ -61,13 +62,14 @@ class UserStory(models.Model):
     modified_date = models.DateTimeField()
     in_sprint_date = models.DateTimeField()
     sprint = models.ForeignKey(
-        Sprint, on_delete=models.CASCADE, related_name='user_stories'
+        Sprint, on_delete=models.CASCADE, related_name="user_stories"
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"{self.ref} - {self.name}"
+
 
 class Task(models.Model):
     ref = models.CharField(max_length=50)
@@ -79,7 +81,7 @@ class Task(models.Model):
         Member, on_delete=models.SET_NULL, null=True, blank=True
     )
     user_story = models.ForeignKey(
-        UserStory, on_delete=models.CASCADE, related_name='tasks'
+        UserStory, on_delete=models.CASCADE, related_name="tasks"
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -87,10 +89,9 @@ class Task(models.Model):
     def __str__(self):
         return self.name
 
+
 class TaskEvent(models.Model):
-    task = models.ForeignKey(
-        Task, on_delete=models.CASCADE, related_name='events'
-    )
+    task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name="events")
     created_at = models.DateTimeField()
     status_before = models.CharField(max_length=100)
     status_after = models.CharField(max_length=100)
@@ -98,9 +99,10 @@ class TaskEvent(models.Model):
     in_testing_time = models.IntegerField()
     recorded_at = models.DateTimeField(auto_now_add=True)
 
+
 class TaskAssignmentEvent(models.Model):
     task = models.ForeignKey(
-        Task, on_delete=models.CASCADE, related_name='assignment_events'
+        Task, on_delete=models.CASCADE, related_name="assignment_events"
     )
     created_at = models.DateTimeField()
     assigned_to_before = models.IntegerField()

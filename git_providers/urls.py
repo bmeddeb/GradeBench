@@ -9,7 +9,7 @@ github_patterns = [
 
 # Main git_providers URL patterns
 urlpatterns = [
-    path('github/', include((github_patterns, 'github'), namespace='github')),
+    path("github/", include((github_patterns, "github"), namespace="github")),
     # Add other git providers here, e.g.:
     # path('gitlab/', include((gitlab_patterns, 'gitlab'), namespace='gitlab')),
 ]

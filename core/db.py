@@ -38,6 +38,7 @@ async def close_db():
 
 def async_db_operation(f):
     """Decorator for async database operations."""
+
     @wraps(f)
     async def wrapper(*args, **kwargs):
         db = await get_db()
@@ -46,14 +47,18 @@ def async_db_operation(f):
         finally:
             # We don't close the connection after each operation to reuse it
             pass
+
     return wrapper
+
 
 # Convert Django ORM operations to async
 
 
 def django_model_to_dict(instance):
     """Convert Django model instance to dictionary."""
-    return {field.name: getattr(instance, field.name) for field in instance._meta.fields}
+    return {
+        field.name: getattr(instance, field.name) for field in instance._meta.fields
+    }
 
 
 async def async_save(model_instance):

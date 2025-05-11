@@ -2,9 +2,9 @@ from django.apps import AppConfig
 
 
 class GitProvidersConfig(AppConfig):
-    default_auto_field = 'django.db.models.BigAutoField'
-    name = 'git_providers'
-    verbose_name = 'Git Providers'
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "git_providers"
+    verbose_name = "Git Providers"
 
     def ready(self):
         """

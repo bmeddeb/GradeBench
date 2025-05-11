@@ -13,12 +13,14 @@ import argparse
 import json
 import httpx
 
+
 class CanvasClient:
     """
     Async HTTP client for Canvas LMS API, using a personal access token.
     """
+
     def __init__(self, token: str, base_url: str, timeout: float = 10.0):
-        self._base_url = base_url.rstrip('/')
+        self._base_url = base_url.rstrip("/")
         headers = {
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json",
@@ -59,10 +61,13 @@ class CanvasClient:
 
 def parse_args():
     p = argparse.ArgumentParser(description="Inspect Canvas API via httpx")
-    p.add_argument("--token", "-t", required=True,
-                   help="Canvas personal access token")
-    p.add_argument("--base-url", "-u", required=True,
-                   help="Canvas base URL, e.g. https://canvas.instructure.com")
+    p.add_argument("--token", "-t", required=True, help="Canvas personal access token")
+    p.add_argument(
+        "--base-url",
+        "-u",
+        required=True,
+        help="Canvas base URL, e.g. https://canvas.instructure.com",
+    )
     return p.parse_args()
 
 
@@ -80,7 +85,7 @@ async def main():
         return
 
     first = courses[0]
-    course_id = first.get('id') or first.get('course_id')
+    course_id = first.get("id") or first.get("course_id")
     print(f"\n=== First Course ID: {course_id} ===")
 
     print("\n=== Fetching Enrollments ===")
@@ -93,5 +98,6 @@ async def main():
 
     await client.close()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     asyncio.run(main())

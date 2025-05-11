@@ -1,1 +1,1 @@
-default_app_config = 'git_providers.apps.GitProvidersConfig'
+default_app_config = "git_providers.apps.GitProvidersConfig"

@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 from core.models import Team, Student, TeamMembership
-from lms.canvas.models import CanvasCourse, CanvasGroupCategory, CanvasGroup, CanvasGroupMembership
+from lms.canvas.models import (
+    CanvasCourse,
+    CanvasGroupCategory,
+    CanvasGroup,
+    CanvasGroupMembership,
+)
 import os
 import django
 import sys
@@ -46,14 +51,13 @@ def test_canvas_group_models():
                 memberships = CanvasGroupMembership.objects.filter(group=group)
 
                 print(
-                    f"          - {group.name} (ID: {group.canvas_id}) - {team_link} - {memberships.count()} members")
+                    f"          - {group.name} (ID: {group.canvas_id}) - {team_link} - {memberships.count()} members"
+                )
 
                 # If there's a linked team, check team memberships
                 if group.core_team:
-                    team_members = TeamMembership.objects.filter(
-                        team=group.core_team)
-                    print(
-                        f"            - Team has {team_members.count()} members")
+                    team_members = TeamMembership.objects.filter(team=group.core_team)
+                    print(f"            - Team has {team_members.count()} members")
 
                     # Check if team memberships match group memberships
                     group_student_ids = set(
@@ -63,8 +67,7 @@ def test_canvas_group_models():
                     )
 
                     team_student_ids = set(
-                        membership.student_id
-                        for membership in team_members
+                        membership.student_id for membership in team_members
                     )
 
                     if group_student_ids == team_student_ids:
@@ -75,11 +78,13 @@ def test_canvas_group_models():
 
                         if missing_in_team:
                             print(
-                                f"            - ❌ {len(missing_in_team)} students in group but not in team")
+                                f"            - ❌ {len(missing_in_team)} students in group but not in team"
+                            )
 
                         if missing_in_group:
                             print(
-                                f"            - ❌ {len(missing_in_group)} students in team but not in group")
+                                f"            - ❌ {len(missing_in_group)} students in team but not in group"
+                            )
 
 
 if __name__ == "__main__":

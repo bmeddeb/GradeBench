@@ -17,36 +17,35 @@ from lms.canvas.syncer import CanvasSyncer
 
 logger = logging.getLogger(__name__)
 
+
 class Command(BaseCommand):
-    help = 'Syncs Canvas groups, categories, and memberships for all or specific courses'
+    help = (
+        "Syncs Canvas groups, categories, and memberships for all or specific courses"
+    )
 
     def add_arguments(self, parser):
         parser.add_argument(
-            '--course-id',
+            "--course-id",
             type=int,
-            help='Canvas course ID to sync groups for (default: sync all courses)',
-            required=False
+            help="Canvas course ID to sync groups for (default: sync all courses)",
+            required=False,
         )
+        parser.add_argument("--debug", action="store_true", help="Enable debug logging")
         parser.add_argument(
-            '--debug',
-            action='store_true',
-            help='Enable debug logging'
-        )
-        parser.add_argument(
-            '--force',
-            action='store_true',
-            help='Force resync even if groups already exist'
+            "--force",
+            action="store_true",
+            help="Force resync even if groups already exist",
         )
 
     def handle(self, *args, **options):
-        if options['debug']:
+        if options["debug"]:
             logging.basicConfig(level=logging.DEBUG)
         else:
             logging.basicConfig(level=logging.INFO)
 
-        course_id = options.get('course_id')
-        force = options.get('force', False)
-        
+        course_id = options.get("course_id")
+        force = options.get("force", False)
+
         self.stdout.write(self.style.SUCCESS(f"Starting Canvas group sync..."))
         asyncio.run(self.sync_groups(course_id, force))
         self.stdout.write(self.style.SUCCESS(f"Canvas group sync completed."))
@@ -66,23 +65,34 @@ class Command(BaseCommand):
             if course_id:
                 # Sync a specific course
                 try:
-                    course = await sync_to_async(CanvasCourse.objects.get)(canvas_id=course_id)
-                    self.stdout.write(f"Syncing groups for course {course.name} (ID: {course.canvas_id})...")
+                    course = await sync_to_async(CanvasCourse.objects.get)(
+                        canvas_id=course_id
+                    )
+                    self.stdout.write(
+                        f"Syncing groups for course {course.name} (ID: {course.canvas_id})..."
+                    )
                     await self.sync_groups_for_course(syncer, course, force)
                 except CanvasCourse.DoesNotExist:
-                    self.stdout.write(self.style.ERROR(f"Course with Canvas ID {course_id} not found."))
+                    self.stdout.write(
+                        self.style.ERROR(
+                            f"Course with Canvas ID {course_id} not found."
+                        )
+                    )
             else:
                 # Sync all courses
                 courses = await sync_to_async(list)(CanvasCourse.objects.all())
                 self.stdout.write(f"Found {len(courses)} courses to sync...")
-                
+
                 for course in courses:
-                    self.stdout.write(f"Syncing groups for course {course.name} (ID: {course.canvas_id})...")
+                    self.stdout.write(
+                        f"Syncing groups for course {course.name} (ID: {course.canvas_id})..."
+                    )
                     await self.sync_groups_for_course(syncer, course, force)
 
         except Exception as e:
             self.stdout.write(self.style.ERROR(f"Error syncing Canvas groups: {e}"))
             import traceback
+
             self.stdout.write(self.style.ERROR(traceback.format_exc()))
         finally:
             # Clean up DB connections
@@ -95,14 +105,16 @@ class Command(BaseCommand):
             self.stdout.write(f"  Fetching group categories...")
             category_ids = await syncer.sync_canvas_groups(course)
             self.stdout.write(f"  Found {len(category_ids)} group IDs")
-            
+
             # Then sync memberships
             self.stdout.write(f"  Syncing group memberships...")
             await syncer.sync_group_memberships(course)
-            
+
             # Summarize results
             self.stdout.write(self.style.SUCCESS(f"  Sync completed for {course.name}"))
             return True
         except Exception as e:
-            self.stdout.write(self.style.ERROR(f"  Error syncing course {course.name}: {e}"))
+            self.stdout.write(
+                self.style.ERROR(f"  Error syncing course {course.name}: {e}")
+            )
             return False

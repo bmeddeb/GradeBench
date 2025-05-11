@@ -1,1 +1,1 @@
-default_app_config = 'lms.apps.LMSConfig'
+default_app_config = "lms.apps.LMSConfig"

@@ -9,7 +9,7 @@ taiga_patterns = [
 
 # Main project_mgmt URL patterns
 urlpatterns = [
-    path('taiga/', include((taiga_patterns, 'taiga'), namespace='taiga')),
+    path("taiga/", include((taiga_patterns, "taiga"), namespace="taiga")),
     # Add other project management providers here, e.g.:
     # path('jira/', include((jira_patterns, 'jira'), namespace='jira')),
 ]
