@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Push Group Memberships - {{ course.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'canvas_dashboard' %}">Canvas Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'canvas_course_detail' course_id=course.canvas_id %}">{{ course.name }}</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'canvas_course_groups' course_id=course.canvas_id %}">Groups</a></li>
+                    <li class="breadcrumb-item active">Push Memberships</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Push Group Memberships to Canvas</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <p>This action will push all current group memberships from GradeBench to Canvas.</p>
+                        <p>Use this if you notice that some student assignments in Canvas don't match what you see in GradeBench.</p>
+                    </div>
+
+                    <p>You are about to update all group memberships for course <strong>{{ course.name }}</strong> in Canvas.</p>
+                    <p>This will make Canvas reflect exactly what's in the GradeBench database for all groups in this course.</p>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-end mt-4">
+                            <a href="{% url 'canvas_course_groups' course_id=course.canvas_id %}" class="btn btn-secondary me-2">Cancel</a>
+                            <button type="submit" class="btn btn-primary">Push Memberships to Canvas</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

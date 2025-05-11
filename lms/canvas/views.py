@@ -10,6 +10,8 @@ from django.views.decorators.csrf import csrf_exempt
 from asgiref.sync import sync_to_async
 from django.db.models import Q, Count
 import httpx
+import requests
+from datetime import datetime
 
 from .models import (
     CanvasIntegration,
@@ -130,7 +132,8 @@ def canvas_courses_list(request):
         enrollment_count = CanvasEnrollment.objects.filter(
             course=course, role="StudentEnrollment"
         ).count()
-        assignment_count = CanvasAssignment.objects.filter(course=course).count()
+        assignment_count = CanvasAssignment.objects.filter(
+            course=course).count()
 
         course_data.append(
             {
@@ -167,7 +170,8 @@ def canvas_dashboard(request):
         enrollment_count = CanvasEnrollment.objects.filter(
             course=course, role="StudentEnrollment"
         ).count()
-        assignment_count = CanvasAssignment.objects.filter(course=course).count()
+        assignment_count = CanvasAssignment.objects.filter(
+            course=course).count()
 
         course_data.append(
             {
@@ -194,7 +198,8 @@ def canvas_setup(request):
 
     if request.method == "POST":
         api_key = request.POST.get("api_key")
-        canvas_url = request.POST.get("canvas_url", "https://canvas.instructure.com")
+        canvas_url = request.POST.get(
+            "canvas_url", "https://canvas.instructure.com")
 
         if not api_key:
             messages.error(request, "API Key is required")
@@ -292,15 +297,18 @@ def course_detail(request, course_id):
 
     # Get enrollments and assignments
     enrollments = list(
-        CanvasEnrollment.objects.filter(course=course).order_by("role", "sortable_name")
+        CanvasEnrollment.objects.filter(
+            course=course).order_by("role", "sortable_name")
     )
 
     assignments = list(
-        CanvasAssignment.objects.filter(course=course).order_by("position", "due_at")
+        CanvasAssignment.objects.filter(
+            course=course).order_by("position", "due_at")
     )
 
     # Get some statistics
-    student_count = len([e for e in enrollments if e.role == "StudentEnrollment"])
+    student_count = len(
+        [e for e in enrollments if e.role == "StudentEnrollment"])
     instructor_count = len(
         [e for e in enrollments if e.role in ["TeacherEnrollment", "TaEnrollment"]]
     )
@@ -340,8 +348,10 @@ def assignment_detail(request, course_id, assignment_id):
     )
 
     # Get statistics
-    submitted_count = len([s for s in submissions if s.workflow_state == "submitted"])
-    graded_count = len([s for s in submissions if s.workflow_state == "graded"])
+    submitted_count = len(
+        [s for s in submissions if s.workflow_state == "submitted"])
+    graded_count = len(
+        [s for s in submissions if s.workflow_state == "graded"])
     missing_count = len([s for s in submissions if s.missing])
     late_count = len([s for s in submissions if s.late])
 
@@ -357,7 +367,8 @@ def assignment_detail(request, course_id, assignment_id):
                 rubric__in=list(
                     CanvasRubric.objects.filter(
                         canvas_id__in=list(
-                            assignment.rubric_set.values_list("canvas_id", flat=True)
+                            assignment.rubric_set.values_list(
+                                "canvas_id", flat=True)
                         )
                     )
                 )
@@ -393,7 +404,8 @@ def student_detail(request, course_id, user_id):
         return redirect("login")
 
     course = get_object_or_404(CanvasCourse, canvas_id=course_id)
-    enrollment = get_object_or_404(CanvasEnrollment, course=course, user_id=user_id)
+    enrollment = get_object_or_404(
+        CanvasEnrollment, course=course, user_id=user_id)
 
     # Check if user has access to this course
     integration = get_integration_for_user(request.user)
@@ -659,7 +671,8 @@ def canvas_sync_selected_courses(request):
             asyncio.run(sync_courses(client, course_ids, user_id))
         except Exception as e:
             # Handle any unexpected errors in the thread
-            SyncProgress.complete_sync(user_id, None, success=False, error=str(e))
+            SyncProgress.complete_sync(
+                user_id, None, success=False, error=str(e))
 
     async def sync_courses(client, course_ids, user_id):
         synced = []
@@ -725,7 +738,8 @@ def course_groups(request, course_id):
         return redirect("canvas_dashboard")
 
     # Get all group categories (sets) for this course
-    group_categories = CanvasGroupCategory.objects.filter(course=course).order_by("name")
+    group_categories = CanvasGroupCategory.objects.filter(
+        course=course).order_by("name")
 
     # Get all groups for each category to display counts
     category_data = []
@@ -802,7 +816,8 @@ def group_set_detail(request, course_id, group_set_id):
 
     # Get the group category (set)
     try:
-        category = get_object_or_404(CanvasGroupCategory, id=group_set_id, course=course)
+        category = get_object_or_404(
+            CanvasGroupCategory, id=group_set_id, course=course)
     except CanvasGroupCategory.DoesNotExist:
         return JsonResponse({"error": "Group set not found"}, status=404)
 
@@ -908,7 +923,8 @@ def canvas_sync_course_groups(request, course_id):
     def run_sync():
         try:
             # Use the targeted sync function from sync_utils
-            result = asyncio.run(sync_course_groups(integration, course_id, user_id))
+            result = asyncio.run(sync_course_groups(
+                integration, course_id, user_id))
 
             if result.get("success", False):
                 # Update progress with success
@@ -998,48 +1014,20 @@ def create_group_set(request, course_id):
             group_limit = None
 
         try:
-            # Create in Canvas via API
-            client = Client(integration)
+            # Use our new synchronous utility function to create the group category
+            from lms.canvas.sync_utils import create_group_category_sync
 
-            # Build data for API request
-            category_data = {
-                "name": name,
-            }
-
-            # Only add optional parameters if they are provided
-            if self_signup:
-                category_data["self_signup"] = self_signup
-
-            if auto_leader:
-                category_data["auto_leader"] = auto_leader
-
-            if group_limit:
-                try:
-                    category_data["group_limit"] = int(group_limit)
-                except (ValueError, TypeError):
-                    pass
-
-            # Make the API request
-            import asyncio
-            try:
-                # Run the API call asynchronously
-                loop = asyncio.get_event_loop()
-            except RuntimeError:
-                # If there's no event loop, create one
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-
-            # Execute the API call
-            canvas_response = loop.run_until_complete(
-                client.request("POST", f"courses/{course_id}/group_categories", data=category_data)
+            category, created = create_group_category_sync(
+                integration=integration,
+                course_id=course_id,
+                name=name,
+                self_signup=self_signup,
+                auto_leader=auto_leader,
+                group_limit=group_limit
             )
 
-            # Save to our database
-            category = loop.run_until_complete(
-                client._save_group_category(canvas_response, course)
-            )
-
-            messages.success(request, f"Group set '{name}' created successfully")
+            messages.success(
+                request, f"Group set '{name}' created successfully")
             return redirect("canvas_course_groups", course_id=course_id)
 
         except Exception as e:
@@ -1066,7 +1054,8 @@ def edit_group_set(request, course_id, group_set_id):
 
     # Get the course and group set
     course = get_object_or_404(CanvasCourse, canvas_id=course_id)
-    group_set = get_object_or_404(CanvasGroupCategory, id=group_set_id, course=course)
+    group_set = get_object_or_404(
+        CanvasGroupCategory, id=group_set_id, course=course)
 
     # Check if user has access to this course
     integration = get_integration_for_user(request.user)
@@ -1093,60 +1082,23 @@ def edit_group_set(request, course_id, group_set_id):
             group_limit = None
 
         try:
-            # Update in Canvas via API
-            client = Client(integration)
+            # Use our new synchronous utility function to update the group category
+            from lms.canvas.sync_utils import update_group_category_sync
 
-            # Build data for API request
-            category_data = {
-                "name": name,
-            }
-
-            # Only add optional parameters if they are provided
-            if self_signup:
-                category_data["self_signup"] = self_signup
-
-            if auto_leader:
-                category_data["auto_leader"] = auto_leader
-
-            if group_limit:
-                try:
-                    category_data["group_limit"] = int(group_limit)
-                except (ValueError, TypeError):
-                    pass
-
-            # Make the API request
-            import asyncio
-            try:
-                loop = asyncio.get_event_loop()
-            except RuntimeError:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-
-            # Execute the API call
-            canvas_response = loop.run_until_complete(
-                client.request(
-                    "PUT",
-                    f"group_categories/{group_set.canvas_id}",
-                    data=category_data
-                )
+            category, updated = update_group_category_sync(
+                integration=integration,
+                category_id=group_set.canvas_id,
+                name=name,
+                self_signup=self_signup,
+                auto_leader=auto_leader,
+                group_limit=group_limit
             )
 
-            # Update our database
-            group_set.name = name
-            group_set.self_signup = self_signup
-            group_set.auto_leader = auto_leader
+            # The category is already updated by update_group_category_sync
+            # so we don't need to manually update the group_set as we did before
 
-            if group_limit:
-                try:
-                    group_set.group_limit = int(group_limit)
-                except (ValueError, TypeError):
-                    pass
-            else:
-                group_set.group_limit = None
-
-            group_set.save()
-
-            messages.success(request, f"Group set '{name}' updated successfully")
+            messages.success(
+                request, f"Group set '{name}' updated successfully")
             return redirect("canvas_course_groups", course_id=course_id)
 
         except Exception as e:
@@ -1176,7 +1128,8 @@ def delete_group_set(request, course_id, group_set_id):
 
     # Get the course and group set
     course = get_object_or_404(CanvasCourse, canvas_id=course_id)
-    group_set = get_object_or_404(CanvasGroupCategory, id=group_set_id, course=course)
+    group_set = get_object_or_404(
+        CanvasGroupCategory, id=group_set_id, course=course)
 
     # Check if user has access to this course
     integration = get_integration_for_user(request.user)
@@ -1184,30 +1137,18 @@ def delete_group_set(request, course_id, group_set_id):
         return JsonResponse({"error": "Access denied"}, status=403)
 
     try:
-        # Delete from Canvas via API
-        client = Client(integration)
+        # Use our synchronous utility function to delete the group category
+        from lms.canvas.sync_utils import delete_group_category_sync
 
-        # Make the API request
-        import asyncio
-        try:
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-
-        # Execute the API call
-        try:
-            # This might fail if the category doesn't exist in Canvas anymore
-            loop.run_until_complete(
-                client.request("DELETE", f"group_categories/{group_set.canvas_id}")
-            )
-        except Exception as api_error:
-            # Log the error but continue with local deletion
-            logger.warning(f"Error deleting group set from Canvas: {str(api_error)}")
-
-        # Delete from our database
+        # Store the name before deletion
         group_set_name = group_set.name
-        group_set.delete()
+        canvas_category_id = group_set.canvas_id
+
+        # Delete the group category
+        success = delete_group_category_sync(
+            integration=integration,
+            category_id=canvas_category_id
+        )
 
         return JsonResponse({
             "success": True,
@@ -1232,7 +1173,8 @@ def create_group(request, course_id, group_set_id):
 
     # Get the course and group set
     course = get_object_or_404(CanvasCourse, canvas_id=course_id)
-    group_set = get_object_or_404(CanvasGroupCategory, id=group_set_id, course=course)
+    group_set = get_object_or_404(
+        CanvasGroupCategory, id=group_set_id, course=course)
 
     # Check if user has access to this course
     integration = get_integration_for_user(request.user)
@@ -1253,35 +1195,14 @@ def create_group(request, course_id, group_set_id):
             })
 
         try:
-            # Create in Canvas via API
-            client = Client(integration)
+            # Use our synchronous utility function to create the group
+            from lms.canvas.sync_utils import create_group_sync
 
-            # Build data for API request
-            group_data = {
-                "name": name,
-                "description": description,
-            }
-
-            # Make the API request
-            import asyncio
-            try:
-                loop = asyncio.get_event_loop()
-            except RuntimeError:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-
-            # Execute the API call
-            canvas_response = loop.run_until_complete(
-                client.request(
-                    "POST",
-                    f"group_categories/{group_set.canvas_id}/groups",
-                    data=group_data
-                )
-            )
-
-            # Save to our database
-            group = loop.run_until_complete(
-                client._save_group(canvas_response, group_set)
+            group, created = create_group_sync(
+                integration=integration,
+                category_id=group_set.canvas_id,
+                name=name,
+                description=description
             )
 
             messages.success(request, f"Group '{name}' created successfully")
@@ -1339,32 +1260,15 @@ def edit_group(request, course_id, group_id):
             })
 
         try:
-            # Update in Canvas via API
-            client = Client(integration)
+            # Use our synchronous utility function to update the group
+            from lms.canvas.sync_utils import update_group_sync
 
-            # Build data for API request
-            group_data = {
-                "name": name,
-                "description": description,
-            }
-
-            # Make the API request
-            import asyncio
-            try:
-                loop = asyncio.get_event_loop()
-            except RuntimeError:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-
-            # Execute the API call
-            canvas_response = loop.run_until_complete(
-                client.request("PUT", f"groups/{group.canvas_id}", data=group_data)
+            updated_group, updated = update_group_sync(
+                integration=integration,
+                group_id=group.canvas_id,
+                name=name,
+                description=description
             )
-
-            # Update our database
-            group.name = name
-            group.description = description
-            group.save()
 
             messages.success(request, f"Group '{name}' updated successfully")
             return redirect("canvas_course_groups", course_id=course_id)
@@ -1408,30 +1312,18 @@ def delete_group(request, course_id, group_id):
         return JsonResponse({"error": "Access denied"}, status=403)
 
     try:
-        # Delete from Canvas via API
-        client = Client(integration)
+        # Use our synchronous utility function to delete the group
+        from lms.canvas.sync_utils import delete_group_sync
 
-        # Make the API request
-        import asyncio
-        try:
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-
-        # Execute the API call
-        try:
-            # This might fail if the group doesn't exist in Canvas anymore
-            loop.run_until_complete(
-                client.request("DELETE", f"groups/{group.canvas_id}")
-            )
-        except Exception as api_error:
-            # Log the error but continue with local deletion
-            logger.warning(f"Error deleting group from Canvas: {str(api_error)}")
-
-        # Delete from our database
+        # Store the name before deletion
         group_name = group.name
-        group.delete()
+        canvas_group_id = group.canvas_id
+
+        # Delete the group
+        success = delete_group_sync(
+            integration=integration,
+            group_id=canvas_group_id
+        )
 
         return JsonResponse({
             "success": True,
@@ -1443,3 +1335,57 @@ def delete_group(request, course_id, group_id):
             "success": False,
             "error": f"Error deleting group: {str(e)}",
         }, status=500)
+
+
+@login_required
+def push_course_group_memberships(request, course_id):
+    """
+    Explicitly push all group memberships for a course to Canvas.
+    This ensures that Canvas has the same group memberships as our local database.
+    """
+    if not request.user.is_authenticated:
+        return redirect("login")
+
+    # Get the course
+    course = get_object_or_404(CanvasCourse, canvas_id=course_id)
+
+    # Check if user has access to this course
+    integration = get_integration_for_user(request.user)
+    if course.integration != integration:
+        messages.error(request, "You do not have access to this course")
+        return redirect("canvas_dashboard")
+
+    if request.method == "POST":
+        try:
+            # Use our synchronous utility function to push all group memberships
+            from lms.canvas.sync_utils import push_all_group_memberships_sync
+
+            # Push all memberships
+            stats = push_all_group_memberships_sync(integration, course_id)
+
+            if stats["errors"] > 0:
+                messages.warning(
+                    request,
+                    f"Pushed memberships for {stats['groups_updated']} groups, but encountered {stats['errors']} errors. See logs for details."
+                )
+            else:
+                messages.success(
+                    request,
+                    f"Successfully pushed memberships for {stats['groups_updated']} groups to Canvas."
+                )
+
+            return redirect("canvas_course_groups", course_id=course_id)
+
+        except Exception as e:
+            messages.error(
+                request, f"Error pushing group memberships: {str(e)}")
+            return redirect("canvas_course_groups", course_id=course_id)
+
+    # If it's a GET request, show confirmation page
+    return render(
+        request,
+        "canvas/groups/confirm_push_memberships.html",
+        {
+            "course": course,
+        },
+    )

@@ -29,15 +29,18 @@ urlpatterns = [
         name="canvas_sync_selected_courses",
     ),
     # Get sync progress (AJAX)
-    path("sync_progress/", views.canvas_sync_progress, name="canvas_sync_progress"),
+    path("sync_progress/", views.canvas_sync_progress,
+         name="canvas_sync_progress"),
     # Courses list
     path("course/", views.canvas_courses_list, name="canvas_courses_list"),
     # Students list
     path("student/", views.canvas_students_list, name="canvas_students_list"),
     # Assignments list
-    path("assignment/", views.canvas_assignments_list, name="canvas_assignments_list"),
+    path("assignment/", views.canvas_assignments_list,
+         name="canvas_assignments_list"),
     # Course detail
-    path("course/<int:course_id>/", views.course_detail, name="canvas_course_detail"),
+    path("course/<int:course_id>/", views.course_detail,
+         name="canvas_course_detail"),
     # Delete course
     path(
         "course/<int:course_id>/delete/",
@@ -62,23 +65,32 @@ urlpatterns = [
         views.student_detail,
         name="canvas_student_detail",
     ),
-    # Group management
+
+    # Group Management URLs
+
+    # Course groups overview
     path(
         "course/<int:course_id>/groups/",
         views.course_groups,
         name="canvas_course_groups",
     ),
-    # Group set detail (AJAX)
-    path(
-        "course/<int:course_id>/group_set/<int:group_set_id>/",
-        views.group_set_detail,
-        name="canvas_group_set_detail",
-    ),
-    # Sync only groups for a course
+    # Sync course groups
     path(
         "course/<int:course_id>/sync_groups/",
         views.canvas_sync_course_groups,
         name="canvas_sync_course_groups",
+    ),
+    # Push all group memberships to Canvas
+    path(
+        "course/<int:course_id>/push_group_memberships/",
+        views.push_course_group_memberships,
+        name="canvas_push_group_memberships",
+    ),
+    # Group set details (AJAX)
+    path(
+        "course/<int:course_id>/group_set/<int:group_set_id>/details/",
+        views.group_set_detail,
+        name="canvas_group_set_detail",
     ),
     # Create group set
     path(
@@ -92,7 +104,7 @@ urlpatterns = [
         views.edit_group_set,
         name="canvas_edit_group_set",
     ),
-    # Delete group set (AJAX)
+    # Delete group set
     path(
         "course/<int:course_id>/group_set/<int:group_set_id>/delete/",
         views.delete_group_set,
@@ -100,7 +112,7 @@ urlpatterns = [
     ),
     # Create group
     path(
-        "course/<int:course_id>/group_set/<int:group_set_id>/group/create/",
+        "course/<int:course_id>/group_set/<int:group_set_id>/create_group/",
         views.create_group,
         name="canvas_create_group",
     ),
@@ -110,14 +122,14 @@ urlpatterns = [
         views.edit_group,
         name="canvas_edit_group",
     ),
-    # Delete group (AJAX)
+    # Delete group
     path(
         "course/<int:course_id>/group/<int:group_id>/delete/",
         views.delete_group,
         name="canvas_delete_group",
     ),
 
-    # Phase 3: Drag and drop student assignment (SortableJS implementation)
+    # Group Assignment URLs (AJAX)
 
     # Add student to group (AJAX)
     path(

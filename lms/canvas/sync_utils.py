@@ -6,7 +6,7 @@ import logging
 from typing import List, Dict, Optional, Any
 
 from lms.canvas.client import Client
-from lms.canvas.models import CanvasCourse, CanvasIntegration
+from lms.canvas.models import CanvasCourse, CanvasIntegration, CanvasGroupCategory, CanvasGroup
 from lms.canvas.progress import SyncProgress
 
 logger = logging.getLogger(__name__)
@@ -52,7 +52,8 @@ async def sync_selected_courses(
             synced.append(course_id)
 
             # Log success
-            logger.info(f"Successfully synced course: {course.name} (ID: {course_id})")
+            logger.info(
+                f"Successfully synced course: {course.name} (ID: {course_id})")
 
         except Exception as e:
             # Log error and continue with next course
@@ -166,7 +167,8 @@ async def push_team_assignments_to_canvas(
         }
 
     except Exception as e:
-        logger.error(f"Error pushing team assignments for course {course_id}: {e}")
+        logger.error(
+            f"Error pushing team assignments for course {course_id}: {e}")
         return {"course_id": course_id, "success": False, "error": str(e)}
 
 
@@ -285,3 +287,604 @@ async def sync_course_groups(
             )
 
         return {"course_id": course_id, "success": False, "error": str(e)}
+
+
+def create_group_category_sync(integration, course_id, name, self_signup=None, auto_leader=None, group_limit=None):
+    """
+    Create a group category in Canvas using synchronous requests.
+    This function is intended for use in views where async/await is problematic.
+
+    Args:
+        integration: CanvasIntegration instance
+        course_id: Canvas course ID
+        name: Name of the group category
+        self_signup: Optional - "enabled" or "restricted"
+        auto_leader: Optional - "first" or "random"
+        group_limit: Optional - Maximum members per group
+
+    Returns:
+        tuple: (category, created) - The CanvasGroupCategory instance and whether it was created
+    """
+    import requests
+    from datetime import datetime
+    from lms.canvas.models import CanvasGroupCategory, CanvasCourse
+
+    # Prepare the API URL and headers
+    api_url = f"{integration.canvas_url}/api/v1/courses/{course_id}/group_categories"
+    headers = {
+        "Authorization": f"Bearer {integration.api_key}",
+        "Content-Type": "application/json",
+    }
+
+    # Convert group_limit to int if provided
+    if group_limit is not None:
+        try:
+            group_limit = int(group_limit)
+        except (ValueError, TypeError):
+            group_limit = None
+
+    # Prepare request data
+    request_data = {
+        "name": name
+    }
+
+    # Only add optional parameters if they have values
+    if self_signup:
+        request_data["self_signup"] = self_signup
+
+    if auto_leader:
+        request_data["auto_leader"] = auto_leader
+
+    if group_limit is not None:
+        request_data["group_limit"] = group_limit
+
+    # Make the API request
+    response = requests.post(api_url, json=request_data, headers=headers)
+
+    # Check for success
+    if response.status_code not in [200, 201]:
+        error_msg = f"Canvas API error: {response.status_code} - {response.text}"
+        logger.error(error_msg)
+        raise ValueError(error_msg)
+
+    # Parse the response
+    canvas_response = response.json()
+
+    # Get the course
+    course = CanvasCourse.objects.get(canvas_id=course_id)
+
+    # Create or update the group category in our database
+    category, created = CanvasGroupCategory.objects.update_or_create(
+        canvas_id=canvas_response["id"],
+        defaults={
+            "course": course,
+            "name": canvas_response.get("name", "Unnamed Category"),
+            "self_signup": canvas_response.get("self_signup"),
+            "auto_leader": canvas_response.get("auto_leader"),
+            "group_limit": canvas_response.get("group_limit"),
+            "created_at": (
+                datetime.fromisoformat(
+                    canvas_response["created_at"].replace("Z", "+00:00")
+                )
+                if canvas_response.get("created_at")
+                else None
+            ),
+        },
+    )
+
+    return category, created
+
+
+def update_group_category_sync(integration, category_id, name=None, self_signup=None, auto_leader=None, group_limit=None):
+    """
+    Update a group category in Canvas using synchronous requests.
+    This function is intended for use in views where async/await is problematic.
+
+    Args:
+        integration: CanvasIntegration instance
+        category_id: Canvas group category ID to update
+        name: Optional - New name for the group category
+        self_signup: Optional - "enabled" or "restricted"
+        auto_leader: Optional - "first" or "random"
+        group_limit: Optional - Maximum members per group
+
+    Returns:
+        tuple: (category, updated) - The CanvasGroupCategory instance and whether it was updated
+    """
+    import requests
+    from datetime import datetime
+    from lms.canvas.models import CanvasGroupCategory
+
+    # Prepare the API URL and headers
+    api_url = f"{integration.canvas_url}/api/v1/group_categories/{category_id}"
+    headers = {
+        "Authorization": f"Bearer {integration.api_key}",
+        "Content-Type": "application/json",
+    }
+
+    # Convert group_limit to int if provided
+    if group_limit is not None:
+        try:
+            group_limit = int(group_limit)
+        except (ValueError, TypeError):
+            group_limit = None
+
+    # Prepare request data - only include parameters that are provided
+    request_data = {}
+
+    if name is not None:
+        request_data["name"] = name
+
+    if self_signup is not None:
+        request_data["self_signup"] = self_signup
+
+    if auto_leader is not None:
+        request_data["auto_leader"] = auto_leader
+
+    if group_limit is not None:
+        request_data["group_limit"] = group_limit
+
+    # Make the API request
+    response = requests.put(api_url, json=request_data, headers=headers)
+
+    # Check for success
+    if response.status_code not in [200, 201]:
+        error_msg = f"Canvas API error: {response.status_code} - {response.text}"
+        logger.error(error_msg)
+        raise ValueError(error_msg)
+
+    # Parse the response
+    canvas_response = response.json()
+
+    # Get the existing category
+    try:
+        category = CanvasGroupCategory.objects.get(canvas_id=category_id)
+
+        # Update the fields
+        if name is not None:
+            category.name = name
+
+        if self_signup is not None:
+            category.self_signup = self_signup
+
+        if auto_leader is not None:
+            category.auto_leader = auto_leader
+
+        if group_limit is not None:
+            category.group_limit = group_limit
+
+        # Save the category
+        category.save()
+
+        return category, True
+    except CanvasGroupCategory.DoesNotExist:
+        # Category doesn't exist locally, create it
+        # First, get the course from the Canvas response
+        course_id = canvas_response.get("course_id")
+
+        if not course_id:
+            error_msg = "Course ID not found in Canvas response"
+            logger.error(error_msg)
+            raise ValueError(error_msg)
+
+        from lms.canvas.models import CanvasCourse
+        course = CanvasCourse.objects.get(canvas_id=course_id)
+
+        # Create the category
+        category, created = CanvasGroupCategory.objects.update_or_create(
+            canvas_id=category_id,
+            defaults={
+                "course": course,
+                "name": canvas_response.get("name", "Unnamed Category"),
+                "self_signup": canvas_response.get("self_signup"),
+                "auto_leader": canvas_response.get("auto_leader"),
+                "group_limit": canvas_response.get("group_limit"),
+                "created_at": (
+                    datetime.fromisoformat(
+                        canvas_response["created_at"].replace("Z", "+00:00")
+                    )
+                    if canvas_response.get("created_at")
+                    else None
+                ),
+            },
+        )
+
+        return category, created
+
+
+def create_group_sync(integration, category_id, name, description=None):
+    """
+    Create a group in Canvas using synchronous requests.
+    This function is intended for use in views where async/await is problematic.
+
+    Args:
+        integration: CanvasIntegration instance
+        category_id: Canvas group category ID (the category/group set to add the group to)
+        name: Name of the group
+        description: Optional - Description of the group
+
+    Returns:
+        tuple: (group, created) - The CanvasGroup instance and whether it was created
+    """
+    import requests
+    from datetime import datetime
+    from lms.canvas.models import CanvasGroup, CanvasGroupCategory
+    from django.utils import timezone
+
+    # Prepare the API URL and headers
+    api_url = f"{integration.canvas_url}/api/v1/group_categories/{category_id}/groups"
+    headers = {
+        "Authorization": f"Bearer {integration.api_key}",
+        "Content-Type": "application/json",
+    }
+
+    # Prepare request data
+    request_data = {
+        "name": name
+    }
+
+    # Only add optional parameters if they have values
+    if description is not None:
+        request_data["description"] = description
+
+    # Make the API request
+    response = requests.post(api_url, json=request_data, headers=headers)
+
+    # Check for success
+    if response.status_code not in [200, 201]:
+        error_msg = f"Canvas API error: {response.status_code} - {response.text}"
+        logger.error(error_msg)
+        raise ValueError(error_msg)
+
+    # Parse the response
+    canvas_response = response.json()
+
+    # Get the group category (parent) for this group
+    category = CanvasGroupCategory.objects.get(canvas_id=category_id)
+
+    # Handle description which might be None
+    description_to_save = canvas_response.get("description", "")
+    if description_to_save is None:
+        description_to_save = ""
+
+    # Create or update the group in our database
+    group, created = CanvasGroup.objects.update_or_create(
+        canvas_id=canvas_response["id"],
+        defaults={
+            "category": category,
+            "name": canvas_response.get("name", "Unnamed Group"),
+            "description": description_to_save,
+            "created_at": (
+                datetime.fromisoformat(
+                    canvas_response["created_at"].replace("Z", "+00:00")
+                )
+                if canvas_response.get("created_at")
+                else None
+            ),
+            "last_synced_at": timezone.now(),
+        },
+    )
+
+    return group, created
+
+
+def update_group_sync(integration, group_id, name=None, description=None, members=None):
+    """
+    Update a group in Canvas using synchronous requests.
+    This function is intended for use in views where async/await is problematic.
+
+    Args:
+        integration: CanvasIntegration instance
+        group_id: Canvas group ID to update
+        name: Optional - New name for the group
+        description: Optional - New description for the group
+        members: Optional - List of user IDs to set as members (overwrites existing members)
+
+    Returns:
+        tuple: (group, updated) - The CanvasGroup instance and whether it was updated
+    """
+    import requests
+    from datetime import datetime
+    from lms.canvas.models import CanvasGroup
+    from django.utils import timezone
+
+    # Prepare the API URL and headers
+    api_url = f"{integration.canvas_url}/api/v1/groups/{group_id}"
+    headers = {
+        "Authorization": f"Bearer {integration.api_key}",
+        "Content-Type": "application/json",
+    }
+
+    # Prepare request data - only include parameters that are provided
+    request_data = {}
+
+    if name is not None:
+        request_data["name"] = name
+
+    if description is not None:
+        request_data["description"] = description
+
+    # When members list is provided, we'll use a special format
+    # Canvas API expects members[] parameters for each member
+    if members is not None and isinstance(members, list):
+        # We need to switch to form data format instead of JSON for this specific case
+        form_data = []
+        for user_id in members:
+            form_data.append(("members[]", str(user_id)))
+
+        # If we have other parameters, add them too
+        if name is not None:
+            form_data.append(("name", name))
+        if description is not None:
+            form_data.append(("description", description))
+
+        # Make the API request with form data
+        response = requests.put(api_url, data=form_data, headers={
+            "Authorization": headers["Authorization"],
+        })
+    else:
+        # Make the API request with JSON data (normal case)
+        response = requests.put(api_url, json=request_data, headers=headers)
+
+    # Check for success
+    if response.status_code not in [200, 201]:
+        error_msg = f"Canvas API error: {response.status_code} - {response.text}"
+        logger.error(error_msg)
+        raise ValueError(error_msg)
+
+    # Parse the response
+    canvas_response = response.json()
+
+    # Get the existing group
+    try:
+        group = CanvasGroup.objects.get(canvas_id=group_id)
+
+        # Update the fields
+        if name is not None:
+            group.name = name
+
+        if description is not None:
+            # Handle None description
+            if description is None:
+                group.description = ""
+            else:
+                group.description = description
+
+        # Update the last synced timestamp
+        group.last_synced_at = timezone.now()
+
+        # Save the group
+        group.save()
+
+        return group, True
+    except CanvasGroup.DoesNotExist:
+        # Group doesn't exist locally, create it
+        # First, get the group category from the Canvas response
+        category_id = canvas_response.get("group_category_id")
+
+        if not category_id:
+            error_msg = "Group Category ID not found in Canvas response"
+            logger.error(error_msg)
+            raise ValueError(error_msg)
+
+        from lms.canvas.models import CanvasGroupCategory
+        try:
+            category = CanvasGroupCategory.objects.get(canvas_id=category_id)
+        except CanvasGroupCategory.DoesNotExist:
+            error_msg = f"Group Category with ID {category_id} does not exist in the database"
+            logger.error(error_msg)
+            raise ValueError(error_msg)
+
+        # Handle description which might be None
+        description_to_save = canvas_response.get("description", "")
+        if description_to_save is None:
+            description_to_save = ""
+
+        # Create the group
+        group, created = CanvasGroup.objects.update_or_create(
+            canvas_id=group_id,
+            defaults={
+                "category": category,
+                "name": canvas_response.get("name", "Unnamed Group"),
+                "description": description_to_save,
+                "created_at": (
+                    datetime.fromisoformat(
+                        canvas_response["created_at"].replace("Z", "+00:00")
+                    )
+                    if canvas_response.get("created_at")
+                    else None
+                ),
+                "last_synced_at": timezone.now(),
+            },
+        )
+
+        return group, created
+
+
+def delete_group_sync(integration, group_id):
+    """
+    Delete a group in Canvas using synchronous requests.
+    This function is intended for use in views where async/await is problematic.
+
+    Args:
+        integration: CanvasIntegration instance
+        group_id: Canvas group ID to delete
+
+    Returns:
+        bool: True if deletion was successful
+    """
+    import requests
+    from lms.canvas.models import CanvasGroup
+
+    # Prepare the API URL and headers
+    api_url = f"{integration.canvas_url}/api/v1/groups/{group_id}"
+    headers = {
+        "Authorization": f"Bearer {integration.api_key}",
+        "Content-Type": "application/json",
+    }
+
+    # Make the API request
+    response = requests.delete(api_url, headers=headers)
+
+    # Check for success - Canvas returns 200 status code for successful deletion
+    if response.status_code not in [200, 204]:
+        error_msg = f"Canvas API error: {response.status_code} - {response.text}"
+        logger.error(error_msg)
+        # If group doesn't exist in Canvas (404), we'll still delete it locally
+        if response.status_code != 404:
+            raise ValueError(error_msg)
+
+    # The group is deleted in Canvas, or doesn't exist there
+    # We need to delete it from our database too
+
+    try:
+        # Get the group
+        group = CanvasGroup.objects.get(canvas_id=group_id)
+        group_name = group.name
+
+        # Delete it
+        group.delete()
+
+        return True
+    except CanvasGroup.DoesNotExist:
+        # If the group doesn't exist in our database, it's already deleted
+        logger.warning(
+            f"Group with Canvas ID {group_id} does not exist in the database")
+        return True
+
+
+def delete_group_category_sync(integration, category_id):
+    """
+    Delete a group category in Canvas using synchronous requests.
+    This function is intended for use in views where async/await is problematic.
+
+    Args:
+        integration: CanvasIntegration instance
+        category_id: Canvas group category ID to delete
+
+    Returns:
+        bool: True if deletion was successful
+    """
+    import requests
+    from lms.canvas.models import CanvasGroupCategory
+
+    # Prepare the API URL and headers
+    api_url = f"{integration.canvas_url}/api/v1/group_categories/{category_id}"
+    headers = {
+        "Authorization": f"Bearer {integration.api_key}",
+        "Content-Type": "application/json",
+    }
+
+    # Make the API request
+    response = requests.delete(api_url, headers=headers)
+
+    # Check for success - Canvas returns 200 status code for successful deletion
+    if response.status_code not in [200, 204]:
+        error_msg = f"Canvas API error: {response.status_code} - {response.text}"
+        logger.error(error_msg)
+        # If category doesn't exist in Canvas (404), we'll still delete it locally
+        if response.status_code != 404:
+            raise ValueError(error_msg)
+
+    # The category is deleted in Canvas, or doesn't exist there
+    # We need to delete it from our database too
+
+    try:
+        # Get the category
+        category = CanvasGroupCategory.objects.get(canvas_id=category_id)
+        category_name = category.name
+
+        # Delete it
+        category.delete()
+
+        return True
+    except CanvasGroupCategory.DoesNotExist:
+        # If the category doesn't exist in our database, it's already deleted
+        logger.warning(
+            f"Group category with Canvas ID {category_id} does not exist in the database")
+        return True
+
+
+def push_group_memberships_sync(integration, group_id, user_ids):
+    """
+    Push group memberships to Canvas synchronously.
+    This updates the group members in Canvas to match the provided user IDs.
+
+    Args:
+        integration: CanvasIntegration instance
+        group_id: Canvas group ID to update members for
+        user_ids: List of Canvas user IDs to set as members (overwrites existing members)
+
+    Returns:
+        bool: True if update was successful
+    """
+    import requests
+
+    # Prepare the API URL and headers
+    api_url = f"{integration.canvas_url}/api/v1/groups/{group_id}"
+    headers = {
+        "Authorization": f"Bearer {integration.api_key}",
+    }
+
+    # Canvas API expects members[] parameters for each member
+    form_data = []
+    for user_id in user_ids:
+        form_data.append(("members[]", str(user_id)))
+
+    # Make the API request with form data
+    response = requests.put(api_url, data=form_data, headers=headers)
+
+    # Check for success
+    if response.status_code not in [200, 201]:
+        error_msg = f"Canvas API error: {response.status_code} - {response.text}"
+        logger.error(error_msg)
+        raise ValueError(error_msg)
+
+    return True
+
+
+def push_all_group_memberships_sync(integration, course_id):
+    """
+    Push all group memberships for a course to Canvas synchronously.
+    This ensures that the Canvas group memberships match our local database.
+
+    Args:
+        integration: CanvasIntegration instance
+        course_id: Canvas course ID
+
+    Returns:
+        dict: Summary of the operation with counts
+    """
+    from lms.canvas.models import CanvasCourse, CanvasGroup, CanvasGroupMembership
+
+    # Get the course
+    course = CanvasCourse.objects.get(canvas_id=course_id)
+
+    # Track statistics
+    stats = {
+        "groups_updated": 0,
+        "errors": 0,
+    }
+
+    # Get all groups for this course
+    groups = CanvasGroup.objects.filter(category__course=course)
+
+    for group in groups:
+        try:
+            # Get all memberships for this group
+            memberships = CanvasGroupMembership.objects.filter(group=group)
+            user_ids = [membership.user_id for membership in memberships]
+
+            # Only push if there are members to assign
+            if user_ids:
+                # Push to Canvas
+                push_group_memberships_sync(
+                    integration, group.canvas_id, user_ids)
+                stats["groups_updated"] += 1
+
+        except Exception as e:
+            logger.error(
+                f"Error pushing memberships for group {group.name}: {str(e)}")
+            stats["errors"] += 1
+
+    return stats

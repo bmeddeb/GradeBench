@@ -29,6 +29,9 @@
                     <button id="syncGroupsBtn" class="btn btn-sm btn-primary">
                         <i class="fa fa-refresh"></i> Sync Groups
                     </button>
+                    <a href="{% url 'canvas_push_group_memberships' course_id=course.canvas_id %}" class="btn btn-sm btn-info">
+                        <i class="fa fa-upload"></i> Push Memberships
+                    </a>
                 </div>
             </div>
             <div class="card-body">
@@ -383,44 +386,41 @@
 
         // Function to load group set data
         function loadGroupSetData(categoryId) {
-            // If data is already loaded, no need to reload
             const container = document.getElementById(`groups-container-${categoryId}`);
-            if (container && container.hasAttribute('data-loaded')) {
-                return;
-            }
-
-            // Show loading indicator
             const loadingElement = document.getElementById(`loading-${categoryId}`);
-            if (loadingElement) {
-                loadingElement.style.display = 'block';
-            }
-            if (container) {
-                container.style.display = 'none';
-            }
 
-            // Fetch group set details
-            fetch(`/canvas/course/{{ course.canvas_id }}/group_set/${categoryId}/`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Error fetching group set data');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    renderGroupSetData(categoryId, data);
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    if (container) {
-                        container.innerHTML = `<div class="alert alert-danger">Error loading group data: ${error.message}</div>`;
-                        container.style.display = 'block';
-                    }
-                })
-                .finally(() => {
+            if (container) {
+                // Only fetch if not already loaded
+                if (container.getAttribute('data-loaded') !== 'true') {
                     if (loadingElement) {
-                        loadingElement.style.display = 'none';
+                        loadingElement.style.display = 'block';
                     }
-                });
+
+                    // Fetch the data for this group set
+                    fetch(`/canvas/course/{{ course.canvas_id }}/group_set/${categoryId}/details/`)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('Error fetching group set data');
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            renderGroupSetData(categoryId, data);
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            if (container) {
+                                container.innerHTML = `<div class="alert alert-danger">Error loading group data: ${error.message}</div>`;
+                                container.style.display = 'block';
+                            }
+                        })
+                        .finally(() => {
+                            if (loadingElement) {
+                                loadingElement.style.display = 'none';
+                            }
+                        });
+                }
+            }
         }
 
         // Function to render group set data

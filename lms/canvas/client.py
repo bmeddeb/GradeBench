@@ -17,6 +17,7 @@ from .models import (
     CanvasRubricCriterion,
     CanvasRubricRating,
     CanvasSubmission,
+    CanvasGroupCategory,
 )
 
 logger = logging.getLogger(__name__)
@@ -153,7 +154,8 @@ class Client:
         return await self.request(
             "GET",
             f"courses/{course_id}/assignments/{assignment_id}",
-            params={"include[]": ["submission", "rubric", "all_dates", "overrides"]},
+            params={"include[]": ["submission",
+                                  "rubric", "all_dates", "overrides"]},
         )
 
     async def get_submissions(self, course_id: int, assignment_id: int) -> List[Dict]:
@@ -174,7 +176,8 @@ class Client:
         return await self.request(
             "GET",
             f"courses/{course_id}/assignments/{assignment_id}/submissions/{user_id}",
-            params={"include[]": ["user", "submission_comments", "rubric_assessment"]},
+            params={"include[]": [
+                "user", "submission_comments", "rubric_assessment"]},
         )
 
     @sync_to_async
@@ -194,7 +197,8 @@ class Client:
                     else None
                 ),
                 "end_at": (
-                    datetime.fromisoformat(course_data["end_at"].replace("Z", "+00:00"))
+                    datetime.fromisoformat(
+                        course_data["end_at"].replace("Z", "+00:00"))
                     if course_data.get("end_at")
                     else None
                 ),
@@ -227,7 +231,8 @@ class Client:
                 "enrollment_state": enrollment_data.get("enrollment_state", "active"),
                 "last_activity_at": (
                     datetime.fromisoformat(
-                        enrollment_data["last_activity_at"].replace("Z", "+00:00")
+                        enrollment_data["last_activity_at"].replace(
+                            "Z", "+00:00")
                     )
                     if enrollment_data.get("last_activity_at")
                     else None
@@ -596,7 +601,8 @@ class Client:
 
                 # Sync group memberships to Student.team assignments
                 await syncer.sync_group_memberships(course, user_id)
-                logger.info(f"Synced group memberships for course {course.name}")
+                logger.info(
+                    f"Synced group memberships for course {course.name}")
 
                 # Optional: Clean up teams no longer in Canvas
                 # (This is commented out by default as it could remove manually created teams)
@@ -715,11 +721,50 @@ class Client:
             params=params,
         )
 
+    async def create_group_category(
+        self, course_id: int, name: str, self_signup: Optional[str] = None,
+        auto_leader: Optional[str] = None, group_limit: Optional[int] = None
+    ):
+        """
+        Create a new group category (group set) in Canvas
+
+        Args:
+            course_id: Canvas course ID
+            name: The name of the group category
+            self_signup: "enabled" or "restricted" - whether students can sign up for a group themselves
+            auto_leader: "first" or "random" - assigns group leader automatically
+            group_limit: Maximum number of members per group
+
+        Returns:
+            The created group category data from Canvas
+        """
+        # Build data for API request
+        category_data = {"name": name}
+
+        # Only add optional parameters if they are provided
+        if self_signup:
+            category_data["self_signup"] = self_signup
+
+        if auto_leader:
+            category_data["auto_leader"] = auto_leader
+
+        if group_limit is not None:
+            category_data["group_limit"] = group_limit
+
+        # Make the API request
+        response = await self.request(
+            "POST", f"courses/{course_id}/group_categories", data=category_data
+        )
+
+        # Save to our database
+        course = await CanvasCourse.objects.aget(canvas_id=course_id)
+        await self._save_group_category(response, course)
+
+        return response
+
     @sync_to_async
     def _save_group_category(self, category_data: Dict, course: CanvasCourse):
         """Save group category data to the database (sync function)"""
-        from .models import CanvasGroupCategory
-
         category, created = CanvasGroupCategory.objects.update_or_create(
             canvas_id=category_data["id"],
             defaults={
@@ -805,7 +850,8 @@ class Client:
 
                 # If still not found, look by email as a last resort
                 if student is None and member_data.get("email"):
-                    student = Student.objects.filter(email=member_data["email"]).first()
+                    student = Student.objects.filter(
+                        email=member_data["email"]).first()
                     if student:
                         # Update the student's canvas_user_id
                         student.canvas_user_id = str(member_data["id"])
@@ -925,7 +971,8 @@ class Client:
 
                 except Exception as e:
                     errors.append({"course": course_name, "error": str(e)})
-                    logger.error(f"Error syncing course {course_data.get('id')}: {e}")
+                    logger.error(
+                        f"Error syncing course {course_data.get('id')}: {e}")
 
                     # Update progress to show error for this course
                     if user_id:
@@ -947,7 +994,8 @@ class Client:
                 # Add more detail if there were errors
                 error_detail = None
                 if errors:
-                    error_courses = ", ".join([e["course"] for e in errors[:3]])
+                    error_courses = ", ".join(
+                        [e["course"] for e in errors[:3]])
                     if len(errors) > 3:
                         error_courses += f", and {len(errors) - 3} more"
                     error_detail = f"Errors in courses: {error_courses}"
@@ -983,3 +1031,142 @@ class Client:
 
             logger.error(f"Error in sync_all_courses: {e}")
             raise
+
+    async def update_group_category(
+        self, category_id: int, name: Optional[str] = None, self_signup: Optional[str] = None,
+        auto_leader: Optional[str] = None, group_limit: Optional[int] = None
+    ):
+        """
+        Update an existing group category (group set) in Canvas
+
+        Args:
+            category_id: Canvas group category ID
+            name: The name of the group category
+            self_signup: "enabled" or "restricted" - whether students can sign up for a group themselves
+            auto_leader: "first" or "random" - assigns group leader automatically
+            group_limit: Maximum number of members per group
+
+        Returns:
+            The updated group category data from Canvas
+        """
+        # Build data for API request
+        category_data = {}
+
+        # Only add parameters if they are provided
+        if name is not None:
+            category_data["name"] = name
+
+        if self_signup is not None:
+            category_data["self_signup"] = self_signup
+
+        if auto_leader is not None:
+            category_data["auto_leader"] = auto_leader
+
+        if group_limit is not None:
+            category_data["group_limit"] = group_limit
+
+        # Make the API request
+        response = await self.request(
+            "PUT", f"group_categories/{category_id}", data=category_data
+        )
+
+        # Get the course to pass to the save method
+        # First fetch the category to get its course
+        try:
+            category = await CanvasGroupCategory.objects.aget(canvas_id=category_id)
+            course = category.course
+            await self._save_group_category(response, course)
+        except CanvasGroupCategory.DoesNotExist:
+            # If category doesn't exist locally yet, just log and continue
+            logger.warning(
+                f"Tried to update group category {category_id} which doesn't exist locally")
+
+        return response
+
+    async def create_group(
+        self, category_id: int, name: str, description: Optional[str] = None
+    ):
+        """
+        Create a new group within a group category in Canvas
+
+        Args:
+            category_id: Canvas group category ID
+            name: The name of the group
+            description: Optional description of the group
+
+        Returns:
+            The created group data from Canvas
+        """
+        # Build data for API request
+        group_data = {"name": name}
+
+        if description:
+            group_data["description"] = description
+
+        # Make the API request
+        response = await self.request(
+            "POST", f"group_categories/{category_id}/groups", data=group_data
+        )
+
+        # Save to our database
+        try:
+            category = await CanvasGroupCategory.objects.aget(canvas_id=category_id)
+            await self._save_group(response, category)
+        except CanvasGroupCategory.DoesNotExist:
+            # If category doesn't exist locally yet, just log and continue
+            logger.warning(
+                f"Tried to create group in category {category_id} which doesn't exist locally")
+
+        return response
+
+    async def update_group(
+        self, group_id: int, name: Optional[str] = None, description: Optional[str] = None,
+        members: Optional[List[int]] = None
+    ):
+        """
+        Update an existing group in Canvas
+
+        Args:
+            group_id: Canvas group ID
+            name: The name of the group
+            description: Description of the group
+            members: List of user IDs to set as members (overwrites existing members)
+
+        Returns:
+            The updated group data from Canvas
+        """
+        # Build data for API request
+        group_data = {}
+
+        if name is not None:
+            group_data["name"] = name
+
+        if description is not None:
+            group_data["description"] = description
+
+        # Handle members separately - they need to be passed as members[]
+        if members is not None:
+            group_data = [("members[]", user_id) for user_id in members]
+            # If we have other parameters, add them to the form data
+            if name is not None:
+                group_data.append(("name", name))
+            if description is not None:
+                group_data.append(("description", description))
+
+        # Make the API request
+        response = await self.request(
+            "PUT", f"groups/{group_id}", data=group_data
+        )
+
+        # Update in our database
+        from .models import CanvasGroup
+        try:
+            group = await CanvasGroup.objects.aget(canvas_id=group_id)
+            category = group.category
+            await self._save_group(response, category)
+        except CanvasGroup.DoesNotExist:
+            # If group doesn't exist locally yet, just log and continue
+            logger.warning(
+                f"Tried to update group {group_id} which doesn't exist locally")
+
+        return response
