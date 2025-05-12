@@ -27,7 +27,8 @@ class AssignmentMixin:
         return await self.request(
             "GET",
             f"courses/{course_id}/assignments/{assignment_id}",
-            params={"include[]": ["submission", "rubric", "all_dates", "overrides"]},
+            params={"include[]": ["submission",
+                                  "rubric", "all_dates", "overrides"]},
         )
 
     async def get_submissions(self, course_id: int, assignment_id: int) -> List[Dict]:
@@ -48,7 +49,8 @@ class AssignmentMixin:
         return await self.request(
             "GET",
             f"courses/{course_id}/assignments/{assignment_id}/submissions/{user_id}",
-            params={"include[]": ["user", "submission_comments", "rubric_assessment"]},
+            params={"include[]": [
+                "user", "submission_comments", "rubric_assessment"]},
         )
 
     async def _save_assignment(
@@ -149,11 +151,11 @@ class AssignmentMixin:
         # Find the enrollment
         try:
             enrollment = await self.models.CanvasEnrollment.objects.aget(
-                course=assignment.course, user_id=submission_data["user_id"]
+                course_id=assignment.course_id, user_id=submission_data["user_id"]
             )
         except self.models.CanvasEnrollment.DoesNotExist:
             logger.warning(
-                f"Enrollment not found for user {submission_data['user_id']} in course {assignment.course.canvas_id}"
+                f"Enrollment not found for user {submission_data['user_id']} in course {assignment.course_id}"
             )
             return None
 
