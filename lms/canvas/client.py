@@ -3,10 +3,6 @@
 Async client for interacting with the Canvas API.
 """
 import logging
-from datetime import datetime
-from typing import Any, Dict, List, Optional, Union
-import httpx
-import asyncio
 from django.utils import timezone
 
 # Import mixins
