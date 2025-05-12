@@ -325,6 +325,30 @@
             // Create a POST request with CSRF token
             const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
+            // Show the delete operation in progress 
+            const modal = document.getElementById('confirmDeleteModal');
+            const modalBody = document.getElementById('confirmDeleteModalBody');
+            const confirmButton = document.getElementById('confirmDeleteButton');
+            const closeButton = modal.querySelector('.btn-close');
+            const cancelButton = modal.querySelector('.btn-secondary');
+
+            // Disable buttons and show spinner
+            confirmButton.disabled = true;
+            closeButton.disabled = true;
+            cancelButton.disabled = true;
+            
+            // Replace current text with a loading indicator
+            const originalText = modalBody.innerHTML;
+            modalBody.innerHTML = `
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Deleting group set...</span>
+                    </div>
+                    <p class="mt-2">Deleting group set and updating Canvas...</p>
+                    <p class="text-muted small">This may take a moment to complete.</p>
+                </div>
+            `;
+
             fetch(`/canvas/course/{{ course.canvas_id }}/group_set/${categoryId}/delete/`, {
                 method: 'POST',
                 headers: {
@@ -351,6 +375,14 @@
                     // Reload the page
                     window.location.reload();
                 } else {
+                    // Restore original modal content
+                    modalBody.innerHTML = originalText;
+                    
+                    // Re-enable buttons
+                    confirmButton.disabled = false;
+                    closeButton.disabled = false;
+                    cancelButton.disabled = false;
+                    
                     // Show error message
                     if (typeof $ !== 'undefined' && typeof $.notify === 'function') {
                         $.notify({
@@ -368,6 +400,15 @@
             })
             .catch(error => {
                 console.error('Error deleting group set:', error);
+                
+                // Restore original modal content
+                modalBody.innerHTML = originalText;
+                
+                // Re-enable buttons
+                confirmButton.disabled = false;
+                closeButton.disabled = false;
+                cancelButton.disabled = false;
+                
                 // Show error message
                 if (typeof $ !== 'undefined' && typeof $.notify === 'function') {
                     $.notify({
@@ -671,6 +712,29 @@
             // Create a POST request with CSRF token
             const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
+            // Show the delete operation in progress 
+            const modal = document.getElementById('confirmDeleteModal');
+            const modalBody = document.getElementById('confirmDeleteModalBody');
+            const confirmButton = document.getElementById('confirmDeleteButton');
+            const closeButton = modal.querySelector('.btn-close');
+            const cancelButton = modal.querySelector('.btn-secondary');
+
+            // Disable buttons and show spinner
+            confirmButton.disabled = true;
+            closeButton.disabled = true;
+            cancelButton.disabled = true;
+            
+            // Replace current text with a loading indicator
+            const originalText = modalBody.innerHTML;
+            modalBody.innerHTML = `
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Deleting group...</span>
+                    </div>
+                    <p class="mt-2">Deleting group and updating Canvas...</p>
+                </div>
+            `;
+
             fetch(`/canvas/course/{{ course.canvas_id }}/group/${groupId}/delete/`, {
                 method: 'POST',
                 headers: {
@@ -682,7 +746,11 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Show success message using notify instead of alert
+                    // Close the modal
+                    const modalInstance = bootstrap.Modal.getInstance(modal);
+                    modalInstance.hide();
+
+                    // Show success message using notify
                     if (typeof $ !== 'undefined' && typeof $.notify === 'function') {
                         $.notify({
                             message: data.message
@@ -705,6 +773,14 @@
                         loadGroupSetData(categoryId);
                     }
                 } else {
+                    // Restore original modal content
+                    modalBody.innerHTML = originalText;
+                    
+                    // Re-enable buttons
+                    confirmButton.disabled = false;
+                    closeButton.disabled = false;
+                    cancelButton.disabled = false;
+                    
                     // Show error message
                     if (typeof $ !== 'undefined' && typeof $.notify === 'function') {
                         $.notify({
@@ -722,6 +798,15 @@
             })
             .catch(error => {
                 console.error('Error deleting group:', error);
+                
+                // Restore original modal content
+                modalBody.innerHTML = originalText;
+                
+                // Re-enable buttons
+                confirmButton.disabled = false;
+                closeButton.disabled = false;
+                cancelButton.disabled = false;
+                
                 // Show error message
                 if (typeof $ !== 'undefined' && typeof $.notify === 'function') {
                     $.notify({

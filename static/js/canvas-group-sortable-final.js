@@ -471,64 +471,98 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        // Show confirmation notification with buttons
-        if (typeof $ !== 'undefined' && typeof $.notify === 'function') {
-            // Create a custom notification with action buttons
-            const confirmNotify = $.notify({
-                title: '<strong>Confirm Random Assignment</strong>',
-                message: 'This will randomly assign all unassigned students to groups. Proceed?'
-            }, {
-                type: 'info',
-                delay: 0, // No auto-close
-                placement: { from: 'top', align: 'center' },
-                z_index: 2000,
-                template: '<div data-notify="container" class="col-xs-11 col-sm-4 alert alert-{0}" role="alert">' +
-                    '<button type="button" aria-hidden="true" class="close" data-notify="dismiss">×</button>' +
-                    '<span data-notify="icon"></span> ' +
-                    '<span data-notify="title">{1}</span> ' +
-                    '<span data-notify="message">{2}</span>' +
-                    '<div class="progress" data-notify="progressbar">' +
-                    '<div class="progress-bar progress-bar-{0}" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%;"></div>' +
-                    '</div>' +
-                    '<div class="notify-actions" style="margin-top: 10px; text-align: right;">' +
-                    '<button class="btn btn-sm btn-light cancel-btn">Cancel</button> ' +
-                    '<button class="btn btn-sm btn-primary confirm-btn">Proceed</button>' +
-                    '</div>' +
-                    '</div>'
+        // Create a confirmation modal
+        let confirmModal = document.createElement('div');
+        confirmModal.className = 'modal fade';
+        confirmModal.id = 'randomAssignConfirmModal';
+        confirmModal.setAttribute('tabindex', '-1');
+        confirmModal.setAttribute('aria-labelledby', 'randomAssignConfirmModalLabel');
+        confirmModal.setAttribute('aria-hidden', 'true');
+        
+        confirmModal.innerHTML = `
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="randomAssignConfirmModalLabel">Confirm Random Assignment</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>This will randomly assign all unassigned students to groups.</p>
+                        <p>Do you want to proceed?</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" id="confirmRandomAssignBtn">Proceed</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Add modal to body
+        document.body.appendChild(confirmModal);
+        
+        // Show the modal
+        const bsConfirmModal = new bootstrap.Modal(confirmModal);
+        bsConfirmModal.show();
+        
+        // Add event listener to the confirm button
+        const confirmBtn = document.getElementById('confirmRandomAssignBtn');
+        confirmBtn.addEventListener('click', async function() {
+            bsConfirmModal.hide();
+            
+            // Remove the modal after hidden
+            confirmModal.addEventListener('hidden.bs.modal', function() {
+                document.body.removeChild(confirmModal);
+                // Proceed with random assignment
+                performRandomAssignment(categoryId);
             });
-
-            // Handle buttons in the notification
-            const container = confirmNotify.$ele;
-            container.find('.confirm-btn').on('click', async function() {
-                confirmNotify.close();
-                await performRandomAssignment(categoryId);
-            });
-
-            container.find('.cancel-btn').on('click', function() {
-                confirmNotify.close();
-            });
-
-            return; // Exit the function - user will click button to proceed
-        }
-
-        // Fallback if notify isn't available (shouldn't happen)
-        await performRandomAssignment(categoryId);
+        });
+        
+        // Remove the modal when hidden
+        confirmModal.addEventListener('hidden.bs.modal', function() {
+            // Only remove if it hasn't been removed yet by the confirm action
+            if (document.body.contains(confirmModal)) {
+                document.body.removeChild(confirmModal);
+            }
+        });
     };
 
     // Separate function to actually perform the random assignment
     async function performRandomAssignment(categoryId) {
         try {
-            // Show loading notification
-            if (typeof $ !== 'undefined' && typeof $.notify === 'function') {
-                $.notify({
-                    message: 'Randomly assigning students...'
-                }, {
-                    type: 'info',
-                    placement: { from: 'top', align: 'center' },
-                    z_index: 2000,
-                    delay: 2000
-                });
-            }
+            // Create a modal to show progress
+            let progressModal = document.createElement('div');
+            progressModal.className = 'modal fade';
+            progressModal.id = 'randomAssignProgressModal';
+            progressModal.setAttribute('tabindex', '-1');
+            progressModal.setAttribute('aria-labelledby', 'randomAssignProgressModalLabel');
+            progressModal.setAttribute('aria-hidden', 'true');
+            progressModal.setAttribute('data-bs-backdrop', 'static');
+            progressModal.setAttribute('data-bs-keyboard', 'false');
+            
+            progressModal.innerHTML = `
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="randomAssignProgressModalLabel">Random Assignment in Progress</h5>
+                        </div>
+                        <div class="modal-body text-center">
+                            <div class="spinner-border text-primary mb-3" role="status">
+                                <span class="visually-hidden">Assigning students...</span>
+                            </div>
+                            <p>Randomly assigning students to groups...</p>
+                            <p class="text-muted small">This may take a few moments. Please don't close this window.</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Add modal to body
+            document.body.appendChild(progressModal);
+            
+            // Show the modal
+            const bsProgressModal = new bootstrap.Modal(progressModal);
+            bsProgressModal.show();
 
             // Get course ID from URL
             const courseId = getCourseIdFromURL();
@@ -548,6 +582,12 @@ document.addEventListener('DOMContentLoaded', function() {
             });
 
             const data = await response.json();
+
+            // Hide and remove the progress modal
+            bsProgressModal.hide();
+            setTimeout(() => {
+                document.body.removeChild(progressModal);
+            }, 300);
 
             if (data.success) {
                 // Show success notification
