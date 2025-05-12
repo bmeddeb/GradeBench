@@ -61,5 +61,13 @@ from .views.groups import (
     push_course_group_memberships,
 )
 
+# Import special Ajax views from views_group_assignment since they're not in our modular structure yet
+from .views_group_assignment import (
+    add_student_to_group,
+    remove_student_from_group,
+    batch_assign_students,
+    random_assign_students,
+)
+
 # Alias for backward compatibility
 canvas_course_groups = course_groups
