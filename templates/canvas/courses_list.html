@@ -1,9 +1,14 @@
+<!-- templates/canvas/courses_list.html -->
 {% extends 'canvas/base.html' %}
 {% load static %}
 
 {% block title %}Canvas Courses | GradeBench{% endblock %}
 {% block page_title %}Canvas Courses{% endblock %}
 {% block nav_canvas_courses %}active{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/canvas-sync-progress.css' %}">
+{% endblock %}
 
 {% block canvas_content %}
 <div class="row">
@@ -14,15 +19,32 @@
                     <h4 class="card-title">Canvas Courses</h4>
                     <p class="card-category">All courses synced from Canvas</p>
                 </div>
-                {% if course_data %}
                 <div>
+                    {% if course_data %}
                     <button class="btn btn-primary btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#syncCoursesModal">
                         <i class="fa fa-plus"></i> Add More Courses
                     </button>
+                    {% else %}
+                    <button id="syncCoursesBtn" class="btn btn-primary btn-sm" type="button">
+                        <i class="fa fa-sync"></i> Sync All Courses
+                    </button>
+                    {% endif %}
                 </div>
-                {% endif %}
             </div>
             <div class="card-body">
+                <!-- Progress bar for sync operations - initially hidden -->
+                <div id="syncProgress" class="progress-container mb-3" style="display: none;">
+                    <div class="d-flex justify-content-between">
+                        <span id="syncStatusMessage" class="progress-message mb-1">Syncing courses...</span>
+                        <span id="syncPercentage" class="progress-percentage">0%</span>
+                    </div>
+                    <div class="progress">
+                        <div id="syncProgressBar" class="progress-bar progress-bar-primary" role="progressbar" style="width: 0%;">
+                        </div>
+                    </div>
+                    <small id="syncProgressStatus" class="text-muted"></small>
+                </div>
+
                 <div class="table-responsive">
                     {% if course_data %}
                     <table class="table table-hover">
@@ -52,7 +74,7 @@
                                     <a href="{% url 'canvas_course_detail' course_id=item.course.canvas_id %}" class="btn btn-info btn-xs">
                                         <i class="fa fa-eye"></i> View
                                     </a>
-                                    <a href="{% url 'canvas_sync_course' course_id=item.course.canvas_id %}" class="btn btn-default btn-xs">
+                                    <a href="#" class="btn btn-default btn-xs sync-course-btn" data-course-id="{{ item.course.canvas_id }}">
                                         <i class="fa fa-refresh"></i> Sync
                                     </a>
                                     <a href="{% url 'canvas_delete_course' course_id=item.course.canvas_id %}" class="btn btn-danger btn-xs">
@@ -113,5 +135,61 @@
 {% endblock %}
 
 {% block canvas_js %}
-<!-- Using centralized JS from canvas-sync-progress.js -->
+<script src="{% static 'js/canvas-sync-progress.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add event listeners to the individual course sync buttons
+    const syncButtons = document.querySelectorAll('.sync-course-btn');
+    syncButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const courseId = this.getAttribute('data-course-id');
+            syncCourse(courseId);
+        });
+    });
+
+    // Custom function to sync a single course
+    function syncCourse(courseId) {
+        // Start sync with progress tracking
+        startSyncWithProgress(
+            '/canvas/sync_selected_courses/',
+            {course_ids: [courseId]},
+            courseId
+        );
+    }
+
+    // Custom function to handle modal course selection
+    window.syncSelectedCourses = function() {
+        const selected = Array.from(document.querySelectorAll('.course-checkbox:checked')).map(cb => cb.value);
+        if (selected.length === 0) {
+            alert('Please select at least one course.');
+            return;
+        }
+
+        // Hide the modal
+        const syncModal = bootstrap.Modal.getInstance(document.getElementById('syncCoursesModal'));
+        if (syncModal) {
+            syncModal.hide();
+        }
+
+        // Start sync with progress tracking
+        startSyncWithProgress(
+            '/canvas/sync_selected_courses/',
+            {course_ids: selected}
+        );
+    };
+
+    // Extend the initialization of the page
+    // Add this to the DOMContentLoaded handler in the canvas-sync-progress.js file
+    const syncCoursesBtn = document.getElementById('syncCoursesBtn');
+    if (syncCoursesBtn) {
+        syncCoursesBtn.addEventListener('click', function() {
+            startSyncWithProgress(
+                '/canvas/sync_selected_courses/',
+                {course_ids: 'all'} // Special value to sync all courses
+            );
+        });
+    }
+});
+</script>
 {% endblock %}

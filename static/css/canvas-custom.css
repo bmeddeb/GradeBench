@@ -7,10 +7,6 @@
     display: none;
 }
 
-/* Progress bar styles */
-.progress-container {
-    margin-bottom: 1rem;
-}
 
 /* Sync button styles */
 .sync-button-container {
@@ -69,4 +65,138 @@
     .canvas-stats-card {
         margin-bottom: 1rem;
     }
+}
+
+/* New CSS styles for progress bar implementation */
+
+/* Progress container */
+.progress-container {
+    margin-bottom: 20px;
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+    border: 1px solid #e9ecef;
+    transition: opacity 0.3s ease;
+}
+
+.progress-message {
+    display: block;
+    font-weight: 500;
+    color: #495057;
+}
+
+.progress-percentage {
+    font-weight: 500;
+    color: #495057;
+}
+
+.progress {
+    height: 0.75rem;
+    background-color: #e9ecef;
+    margin: 8px 0;
+    border-radius: 0.25rem;
+}
+
+.progress-bar {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    overflow: hidden;
+    color: #fff;
+    text-align: center;
+    white-space: nowrap;
+    transition: width 0.6s ease;
+    border-radius: 0.25rem;
+}
+
+.progress-bar.bg-primary {
+    background-color: #007bff !important;
+}
+
+.progress-bar.bg-success {
+    background-color: #28a745 !important;
+}
+
+.progress-bar.bg-danger {
+    background-color: #dc3545 !important;
+}
+
+/* Animation for the progress bar */
+.progress-bar-animated {
+    background-image: linear-gradient(
+        45deg,
+        rgba(255, 255, 255, 0.15) 25%,
+        transparent 25%,
+        transparent 50%,
+        rgba(255, 255, 255, 0.15) 50%,
+        rgba(255, 255, 255, 0.15) 75%,
+        transparent 75%,
+        transparent
+    );
+    background-size: 1rem 1rem;
+    animation: progress-bar-stripes 1s linear infinite;
+}
+
+@keyframes progress-bar-stripes {
+    from { background-position: 1rem 0; }
+    to { background-position: 0 0; }
+}
+
+/* Course detail page progress container */
+.course-header-actions .progress-container {
+    margin-top: 15px;
+    width: 100%;
+}
+
+/* Make progress status text smaller and lighter */
+#syncProgressStatus {
+    display: block;
+    margin-top: 5px;
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+/* Toast container styles */
+.toast-container {
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+    z-index: 1050;
+}
+
+.toast {
+    width: auto;
+    max-width: 350px;
+    font-size: 0.875rem;
+    background-color: rgba(255, 255, 255, 0.85);
+    background-clip: padding-box;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 0.25rem;
+    overflow: hidden;
+}
+
+.toast .toast-header {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    color: #6c757d;
+    background-color: rgba(255, 255, 255, 0.85);
+    background-clip: padding-box;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.toast .toast-body {
+    padding: 0.75rem;
+}
+
+/* Animate the sync button */
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.fa-spin {
+    animation: spin 1s infinite linear;
 }
