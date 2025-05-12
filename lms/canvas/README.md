@@ -55,6 +55,21 @@ Most operations use Django's asynchronous features:
 - `sync_to_async` is used to call synchronous code from async context
 - Background sync operations run in separate threads using `run_async_in_thread`
 
+### Concurrent Course Syncing
+
+The system implements concurrent course syncing to improve performance:
+
+- Multiple courses are synced in parallel rather than sequentially
+- Concurrency is controlled by the `MAX_CONCURRENT` parameter (default: 5)
+- Courses are processed in batches to prevent overwhelming the Canvas API
+- Progress tracking supports both individual course progress and overall sync progress
+
+The `MAX_CONCURRENT` parameter can be found in:
+- `lms/canvas/views.py` - In the `sync_courses` function (for syncing selected courses via UI)
+- `lms/canvas/mixins/sync_mixin.py` - In the `sync_all_courses` method (for syncing all courses)
+
+Adjusting this value allows you to balance performance with server load and API rate limits.
+
 ## Progress Tracking
 
 Long-running operations use a cache-based progress tracking system:
