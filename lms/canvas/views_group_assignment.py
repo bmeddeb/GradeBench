@@ -7,7 +7,7 @@ import json
 import logging
 import random
 
-from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_POST
@@ -20,84 +20,58 @@ from lms.canvas.models import (
     CanvasGroupMembership,
 )
 from core.models import Student, Team
-from .views import get_integration_for_user
-from .sync_utils import push_team_assignments_to_canvas
+from .decorators import canvas_integration_required_json
+from .utils import (
+    get_or_create_student_from_enrollment,
+    get_or_create_team_from_group,
+    batch_assign_students_to_groups,
+    get_json_error_response,
+    get_json_success_response,
+)
+from .sync_utils import push_group_memberships_sync
 
 logger = logging.getLogger(__name__)
 
 
-@login_required
 @require_POST
+@canvas_integration_required_json
 def add_student_to_group(request, course_id, group_id):
     """
     Add a student to a Canvas group via AJAX.
     This supports individual drag-and-drop assignments.
     """
-    if not request.user.is_authenticated:
-        return JsonResponse({"success": False, "error": "Authentication required"}, status=401)
-
     try:
         # Parse request data
         data = json.loads(request.body)
         student_id = data.get("student_id")
 
         if not student_id:
-            return JsonResponse({"success": False, "error": "Student ID is required"}, status=400)
+            return JsonResponse(
+                get_json_error_response("Student ID is required"), 
+                status=400
+            )
 
         # Get the necessary objects
-        integration = get_integration_for_user(request.user)
-        if not integration:
-            return JsonResponse({"success": False, "error": "Canvas integration not set up"}, status=403)
-
+        integration = request.canvas_integration
         course = get_object_or_404(
             CanvasCourse, canvas_id=course_id, integration=integration)
         group = get_object_or_404(CanvasGroup, id=group_id)
 
         if group.category.course != course:
-            return JsonResponse({"success": False, "error": "Group does not belong to this course"}, status=403)
+            return JsonResponse(
+                get_json_error_response("Group does not belong to this course"), 
+                status=403
+            )
 
         # Find the student enrollment
         enrollment = get_object_or_404(
             CanvasEnrollment, course=course, user_id=student_id)
 
         # Get or create student record
-        student = enrollment.student
-        if not student:
-            # Parse user name
-            user_name_parts = enrollment.user_name.split()
-            first_name = user_name_parts[0] if user_name_parts else "Unknown"
-            last_name = " ".join(user_name_parts[1:]) if len(
-                user_name_parts) > 1 else ""
-
-            # Create the student record
-            student, created = Student.objects.update_or_create(
-                canvas_user_id=student_id,
-                defaults={
-                    "email": enrollment.email or f"canvas-user-{student_id}@example.com",
-                    "first_name": first_name,
-                    "last_name": last_name,
-                },
-            )
-
-            # Link student to enrollment
-            enrollment.student = student
-            enrollment.save(update_fields=["student"])
+        student, student_created = get_or_create_student_from_enrollment(enrollment)
 
         # Get or create team link
-        team = group.core_team
-        if not team:
-            team, created = Team.objects.update_or_create(
-                canvas_group_id=group.canvas_id,
-                canvas_course=course,
-                defaults={
-                    "name": group.name[:100],
-                    "description": group.description or "",
-                },
-            )
-
-            # Link team to group
-            group.core_team = team
-            group.save(update_fields=["core_team"])
+        team, team_created = get_or_create_team_from_group(group, course)
 
         # First, check if student is already in another group in this category
         old_membership = CanvasGroupMembership.objects.filter(
@@ -130,9 +104,6 @@ def add_student_to_group(request, course_id, group_id):
         student.team = team
         student.save(update_fields=["team"])
 
-        # Push the updated membership list to Canvas
-        from lms.canvas.sync_utils import push_group_memberships_sync
-
         # Get all user IDs for this group
         all_memberships = CanvasGroupMembership.objects.filter(group=group)
         user_ids = [m.user_id for m in all_memberships]
@@ -140,49 +111,47 @@ def add_student_to_group(request, course_id, group_id):
         # Push to Canvas
         push_group_memberships_sync(integration, group.canvas_id, user_ids)
 
-        return JsonResponse({
-            "success": True,
-            "message": f"Student added to {group.name}",
-            "student": {
-                "id": student.id,
-                "name": student.get_full_name(),
-                "email": student.email,
-            },
-            "group": {
-                "id": group.id,
-                "name": group.name,
-            },
-            "created": created,
-        })
+        return JsonResponse(get_json_success_response(
+            f"Student added to {group.name}",
+            {
+                "student": {
+                    "id": student.id,
+                    "name": student.get_full_name(),
+                    "email": student.email,
+                },
+                "group": {
+                    "id": group.id,
+                    "name": group.name,
+                },
+                "created": created,
+            }
+        ))
 
     except Exception as e:
         logger.error(f"Error adding student to group: {str(e)}")
-        return JsonResponse({"success": False, "error": str(e)}, status=500)
+        return JsonResponse(get_json_error_response(str(e)), status=500)
 
 
-@login_required
 @require_POST
+@canvas_integration_required_json
 def remove_student_from_group(request, course_id, category_id):
     """
     Remove a student from their group in a category.
     This supports dragging a student to the unassigned area.
     """
-    if not request.user.is_authenticated:
-        return JsonResponse({"success": False, "error": "Authentication required"}, status=401)
-
     try:
         # Parse request data
         data = json.loads(request.body)
         student_id = data.get("student_id")
 
         if not student_id:
-            return JsonResponse({"success": False, "error": "Student ID is required"}, status=400)
+            return JsonResponse(
+                get_json_error_response("Student ID is required"), 
+                status=400
+            )
 
         # Get the necessary objects
-        integration = get_integration_for_user(request.user)
-        if not integration:
-            return JsonResponse({"success": False, "error": "Canvas integration not set up"}, status=403)
-
+        integration = request.canvas_integration
         course = get_object_or_404(
             CanvasCourse, canvas_id=course_id, integration=integration)
         category = get_object_or_404(
@@ -195,7 +164,10 @@ def remove_student_from_group(request, course_id, category_id):
         # Get student record
         student = enrollment.student
         if not student:
-            return JsonResponse({"success": False, "error": "Student not found in local database"}, status=404)
+            return JsonResponse(
+                get_json_error_response("Student not found in local database"), 
+                status=404
+            )
 
         # Find group membership
         membership = CanvasGroupMembership.objects.filter(
@@ -204,7 +176,9 @@ def remove_student_from_group(request, course_id, category_id):
         ).first()
 
         if not membership:
-            return JsonResponse({"success": True, "message": "Student was not in any group in this category"})
+            return JsonResponse(get_json_success_response(
+                "Student was not in any group in this category"
+            ))
 
         # Get the group name for the response
         group_name = membership.group.name
@@ -218,9 +192,6 @@ def remove_student_from_group(request, course_id, category_id):
             student.team = None
             student.save(update_fields=["team"])
 
-        # Push the updated membership list to Canvas
-        from lms.canvas.sync_utils import push_group_memberships_sync
-
         # Get all user IDs for this group
         all_memberships = CanvasGroupMembership.objects.filter(group=group)
         user_ids = [m.user_id for m in all_memberships]
@@ -228,182 +199,56 @@ def remove_student_from_group(request, course_id, category_id):
         # Push to Canvas
         push_group_memberships_sync(integration, group.canvas_id, user_ids)
 
-        return JsonResponse({
-            "success": True,
-            "message": f"Student removed from {group_name}",
-            "student": {
-                "id": student.id,
-                "name": student.get_full_name(),
-                "email": student.email,
-            },
-        })
+        return JsonResponse(get_json_success_response(
+            f"Student removed from {group_name}",
+            {
+                "student": {
+                    "id": student.id,
+                    "name": student.get_full_name(),
+                    "email": student.email,
+                },
+            }
+        ))
 
     except Exception as e:
         logger.error(f"Error removing student from group: {str(e)}")
-        return JsonResponse({"success": False, "error": str(e)}, status=500)
+        return JsonResponse(get_json_error_response(str(e)), status=500)
 
 
-@login_required
 @require_POST
+@canvas_integration_required_json
+@transaction.atomic
 def batch_assign_students(request, course_id, category_id):
     """
     Batch assign students to groups based on drag-and-drop changes.
     This supports the SortableJS implementation's batch save operation.
     """
-    if not request.user.is_authenticated:
-        return JsonResponse({"success": False, "error": "Authentication required"}, status=401)
-
     try:
         # Parse request data
         data = json.loads(request.body)
         changes = data.get("changes", [])
 
         if not changes:
-            return JsonResponse({
-                "success": True,
-                "message": "No changes to apply",
-                "applied": 0,
-            })
+            return JsonResponse(get_json_success_response(
+                "No changes to apply",
+                {"applied": 0}
+            ))
 
         # Get the necessary objects
-        integration = get_integration_for_user(request.user)
-        if not integration:
-            return JsonResponse({"success": False, "error": "Canvas integration not set up"}, status=403)
-
+        integration = request.canvas_integration
         course = get_object_or_404(
             CanvasCourse, canvas_id=course_id, integration=integration)
         category = get_object_or_404(
             CanvasGroupCategory, id=category_id, course=course)
 
-        # Track statistics for response
-        applied_count = 0
-        errors = []
-
-        # Track which groups have been modified
-        modified_groups = set()
-
-        # Process each change
-        for change in changes:
-            student_id = change.get("student_id")
-            # Can be None for unassign
-            new_group_id = change.get("new_group_id")
-
-            try:
-                # Find student enrollment
-                enrollment = CanvasEnrollment.objects.get(
-                    course=course, user_id=student_id)
-
-                # Case 1: Remove from group (new_group_id is None)
-                if new_group_id is None:
-                    # Find and remove existing membership
-                    membership = CanvasGroupMembership.objects.filter(
-                        group__category=category,
-                        user_id=student_id
-                    ).first()
-
-                    if membership:
-                        # Track the group being modified
-                        modified_groups.add(membership.group)
-
-                        # Get student
-                        student = enrollment.student
-                        if student:
-                            # If student has a team assignment in this category, remove it
-                            if student.team and student.team.canvas_group_link and student.team.canvas_group_link.category == category:
-                                student.team = None
-                                student.save(update_fields=["team"])
-
-                        # Remove membership
-                        membership.delete()
-                        applied_count += 1
-
-                # Case 2: Assign to group
-                else:
-                    # Get the group
-                    group = CanvasGroup.objects.get(
-                        id=new_group_id, category=category)
-
-                    # Track the group being modified
-                    modified_groups.add(group)
-
-                    # Get or create student record
-                    student = enrollment.student
-                    if not student:
-                        # Parse user name
-                        user_name_parts = enrollment.user_name.split()
-                        first_name = user_name_parts[0] if user_name_parts else "Unknown"
-                        last_name = " ".join(user_name_parts[1:]) if len(
-                            user_name_parts) > 1 else ""
-
-                        # Create the student record
-                        student, _ = Student.objects.update_or_create(
-                            canvas_user_id=student_id,
-                            defaults={
-                                "email": enrollment.email or f"canvas-user-{student_id}@example.com",
-                                "first_name": first_name,
-                                "last_name": last_name,
-                            },
-                        )
-
-                        # Link student to enrollment
-                        enrollment.student = student
-                        enrollment.save(update_fields=["student"])
-
-                    # Get or create team link
-                    team = group.core_team
-                    if not team:
-                        team, _ = Team.objects.update_or_create(
-                            canvas_group_id=group.canvas_id,
-                            canvas_course=course,
-                            defaults={
-                                "name": group.name[:100],
-                                "description": group.description or "",
-                            },
-                        )
-
-                        # Link team to group
-                        group.core_team = team
-                        group.save(update_fields=["core_team"])
-
-                    # Remove from any existing group in this category
-                    old_membership = CanvasGroupMembership.objects.filter(
-                        group__category=category,
-                        user_id=student_id
-                    ).first()
-
-                    if old_membership and old_membership.group_id != group.id:
-                        # Track the old group being modified
-                        modified_groups.add(old_membership.group)
-                        old_membership.delete()
-
-                    # Create new membership
-                    CanvasGroupMembership.objects.create(
-                        group=group,
-                        user_id=student_id,
-                        name=enrollment.user_name,
-                        email=enrollment.email,
-                        student=student,
-                    )
-
-                    # Assign student to team
-                    student.team = team
-                    student.save(update_fields=["team"])
-                    applied_count += 1
-
-            except Exception as e:
-                errors.append({
-                    "student_id": student_id,
-                    "error": str(e)
-                })
-                logger.error(
-                    f"Error applying change for student {student_id}: {str(e)}")
-
+        # Use our batch assign function
+        result = batch_assign_students_to_groups(changes, course)
+        
         # Push all modified groups to Canvas
-        if modified_groups:
-            from lms.canvas.sync_utils import push_group_memberships_sync
-
+        if result["modified_groups"]:
+            errors = []
             # Push each modified group's memberships to Canvas
-            for group in modified_groups:
+            for group in result["modified_groups"]:
                 try:
                     # Get all memberships for this group
                     all_memberships = CanvasGroupMembership.objects.filter(
@@ -421,36 +266,35 @@ def batch_assign_students(request, course_id, category_id):
                         "group_name": group.name,
                         "error": f"Failed to push to Canvas: {str(e)}"
                     })
+                    
+            # Add Canvas push errors to the result errors
+            result["errors"].extend(errors)
 
         # Return success response
-        return JsonResponse({
-            "success": True,
-            "message": f"Applied {applied_count} changes successfully",
-            "applied_count": applied_count,
-            "errors": errors,
-            "groups_modified": len(modified_groups),
-        })
+        return JsonResponse(get_json_success_response(
+            f"Applied {result['applied_count']} changes successfully",
+            {
+                "applied_count": result["applied_count"],
+                "errors": result["errors"],
+                "groups_modified": len(result["modified_groups"]),
+            }
+        ))
 
     except Exception as e:
         logger.error(f"Error in batch assignment: {str(e)}")
-        return JsonResponse({"success": False, "error": str(e)}, status=500)
+        return JsonResponse(get_json_error_response(str(e)), status=500)
 
 
-@login_required
 @require_POST
+@canvas_integration_required_json
+@transaction.atomic
 def random_assign_students(request, course_id, category_id):
     """
     Randomly assign unassigned students to groups in a category.
     """
-    if not request.user.is_authenticated:
-        return JsonResponse({"success": False, "error": "Authentication required"}, status=401)
-
     try:
         # Get the necessary objects
-        integration = get_integration_for_user(request.user)
-        if not integration:
-            return JsonResponse({"success": False, "error": "Canvas integration not set up"}, status=403)
-
+        integration = request.canvas_integration
         course = get_object_or_404(
             CanvasCourse, canvas_id=course_id, integration=integration)
         category = get_object_or_404(
@@ -459,7 +303,10 @@ def random_assign_students(request, course_id, category_id):
         # Get all groups in this category
         groups = list(CanvasGroup.objects.filter(category=category))
         if not groups:
-            return JsonResponse({"success": False, "error": "No groups found in this category"}, status=400)
+            return JsonResponse(
+                get_json_error_response("No groups found in this category"), 
+                status=400
+            )
 
         # Get unassigned students
         assigned_user_ids = CanvasGroupMembership.objects.filter(
@@ -474,28 +321,14 @@ def random_assign_students(request, course_id, category_id):
         )
 
         if not unassigned_enrollments:
-            return JsonResponse({
-                "success": True,
-                "message": "No unassigned students found",
-                "assigned_count": 0,
-            })
+            return JsonResponse(get_json_success_response(
+                "No unassigned students found",
+                {"assigned_count": 0}
+            ))
 
         # Prepare core team links for all groups
         for group in groups:
-            if not group.core_team:
-                # Create team for this group
-                team, _ = Team.objects.update_or_create(
-                    canvas_group_id=group.canvas_id,
-                    canvas_course=course,
-                    defaults={
-                        "name": group.name[:100],
-                        "description": group.description or "",
-                    },
-                )
-
-                # Link team to group
-                group.core_team = team
-                group.save(update_fields=["core_team"])
+            get_or_create_team_from_group(group, course)
 
         # Shuffle enrollments
         enrollment_list = list(unassigned_enrollments)
@@ -505,65 +338,29 @@ def random_assign_students(request, course_id, category_id):
         assignments_count = 0
         modified_groups = set()
 
+        # Build a list of changes for batch processing
+        changes = []
+        
         # Distribute evenly
         for i, enrollment in enumerate(enrollment_list):
             # Pick group in round-robin fashion
             group_index = i % len(groups)
             group = groups[group_index]
+            
+            # Add to changes
+            changes.append({
+                "student_id": enrollment.user_id,
+                "new_group_id": group.id
+            })
 
-            # Track the group as modified
-            modified_groups.add(group)
-
-            try:
-                # Get or create student
-                student = enrollment.student
-                if not student:
-                    # Parse user name
-                    user_name_parts = enrollment.user_name.split()
-                    first_name = user_name_parts[0] if user_name_parts else "Unknown"
-                    last_name = " ".join(user_name_parts[1:]) if len(
-                        user_name_parts) > 1 else ""
-
-                    # Create student record
-                    student, _ = Student.objects.update_or_create(
-                        canvas_user_id=enrollment.user_id,
-                        defaults={
-                            "email": enrollment.email or f"canvas-user-{enrollment.user_id}@example.com",
-                            "first_name": first_name,
-                            "last_name": last_name,
-                        },
-                    )
-
-                    # Link to enrollment
-                    enrollment.student = student
-                    enrollment.save(update_fields=["student"])
-
-                # Create membership
-                CanvasGroupMembership.objects.create(
-                    group=group,
-                    user_id=enrollment.user_id,
-                    name=enrollment.user_name,
-                    email=enrollment.email,
-                    student=student,
-                )
-
-                # Assign team
-                student.team = group.core_team
-                student.save(update_fields=["team"])
-
-                assignments_count += 1
-            except Exception as e:
-                logger.error(
-                    f"Error assigning student {enrollment.user_id} to group {group.id}: {str(e)}")
-                continue
-
+        # Process all changes in batch
+        result = batch_assign_students_to_groups(changes, course)
+        
         # Push memberships to Canvas for all modified groups
-        if modified_groups:
-            from lms.canvas.sync_utils import push_group_memberships_sync
+        if result["modified_groups"]:
             errors = []
-
             # Push each modified group's memberships to Canvas
-            for group in modified_groups:
+            for group in result["modified_groups"]:
                 try:
                     # Get all memberships for this group
                     all_memberships = CanvasGroupMembership.objects.filter(
@@ -581,13 +378,14 @@ def random_assign_students(request, course_id, category_id):
                         "error": str(e)
                     })
 
-        return JsonResponse({
-            "success": True,
-            "message": f"Randomly assigned {assignments_count} students to groups",
-            "assigned_count": assignments_count,
-            "groups_modified": len(modified_groups),
-        })
+        return JsonResponse(get_json_success_response(
+            f"Randomly assigned {result['applied_count']} students to groups",
+            {
+                "assigned_count": result["applied_count"],
+                "groups_modified": len(result["modified_groups"]),
+            }
+        ))
 
     except Exception as e:
         logger.error(f"Error randomly assigning students: {str(e)}")
-        return JsonResponse({"success": False, "error": str(e)}, status=500)
+        return JsonResponse(get_json_error_response(str(e)), status=500)
