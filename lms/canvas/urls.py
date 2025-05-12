@@ -31,6 +31,9 @@ urlpatterns = [
     # Get sync progress (AJAX)
     path("sync_progress/", views.canvas_sync_progress,
          name="canvas_sync_progress"),
+    # Get batch sync progress (AJAX)
+    path("sync_batch_progress/", views.canvas_sync_batch_progress,
+         name="canvas_sync_batch_progress"),
     # Courses list
     path("course/", views.canvas_courses_list, name="canvas_courses_list"),
     # Students list

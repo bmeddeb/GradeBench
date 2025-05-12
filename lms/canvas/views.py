@@ -9,6 +9,7 @@ from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from asgiref.sync import sync_to_async
 from django.db.models import Q, Count
+from django.utils import timezone
 import httpx
 import requests
 from datetime import datetime
@@ -620,6 +621,33 @@ def canvas_sync_progress(request):
     return JsonResponse(progress)
 
 
+@login_required
+def canvas_sync_batch_progress(request):
+    """
+    Get the current progress of a batch sync operation
+    """
+    from .progress import SyncProgress
+
+    user_id = request.user.id
+    batch_id = request.GET.get("batch_id")
+
+    if not batch_id:
+        return JsonResponse({"error": "Batch ID is required"}, status=400)
+
+    progress = SyncProgress.get_batch_progress(user_id, batch_id)
+
+    # If the status is completed or error, clear any session flags
+    if progress.get("status") in [
+        SyncProgress.STATUS_COMPLETED,
+        SyncProgress.STATUS_ERROR,
+    ]:
+        session_key = f"canvas_sync_batch_{batch_id}_in_progress"
+        if session_key in request.session:
+            del request.session[session_key]
+
+    return JsonResponse(progress)
+
+
 @csrf_exempt
 @require_POST
 @login_required
@@ -662,48 +690,180 @@ def canvas_sync_selected_courses(request):
     import asyncio
     from .progress import SyncProgress
 
-    # Initialize progress before starting the thread
-    SyncProgress.start_sync(user_id, None, total_steps=len(course_ids))
+    # Fetch course names for better display
+    course_names = {}
+    
+    def fetch_course_names():
+        try:
+            client = Client(integration)
+            for course_id in course_ids:
+                try:
+                    # Use a synchronous approach for simplicity
+                    course_data = requests.get(
+                        f"{integration.canvas_url.rstrip('/')}/api/v1/courses/{course_id}",
+                        headers={"Authorization": f"Bearer {integration.api_key}"}
+                    ).json()
+                    
+                    if "name" in course_data:
+                        course_names[str(course_id)] = course_data["name"]
+                except Exception as e:
+                    logger.error(f"Error fetching course name for {course_id}: {e}")
+                    # Use a default name if we can't fetch the real one
+                    course_names[str(course_id)] = f"Course {course_id}"
+        except Exception as e:
+            logger.error(f"Error fetching course names: {e}")
+    
+    # Fetch course names in a separate thread to avoid delaying the response
+    name_thread = threading.Thread(target=fetch_course_names)
+    name_thread.daemon = True
+    name_thread.start()
+    
+    # Wait a very short time for names to be fetched
+    name_thread.join(timeout=0.5)
+    
+    # Initialize batch progress tracking
+    batch_info = SyncProgress.start_batch_sync(user_id, course_ids, course_names)
+    batch_id = batch_info["batch_id"]
+    
+    # Add a session flag to indicate batch sync is in progress
+    request.session[f"canvas_sync_batch_{batch_id}_in_progress"] = True
 
     def run_sync():
         client = Client(integration)
         try:
-            asyncio.run(sync_courses(client, course_ids, user_id))
+            asyncio.run(sync_courses(client, course_ids, user_id, batch_id, course_names))
         except Exception as e:
             # Log full exception for debugging
             logger.exception("Error syncing selected courses")
             # Handle any unexpected errors in the thread
+            SyncProgress.complete_batch_sync(
+                user_id, batch_id, success=False, error=str(e))
             SyncProgress.complete_sync(
                 user_id, None, success=False, error=str(e))
 
-    async def sync_courses(client, course_ids, user_id):
+    async def sync_courses(client, course_ids, user_id, batch_id, course_names):
         synced = []
         errors = []
+        
+        # Get course statuses from the current batch progress
+        batch_progress = await SyncProgress.async_get_batch_progress(user_id, batch_id)
+        course_statuses = batch_progress.get("course_statuses", {})
+        
+        # If course_statuses is empty (shouldn't happen but just in case)
+        if not course_statuses:
+            course_statuses = {
+                str(course_id): {
+                    "name": course_names.get(str(course_id), f"Course {course_id}"),
+                    "status": SyncProgress.STATUS_QUEUED,
+                    "progress": 0,
+                    "message": "Waiting to start",
+                    "started_at": None,
+                    "completed_at": None
+                } for course_id in course_ids
+            }
 
         for i, course_id in enumerate(course_ids):
+            course_id_str = str(course_id)
             try:
-                # Update progress at the overall level
-                SyncProgress.update(
+                # Mark this course as in progress
+                course_statuses[course_id_str]["status"] = SyncProgress.STATUS_IN_PROGRESS
+                course_statuses[course_id_str]["message"] = "Starting sync"
+                course_statuses[course_id_str]["progress"] = 0
+                course_statuses[course_id_str]["started_at"] = timezone.now().isoformat()
+                
+                # Update batch progress
+                await SyncProgress.async_update_batch(
+                    user_id,
+                    batch_id,
+                    course_statuses,
+                    current=i,
+                    total=len(course_ids),
+                    status=SyncProgress.STATUS_IN_PROGRESS,
+                    message=f"Syncing course {i+1} of {len(course_ids)}: {course_statuses[course_id_str]['name']}"
+                )
+                
+                # Also update the standard progress for compatibility
+                await SyncProgress.async_update(
                     user_id,
                     None,
                     current=i,
                     total=len(course_ids),
                     status="syncing_course",
-                    message=f"Syncing course {i+1} of {len(course_ids)}",
+                    message=f"Syncing course {i+1} of {len(course_ids)}: {course_statuses[course_id_str]['name']}"
                 )
-
+                
+                # Create a progress callback for this course
+                async def update_course_progress(status, message, progress):
+                    # Update this course's status in the batch
+                    course_statuses[course_id_str]["status"] = SyncProgress.STATUS_IN_PROGRESS
+                    course_statuses[course_id_str]["message"] = message
+                    course_statuses[course_id_str]["progress"] = int(progress)
+                    
+                    # Update the batch progress
+                    await SyncProgress.async_update_batch(
+                        user_id,
+                        batch_id,
+                        course_statuses,
+                        current=i,  # Keep the same overall count
+                        total=len(course_ids),
+                        status=SyncProgress.STATUS_IN_PROGRESS,
+                        message=f"Syncing course {i+1} of {len(course_ids)}: {course_statuses[course_id_str]['name']}"
+                    )
+                
                 # This will automatically update progress through the client
-                course = await client.sync_course(course_id, user_id)
+                # We pass None for the user_id to avoid duplicating progress tracking
+                # but we use our custom callback to update the batch progress
+                course = await client.sync_course(course_id, None, update_course_progress)
+                
+                # Mark course as completed in batch
+                course_statuses[course_id_str]["status"] = SyncProgress.STATUS_SUCCESS
+                course_statuses[course_id_str]["message"] = "Sync completed successfully"
+                course_statuses[course_id_str]["progress"] = 100
+                course_statuses[course_id_str]["completed_at"] = timezone.now().isoformat()
+                
                 synced.append(course_id)
             except Exception as e:
+                logger.error(f"Error syncing course {course_id}: {e}")
+                
+                # Mark course as failed in batch
+                course_statuses[course_id_str]["status"] = SyncProgress.STATUS_ERROR
+                course_statuses[course_id_str]["message"] = f"Error: {str(e)}"
+                course_statuses[course_id_str]["completed_at"] = timezone.now().isoformat()
+                
                 errors.append({"course_id": course_id, "error": str(e)})
+            
+            # Update batch progress after each course
+            await SyncProgress.async_update_batch(
+                user_id,
+                batch_id,
+                course_statuses,
+                current=i+1,
+                total=len(course_ids),
+                status=SyncProgress.STATUS_IN_PROGRESS,
+                message=f"Completed {i+1} of {len(course_ids)} courses"
+            )
+            
+            # Also update standard progress for compatibility
+            await SyncProgress.async_update(
+                user_id,
+                None,
+                current=i+1,
+                total=len(course_ids),
+                status="syncing_course",
+                message=f"Completed {i+1} of {len(course_ids)} courses"
+            )
 
         # Mark the overall sync as complete
         success = len(synced) > 0
         message = f"Completed sync of {len(synced)} out of {len(course_ids)} courses."
         error = None if success else "Failed to sync any courses"
 
-        SyncProgress.complete_sync(
+        await SyncProgress.async_complete_batch_sync(
+            user_id, batch_id, success=success, message=message, error=error
+        )
+        
+        # Also complete standard progress for compatibility
+        await SyncProgress.async_complete_sync(
             user_id, None, success=success, message=message, error=error
         )
 
@@ -718,6 +878,7 @@ def canvas_sync_selected_courses(request):
             "status": "started",
             "message": f"Started syncing {len(course_ids)} course(s)",
             "course_ids": course_ids,
+            "batch_id": batch_id
         }
     )
 

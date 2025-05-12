@@ -17,13 +17,15 @@ logger = logging.getLogger(__name__)
 class SyncMixin:
     """Provides synchronization orchestration methods with proper progress tracking"""
 
-    async def sync_course(self, course_id: int, user_id: int = None) -> 'CanvasCourse':
+    async def sync_course(self, course_id: int, user_id: int = None, progress_callback=None) -> 'CanvasCourse':
         """
         Sync a course and its enrollments, assignments, and submissions
 
         Args:
             course_id: Canvas course ID
             user_id: ID of the user initiating the sync (for progress tracking)
+            progress_callback: Optional async callback function for external progress tracking
+                               with signature (status, message, progress_percentage)
         """
         try:
             # Initialize progress tracking if user_id is provided
@@ -31,55 +33,55 @@ class SyncMixin:
                 logger.info(
                     f"Starting course sync for user {user_id}, course {course_id}")
                 await SyncProgress.async_start_sync(user_id, course_id, total_steps=10)
+            
+            # Helper function to update progress through both mechanisms
+            async def update_progress(current, total, status, message):
+                # Calculate percentage for the progress callback
+                percentage = int((current / total) * 100) if total > 0 else 0
+                
+                # Update standard progress if user_id is provided
+                if user_id:
+                    await SyncProgress.async_update(
+                        user_id,
+                        course_id,
+                        current=current,
+                        total=total,
+                        status=status,
+                        message=message,
+                    )
+                
+                # Call the progress callback if provided
+                if progress_callback:
+                    await progress_callback(status, message, percentage)
 
             # Step 1: Get course data
-            if user_id:
-                await SyncProgress.async_update(
-                    user_id,
-                    course_id,
-                    current=1,
-                    total=10,
-                    status=SyncProgress.STATUS_FETCHING_COURSE,
-                    message="Fetching course information from Canvas API...",
-                )
+            await update_progress(
+                1, 10, SyncProgress.STATUS_FETCHING_COURSE,
+                "Fetching course information from Canvas API..."
+            )
 
             course_data = await self.get_course(course_id)
 
-            if user_id:
-                await SyncProgress.async_update(
-                    user_id,
-                    course_id,
-                    current=2,
-                    total=10,
-                    status=SyncProgress.STATUS_SAVING_DATA,
-                    message="Saving course information to database...",
-                )
+            await update_progress(
+                2, 10, SyncProgress.STATUS_SAVING_DATA,
+                "Saving course information to database..."
+            )
 
             course = await self._save_course(course_data)
 
             # Step 2: Get enrollments data
-            if user_id:
-                await SyncProgress.async_update(
-                    user_id,
-                    course_id,
-                    current=3,
-                    total=10,
-                    status=SyncProgress.STATUS_FETCHING_ENROLLMENTS,
-                    message="Fetching enrollment data from Canvas API...",
-                )
+            await update_progress(
+                3, 10, SyncProgress.STATUS_FETCHING_ENROLLMENTS,
+                "Fetching enrollment data from Canvas API..."
+            )
 
             enrollments_data = await self.get_enrollments(course_id)
 
             # Step 3: Get all users with emails
-            if user_id:
-                await SyncProgress.async_update(
-                    user_id,
-                    course_id,
-                    current=4,
-                    total=10,
-                    status=SyncProgress.STATUS_FETCHING_USERS,
-                    message="Fetching user details and email addresses...",
-                )
+            await update_progress(
+                4, 10, SyncProgress.STATUS_FETCHING_USERS,
+                "Fetching user details and email addresses..."
+            )
 
             users_data = await self.get_course_users(course_id)
 
@@ -90,28 +92,19 @@ class SyncMixin:
                     user_emails[user["id"]] = user["email"]
 
             # Step 4: Save enrollment data
-            if user_id:
-                await SyncProgress.async_update(
-                    user_id,
-                    course_id,
-                    current=5,
-                    total=10,
-                    status=SyncProgress.STATUS_SAVING_DATA,
-                    message=f"Saving {len(enrollments_data)} enrollments to database...",
-                )
+            await update_progress(
+                5, 10, SyncProgress.STATUS_SAVING_DATA,
+                f"Saving {len(enrollments_data)} enrollments to database..."
+            )
 
             # Process enrollments with emails from the user data
             enrollment_count = len(enrollments_data)
             for i, enrollment_data in enumerate(enrollments_data):
                 # Update progress for large enrollment sets
-                if user_id and i > 0 and i % 25 == 0 and enrollment_count > 50:
-                    await SyncProgress.async_update(
-                        user_id,
-                        course_id,
-                        current=5,
-                        total=10,
-                        status=SyncProgress.STATUS_SAVING_DATA,
-                        message=f"Saving enrollment {i} of {enrollment_count}...",
+                if i > 0 and i % 25 == 0 and enrollment_count > 50:
+                    await update_progress(
+                        5, 10, SyncProgress.STATUS_SAVING_DATA,
+                        f"Saving enrollment {i} of {enrollment_count}..."
                     )
 
                 # Try to add email from our lookup for any enrollment type
@@ -132,96 +125,64 @@ class SyncMixin:
                 await self._save_enrollment(enrollment_data, course)
 
             # Step 5: Get assignment data
-            if user_id:
-                await SyncProgress.async_update(
-                    user_id,
-                    course_id,
-                    current=6,
-                    total=10,
-                    status=SyncProgress.STATUS_FETCHING_ASSIGNMENTS,
-                    message="Fetching assignments from Canvas API...",
-                )
+            await update_progress(
+                6, 10, SyncProgress.STATUS_FETCHING_ASSIGNMENTS,
+                "Fetching assignments from Canvas API..."
+            )
 
             assignments_data = await self.get_assignments(course_id)
             assignment_count = len(assignments_data)
 
             # Step 6: Process and save assignments
-            if user_id:
-                await SyncProgress.async_update(
-                    user_id,
-                    course_id,
-                    current=7,
-                    total=10,
-                    status=SyncProgress.STATUS_SAVING_DATA,
-                    message=f"Saving {assignment_count} assignments to database...",
-                )
+            await update_progress(
+                7, 10, SyncProgress.STATUS_SAVING_DATA,
+                f"Saving {assignment_count} assignments to database..."
+            )
 
             # Step 7: Process submissions for each assignment
-            if user_id:
-                await SyncProgress.async_update(
-                    user_id,
-                    course_id,
-                    current=8,
-                    total=10,
-                    status=SyncProgress.STATUS_PROCESSING_SUBMISSIONS,
-                    message=f"Processing submissions for {assignment_count} assignments...",
-                )
+            await update_progress(
+                8, 10, SyncProgress.STATUS_PROCESSING_SUBMISSIONS,
+                f"Processing submissions for {assignment_count} assignments..."
+            )
 
             for i, assignment_data in enumerate(assignments_data):
                 # Save the assignment
                 assignment = await self._save_assignment(assignment_data, course)
 
                 # Update progress on a per-assignment basis
-                if user_id and assignment_count > 0:
+                if assignment_count > 0:
+                    progress_current = 8 + (i / assignment_count)
                     percentage_complete = (i / assignment_count) * 100
-                    await SyncProgress.async_update(
-                        user_id,
-                        course_id,
-                        current=8 + (i / assignment_count),
-                        total=10,
-                        status=SyncProgress.STATUS_PROCESSING_SUBMISSIONS,
-                        message=f"Processing assignment {i+1} of {assignment_count} ({percentage_complete:.0f}%)...",
+                    await update_progress(
+                        progress_current, 10, SyncProgress.STATUS_PROCESSING_SUBMISSIONS,
+                        f"Processing assignment {i+1} of {assignment_count} ({percentage_complete:.0f}%)..."
                     )
 
                 # Get submissions for this assignment
-                if user_id:
-                    await SyncProgress.async_update(
-                        user_id,
-                        course_id,
-                        current=8 + (i / assignment_count),
-                        total=10,
-                        status=SyncProgress.STATUS_FETCHING_SUBMISSIONS,
-                        message=f"Fetching submissions for assignment '{assignment_data['name']}'...",
-                    )
+                await update_progress(
+                    8 + (i / assignment_count), 10, SyncProgress.STATUS_FETCHING_SUBMISSIONS,
+                    f"Fetching submissions for assignment '{assignment_data['name']}'..."
+                )
 
                 submissions_data = await self.get_submissions(
                     course_id, assignment_data["id"]
                 )
 
                 # Save submissions
-                if user_id and len(submissions_data) > 0:
-                    await SyncProgress.async_update(
-                        user_id,
-                        course_id,
-                        current=8 + (i / assignment_count),
-                        total=10,
-                        status=SyncProgress.STATUS_SAVING_DATA,
-                        message=f"Saving {len(submissions_data)} submissions for assignment '{assignment_data['name']}'...",
+                if len(submissions_data) > 0:
+                    await update_progress(
+                        8 + (i / assignment_count), 10, SyncProgress.STATUS_SAVING_DATA,
+                        f"Saving {len(submissions_data)} submissions for assignment '{assignment_data['name']}'..."
                     )
 
                 for submission_data in submissions_data:
                     await self._save_submission(submission_data, assignment)
 
             # Step 8: Sync Canvas groups and teams
-            if user_id:
-                await SyncProgress.async_update(
-                    user_id,
-                    course_id,
-                    current=9,
-                    total=10,
-                    status="syncing_groups",
-                    message="Syncing Canvas groups and team memberships...",
-                )
+            await update_progress(
+                9, 10, "syncing_groups",
+                "Syncing Canvas groups and team memberships..."
+            )
 
             try:
                 # Import and use CanvasSyncer
@@ -261,27 +222,29 @@ class SyncMixin:
             await self.integration.asave()
 
             # Mark sync as complete
+            await update_progress(
+                9.5, 10, SyncProgress.STATUS_SAVING_DATA,
+                "Finalizing sync and updating timestamps..."
+            )
+
+            # Small delay to ensure the UI gets updated before completion
+            await asyncio.sleep(0.5)
+
+            # Final progress update
+            message = f"Successfully synced {course.name} with {len(enrollments_data)} enrollments and {assignment_count} assignments"
+            
             if user_id:
-                await SyncProgress.async_update(
-                    user_id,
-                    course_id,
-                    current=9.5,
-                    total=10,
-                    status=SyncProgress.STATUS_SAVING_DATA,
-                    message="Finalizing sync and updating timestamps...",
-                )
-
-                # Small delay to ensure the UI gets updated before completion
-                await asyncio.sleep(0.5)
-
                 await SyncProgress.async_complete_sync(
                     user_id,
                     course_id,
                     success=True,
-                    message=f"Successfully synced {course.name} with {len(enrollments_data)} enrollments and {assignment_count} assignments",
+                    message=message,
                 )
-                logger.info(
-                    f"Successfully completed sync for course {course_id}")
+            
+            if progress_callback:
+                await progress_callback(SyncProgress.STATUS_COMPLETED, message, 100)
+                
+            logger.info(f"Successfully completed sync for course {course_id}")
 
             return course
 
@@ -292,24 +255,24 @@ class SyncMixin:
             logger.error(f"Traceback: {traceback.format_exc()}")
 
             # Mark sync as failed if there was an error
+            # Get a friendlier error message depending on error type
+            error_message = str(e)
+            friendly_message = "Sync failed with an error."
+
+            if "401" in error_message or "invalid_grant" in error_message:
+                friendly_message = "Authentication failed. Your Canvas API key may be invalid or expired."
+            elif "404" in error_message:
+                friendly_message = "Resource not found. The course ID may be invalid or you don't have access."
+            elif "429" in error_message:
+                friendly_message = "Rate limit exceeded. Canvas API limits were reached. Please try again later."
+            elif "500" in error_message:
+                friendly_message = (
+                    "Canvas API server error. Please try again later."
+                )
+            elif "Connection" in error_message:
+                friendly_message = "Connection error. Please check your internet connection and try again."
+
             if user_id:
-                # Get a friendlier error message depending on error type
-                error_message = str(e)
-                friendly_message = "Sync failed with an error."
-
-                if "401" in error_message or "invalid_grant" in error_message:
-                    friendly_message = "Authentication failed. Your Canvas API key may be invalid or expired."
-                elif "404" in error_message:
-                    friendly_message = "Resource not found. The course ID may be invalid or you don't have access."
-                elif "429" in error_message:
-                    friendly_message = "Rate limit exceeded. Canvas API limits were reached. Please try again later."
-                elif "500" in error_message:
-                    friendly_message = (
-                        "Canvas API server error. Please try again later."
-                    )
-                elif "Connection" in error_message:
-                    friendly_message = "Connection error. Please check your internet connection and try again."
-
                 # Attempt to update the progress to show failure
                 try:
                     await SyncProgress.async_complete_sync(
@@ -325,6 +288,12 @@ class SyncMixin:
                     # If updating progress fails, log that too
                     logger.error(
                         f"Error updating progress for failed sync: {progress_error}")
+            
+            if progress_callback:
+                try:
+                    await progress_callback(SyncProgress.STATUS_ERROR, friendly_message, 0)
+                except Exception as callback_error:
+                    logger.error(f"Error in progress callback: {callback_error}")
 
             # Re-raise the exception to be handled by the caller
             raise

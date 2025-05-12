@@ -200,3 +200,131 @@
 .fa-spin {
     animation: spin 1s infinite linear;
 }
+
+/* Course status list */
+.course-status-list {
+    margin-top: 1rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid #eee;
+    border-radius: 0.25rem;
+    overflow: hidden;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.course-status-item {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #eee;
+    background-color: #fff;
+    transition: background-color 0.2s ease;
+}
+
+.course-status-item:last-child {
+    border-bottom: none;
+}
+
+.course-status-item:hover {
+    background-color: #f8f9fa;
+}
+
+.course-status-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.status-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 10px;
+    flex-shrink: 0;
+}
+
+.status-pending {
+    background-color: #6c757d;
+}
+
+.status-progress {
+    background-color: #007bff;
+}
+
+.status-success {
+    background-color: #28a745;
+}
+
+.status-error {
+    background-color: #dc3545;
+}
+
+.course-name {
+    flex-grow: 1;
+    font-weight: 500;
+    margin-right: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.course-status {
+    text-transform: capitalize;
+    font-size: 0.8rem;
+    padding: 0.1rem 0.5rem;
+    border-radius: 0.25rem;
+    color: #fff;
+    background-color: #6c757d;
+    flex-shrink: 0;
+}
+
+.course-status-item .status-pending + .course-name + .course-status {
+    background-color: #6c757d;
+}
+
+.course-status-item .status-progress + .course-name + .course-status {
+    background-color: #007bff;
+}
+
+.course-status-item .status-success + .course-name + .course-status {
+    background-color: #28a745;
+}
+
+.course-status-item .status-error + .course-name + .course-status {
+    background-color: #dc3545;
+}
+
+.course-progress-bar {
+    height: 4px;
+    background-color: #e9ecef;
+    border-radius: 2px;
+    margin-bottom: 0.5rem;
+    overflow: hidden;
+}
+
+.progress-inner {
+    height: 100%;
+    width: 0;
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+
+.progress-inner.status-pending {
+    background-color: #6c757d;
+}
+
+.progress-inner.status-progress {
+    background-color: #007bff;
+}
+
+.progress-inner.status-success {
+    background-color: #28a745;
+}
+
+.progress-inner.status-error {
+    background-color: #dc3545;
+}
+
+.course-message {
+    font-size: 0.8rem;
+    color: #6c757d;
+    margin-bottom: 0;
+}

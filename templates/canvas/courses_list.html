@@ -44,6 +44,9 @@
                     </div>
                     <small id="syncProgressStatus" class="text-muted"></small>
                 </div>
+                
+                <!-- Course status list - initially hidden, will be populated by JavaScript -->
+                <div id="courseStatusList" class="course-status-list" style="display: none;"></div>
 
                 <div class="table-responsive">
                     {% if course_data %}
@@ -176,6 +179,7 @@ document.addEventListener('DOMContentLoaded', function() {
         startSyncWithProgress(
             '/canvas/sync_selected_courses/',
             {course_ids: selected}
+            // No course ID for multiple course sync - will use batch tracking
         );
     };
 

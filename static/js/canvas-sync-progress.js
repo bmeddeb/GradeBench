@@ -3,7 +3,7 @@
  *
  * This JavaScript file provides functionality to track and display the
  * progress of Canvas API synchronization operations using an inline progress bar
- * rather than a modal dialog.
+ * and course status list.
  */
 
 // Use an immediately invoked function expression (IIFE) to avoid global variable conflicts
@@ -14,6 +14,8 @@
     let syncProgressStatus = null;
     let syncPercentage = null;
     let courseIdParam = '';
+    let batchIdParam = '';
+    let courseStatusList = null;
 
     /**
      * Initialize the progress UI
@@ -24,6 +26,7 @@
         syncProgressText = document.getElementById('syncStatusMessage');
         syncProgressStatus = document.getElementById('syncProgressStatus');
         syncPercentage = document.getElementById('syncPercentage');
+        courseStatusList = document.getElementById('courseStatusList');
 
         // Make sure the progress container is visible
         const syncProgress = document.getElementById('syncProgress');
@@ -39,15 +42,27 @@
         syncProgressStatus.innerText = 'Initializing...';
         syncProgressBar.classList.remove('bg-success', 'bg-danger');
         syncProgressBar.classList.add('bg-primary', 'progress-bar-animated');
+        
+        // Make sure the course status list container is visible if it exists
+        if (courseStatusList) {
+            courseStatusList.style.display = 'block';
+            courseStatusList.innerHTML = ''; // Clear any previous course status items
+        }
     }
 
     /**
      * Poll for sync progress updates
      * @param {number|null} courseId - The course ID being synced, or null for all courses
+     * @param {string|null} batchId - The batch ID for multiple course syncs, or null for single course
      */
-    function pollSyncProgress(courseId = null) {
+    function pollSyncProgress(courseId = null, batchId = null) {
         courseIdParam = courseId || '';
-        const url = `/canvas/sync_progress/?course_id=${courseIdParam}`;
+        batchIdParam = batchId || '';
+        
+        // If we have a batchId, poll batch progress instead of regular progress
+        const url = batchId 
+            ? `/canvas/sync_batch_progress/?batch_id=${batchIdParam}`
+            : `/canvas/sync_progress/?course_id=${courseIdParam}`;
 
         // Count for handling empty responses
         let emptyResponseCount = 0;
@@ -72,6 +87,14 @@
                                 current: 0,
                                 total: 1
                             });
+                            
+                            if (batchId) {
+                                // Clear course status list
+                                if (courseStatusList) {
+                                    courseStatusList.innerHTML = '<div class="alert alert-danger">Progress tracking failed. No data received from server.</div>';
+                                }
+                            }
+                            
                             syncCompleted({
                                 status: 'error',
                                 message: 'Progress tracking failed',
@@ -83,7 +106,14 @@
 
                     // Reset counter when we receive valid data
                     emptyResponseCount = 0;
+                    
+                    // Update main progress UI
                     updateProgressUI(data);
+                    
+                    // If this is a batch operation, update the course status list
+                    if (batchId && data.course_statuses) {
+                        updateCourseStatusList(data.course_statuses);
+                    }
 
                     // If the sync is complete or failed, stop polling
                     if (data.status === 'completed' || data.status === 'error') {
@@ -186,11 +216,83 @@
             case 'error':
                 statusText = `Error: ${data.error || 'Unknown error'}`;
                 break;
+            case 'in_progress':
+                statusText = 'Sync in progress...';
+                break;
             default:
                 statusText = `Status: ${data.status}`;
         }
 
         syncProgressStatus.innerText = statusText;
+    }
+
+    /**
+     * Update the course status list UI based on course status data
+     * @param {Object} courseStatuses - The course status data from the server
+     */
+    function updateCourseStatusList(courseStatuses) {
+        if (!courseStatusList) {
+            // Create the course status list container if it doesn't exist
+            courseStatusList = document.createElement('div');
+            courseStatusList.id = 'courseStatusList';
+            courseStatusList.className = 'course-status-list mt-4';
+            
+            // Find where to append it - typically after the main progress bar
+            const syncProgress = document.getElementById('syncProgress');
+            if (syncProgress && syncProgress.parentNode) {
+                syncProgress.parentNode.insertBefore(courseStatusList, syncProgress.nextSibling);
+            } else {
+                // Fallback - append to body
+                document.body.appendChild(courseStatusList);
+            }
+        }
+        
+        // Clear existing content
+        courseStatusList.innerHTML = '';
+        
+        // Add header
+        const header = document.createElement('h6');
+        header.className = 'mt-3 mb-2';
+        header.textContent = 'Course Status:';
+        courseStatusList.appendChild(header);
+        
+        // Create course status items
+        Object.entries(courseStatuses).forEach(([courseId, status]) => {
+            const courseItem = document.createElement('div');
+            courseItem.className = 'course-status-item';
+            
+            // Status indicator color
+            let statusClass = 'status-pending';
+            let statusText = 'Pending';
+            
+            if (status.status === 'in_progress') {
+                statusClass = 'status-progress';
+                statusText = 'In Progress';
+            } else if (status.status === 'success' || status.status === 'completed') {
+                statusClass = 'status-success';
+                statusText = 'Completed';
+            } else if (status.status === 'error') {
+                statusClass = 'status-error';
+                statusText = 'Error';
+            } else if (status.status === 'queued') {
+                statusClass = 'status-pending';
+                statusText = 'Queued';
+            }
+            
+            courseItem.innerHTML = `
+                <div class="course-status-header">
+                    <div class="status-indicator ${statusClass}"></div>
+                    <div class="course-name">${status.name}</div>
+                    <div class="course-status">${statusText}</div>
+                </div>
+                <div class="course-progress-bar">
+                    <div class="progress-inner ${statusClass}" style="width: ${status.progress}%"></div>
+                </div>
+                <div class="course-message">${status.message || ''}</div>
+            `;
+            
+            courseStatusList.appendChild(courseItem);
+        });
     }
 
     /**
@@ -240,6 +342,16 @@
             btn.innerHTML = '<i class="fa fa-refresh"></i> Sync';
         });
 
+        // Re-enable modal sync button
+        const syncSelectedBtn = document.getElementById('syncSelectedBtn');
+        if (syncSelectedBtn) {
+            syncSelectedBtn.disabled = false;
+            syncSelectedBtn.classList.remove('disabled');
+            syncSelectedBtn.innerHTML = 'Sync Selected';
+        }
+
+        // Keep the course status list visible - don't hide it
+        
         // Hide progress bar after a delay
         setTimeout(() => {
             const syncProgress = document.getElementById('syncProgress');
@@ -279,6 +391,14 @@
             syncButton.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Syncing...';
         }
 
+        // Disable the selected courses sync button
+        const syncSelectedBtn = document.getElementById('syncSelectedBtn');
+        if (syncSelectedBtn) {
+            syncSelectedBtn.disabled = true;
+            syncSelectedBtn.classList.add('disabled');
+            syncSelectedBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Syncing...';
+        }
+
         // Disable the specific course sync button if applicable
         if (courseId) {
             const courseSyncButtons = document.querySelectorAll('.sync-course-btn');
@@ -311,8 +431,13 @@
         .then(response => response.json())
         .then(data => {
             if (data.status === 'started') {
-                // Start polling for progress
-                pollSyncProgress(courseId);
+                // Start polling for progress using batch_id if available
+                if (data.batch_id) {
+                    pollSyncProgress(null, data.batch_id);
+                } else {
+                    // Fall back to regular course progress
+                    pollSyncProgress(courseId);
+                }
             } else if (data.error) {
                 // Handle specific error message
                 updateProgressUI({
@@ -323,31 +448,8 @@
                     total: 1
                 });
 
-                // Re-enable the sync button
-                if (syncButton) {
-                    syncButton.disabled = false;
-                    syncButton.classList.remove('disabled');
-                    syncButton.innerHTML = '<i class="fa fa-sync"></i> Sync Courses';
-                }
-
-                // Re-enable the specific course sync button
-                if (courseId) {
-                    const courseSyncButtons = document.querySelectorAll('.sync-course-btn');
-                    courseSyncButtons.forEach(btn => {
-                        if (btn.getAttribute('data-course-id') === courseId.toString()) {
-                            btn.disabled = false;
-                            btn.classList.remove('disabled');
-                            btn.innerHTML = '<i class="fa fa-refresh"></i> Sync';
-                        }
-                    });
-
-                    const detailSyncBtn = document.getElementById('syncCourseBtn');
-                    if (detailSyncBtn && detailSyncBtn.getAttribute('data-course-id') === courseId.toString()) {
-                        detailSyncBtn.disabled = false;
-                        detailSyncBtn.classList.remove('disabled');
-                        detailSyncBtn.innerHTML = '<i class="fa fa-refresh"></i>';
-                    }
-                }
+                // Re-enable all buttons
+                enableAllButtons();
             } else {
                 // Handle generic error
                 updateProgressUI({
@@ -359,25 +461,7 @@
                 });
 
                 // Re-enable all buttons
-                if (syncButton) {
-                    syncButton.disabled = false;
-                    syncButton.classList.remove('disabled');
-                    syncButton.innerHTML = '<i class="fa fa-sync"></i> Sync Courses';
-                }
-
-                const courseSyncButtons = document.querySelectorAll('.sync-course-btn');
-                courseSyncButtons.forEach(btn => {
-                    btn.disabled = false;
-                    btn.classList.remove('disabled');
-                    btn.innerHTML = '<i class="fa fa-refresh"></i> Sync';
-                });
-
-                const detailSyncBtn = document.getElementById('syncCourseBtn');
-                if (detailSyncBtn) {
-                    detailSyncBtn.disabled = false;
-                    detailSyncBtn.classList.remove('disabled');
-                    detailSyncBtn.innerHTML = '<i class="fa fa-refresh"></i>';
-                }
+                enableAllButtons();
             }
         })
         .catch(error => {
@@ -390,27 +474,46 @@
                 total: 1
             });
 
-            // Re-enable all sync buttons
-            if (syncButton) {
-                syncButton.disabled = false;
-                syncButton.classList.remove('disabled');
-                syncButton.innerHTML = '<i class="fa fa-sync"></i> Sync Courses';
-            }
-
-            const courseSyncButtons = document.querySelectorAll('.sync-course-btn');
-            courseSyncButtons.forEach(btn => {
-                btn.disabled = false;
-                btn.classList.remove('disabled');
-                btn.innerHTML = '<i class="fa fa-refresh"></i> Sync';
-            });
-
-            const detailSyncBtn = document.getElementById('syncCourseBtn');
-            if (detailSyncBtn) {
-                detailSyncBtn.disabled = false;
-                detailSyncBtn.classList.remove('disabled');
-                detailSyncBtn.innerHTML = '<i class="fa fa-refresh"></i>';
-            }
+            // Re-enable all buttons
+            enableAllButtons();
         });
+    }
+
+    /**
+     * Helper function to re-enable all sync buttons
+     */
+    function enableAllButtons() {
+        // Re-enable the sync courses button
+        const syncButton = document.getElementById('syncCoursesBtn');
+        if (syncButton) {
+            syncButton.disabled = false;
+            syncButton.classList.remove('disabled');
+            syncButton.innerHTML = '<i class="fa fa-sync"></i> Sync Courses';
+        }
+
+        // Re-enable the selected courses sync button
+        const syncSelectedBtn = document.getElementById('syncSelectedBtn');
+        if (syncSelectedBtn) {
+            syncSelectedBtn.disabled = false;
+            syncSelectedBtn.classList.remove('disabled');
+            syncSelectedBtn.innerHTML = 'Sync Selected';
+        }
+
+        // Re-enable all course sync buttons
+        const courseSyncButtons = document.querySelectorAll('.sync-course-btn');
+        courseSyncButtons.forEach(btn => {
+            btn.disabled = false;
+            btn.classList.remove('disabled');
+            btn.innerHTML = '<i class="fa fa-refresh"></i> Sync';
+        });
+
+        // Re-enable the course detail sync button
+        const detailSyncBtn = document.getElementById('syncCourseBtn');
+        if (detailSyncBtn) {
+            detailSyncBtn.disabled = false;
+            detailSyncBtn.classList.remove('disabled');
+            detailSyncBtn.innerHTML = '<i class="fa fa-refresh"></i>';
+        }
     }
 
     /**
@@ -492,6 +595,7 @@
         const courseIndex = pathParts.indexOf('course');
         const courseId = courseIndex !== -1 && pathParts.length > courseIndex + 1 ? pathParts[courseIndex + 1] : null;
 
+        // First check for regular sync progress
         fetch(`/canvas/sync_progress/?course_id=${courseId || ''}`)
             .then(response => response.json())
             .then(data => {
@@ -506,37 +610,54 @@
                     // Start polling for progress
                     pollSyncProgress(courseId);
 
-                    // Disable the sync button while syncing
-                    const syncButton = document.getElementById('syncCoursesBtn');
-                    if (syncButton) {
-                        syncButton.disabled = true;
-                        syncButton.classList.add('disabled');
-                        syncButton.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Syncing...';
-                    }
-
-                    // Disable the specific course sync button if applicable
-                    if (courseId) {
-                        const courseSyncButtons = document.querySelectorAll('.sync-course-btn');
-                        courseSyncButtons.forEach(btn => {
-                            if (btn.getAttribute('data-course-id') === courseId.toString()) {
-                                btn.disabled = true;
-                                btn.classList.add('disabled');
-                                btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
-                            }
-                        });
-
-                        const detailSyncBtn = document.getElementById('syncCourseBtn');
-                        if (detailSyncBtn && detailSyncBtn.getAttribute('data-course-id') === courseId.toString()) {
-                            detailSyncBtn.disabled = true;
-                            detailSyncBtn.classList.add('disabled');
-                            detailSyncBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
-                        }
-                    }
+                    // Disable relevant buttons
+                    disableButtons(courseId);
+                } else {
+                    // Check for batch sync progress
+                    // We can't know the batch ID from URL, so we'll have to iterate through
+                    // session storage or just display a loading indicator if we detect a sync
+                    // is in progress from the session
+                    
+                    // Since we don't have easy access to session data, let's just avoid
+                    // showing duplicate progress bars if one from sync_progress already showed
                 }
             })
             .catch(error => {
                 console.error('Error checking sync progress:', error);
             });
+    }
+    
+    /**
+     * Helper function to disable buttons during sync
+     * @param {number|null} courseId - The course ID being synced, if any
+     */
+    function disableButtons(courseId) {
+        // Disable the sync button while syncing
+        const syncButton = document.getElementById('syncCoursesBtn');
+        if (syncButton) {
+            syncButton.disabled = true;
+            syncButton.classList.add('disabled');
+            syncButton.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Syncing...';
+        }
+
+        // Disable the specific course sync button if applicable
+        if (courseId) {
+            const courseSyncButtons = document.querySelectorAll('.sync-course-btn');
+            courseSyncButtons.forEach(btn => {
+                if (btn.getAttribute('data-course-id') === courseId.toString()) {
+                    btn.disabled = true;
+                    btn.classList.add('disabled');
+                    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
+                }
+            });
+
+            const detailSyncBtn = document.getElementById('syncCourseBtn');
+            if (detailSyncBtn && detailSyncBtn.getAttribute('data-course-id') === courseId.toString()) {
+                detailSyncBtn.disabled = true;
+                detailSyncBtn.classList.add('disabled');
+                detailSyncBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
+            }
+        }
     }
 
     // Expose public functions to the global scope
