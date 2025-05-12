@@ -91,7 +91,7 @@
                                                 data-category-name="{{ cat_data.category.name }}">
                                             <i class="fa fa-trash"></i> Delete
                                         </button>
-                                        <a href="{% url 'canvas_create_group' course_id=course.canvas_id group_set_id=cat_data.category.id %}" class="btn btn-sm btn-success">
+                                        <a href="{% url 'canvas_create_group_alias' course_id=course.canvas_id group_set_id=cat_data.category.id %}" class="btn btn-sm btn-success">
                                             <i class="fa fa-plus"></i> Add Group
                                         </a>
                                     </div>

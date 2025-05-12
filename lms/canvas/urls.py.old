@@ -116,12 +116,6 @@ urlpatterns = [
         views.create_group,
         name="canvas_create_group",
     ),
-    # alias URL for /group/create/ syntax
-    path(
-        "course/<int:course_id>/group_set/<int:group_set_id>/group/create/",
-        views.create_group,
-        name="canvas_create_group_alias",
-    ),
     # Edit group
     path(
         "course/<int:course_id>/group/<int:group_id>/edit/",

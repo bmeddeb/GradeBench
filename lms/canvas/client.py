@@ -5,7 +5,8 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
 
 import httpx
-from asgiref.sync import sync_to_async
+import asyncio
+from django.utils import timezone
 
 
 from .models import (
@@ -180,45 +181,45 @@ class Client:
                 "user", "submission_comments", "rubric_assessment"]},
         )
 
-    @sync_to_async
-    def _save_course(self, course_data: Dict) -> CanvasCourse:
-        """Save course data to the database (sync function)"""
-        course, created = CanvasCourse.objects.update_or_create(
+    async def _save_course(self, course_data: Dict) -> CanvasCourse:
+        """Save course data to the database using native async ORM"""
+        defaults = {
+            "name": course_data["name"],
+            "course_code": course_data["course_code"],
+            "start_at": (
+                datetime.fromisoformat(
+                    course_data["start_at"].replace("Z", "+00:00"))
+                if course_data.get("start_at")
+                else None
+            ),
+            "end_at": (
+                datetime.fromisoformat(
+                    course_data["end_at"].replace("Z", "+00:00"))
+                if course_data.get("end_at")
+                else None
+            ),
+            "is_public": course_data.get("is_public", False),
+            "syllabus_body": course_data.get("syllabus_body", ""),
+            "workflow_state": course_data.get("workflow_state", "unpublished"),
+            "time_zone": course_data.get("time_zone"),
+            "uuid": course_data.get("uuid"),
+        }
+
+        course, created = await CanvasCourse.objects.aupdate_or_create(
             canvas_id=course_data["id"],
             integration=self.integration,
-            defaults={
-                "name": course_data["name"],
-                "course_code": course_data["course_code"],
-                "start_at": (
-                    datetime.fromisoformat(
-                        course_data["start_at"].replace("Z", "+00:00")
-                    )
-                    if course_data.get("start_at")
-                    else None
-                ),
-                "end_at": (
-                    datetime.fromisoformat(
-                        course_data["end_at"].replace("Z", "+00:00"))
-                    if course_data.get("end_at")
-                    else None
-                ),
-                "is_public": course_data.get("is_public", False),
-                "syllabus_body": course_data.get("syllabus_body", ""),
-                "workflow_state": course_data.get("workflow_state", "unpublished"),
-                "time_zone": course_data.get("time_zone"),
-                "uuid": course_data.get("uuid"),
-            },
+            defaults=defaults
         )
+
         return course
 
-    @sync_to_async
-    def _save_enrollment(
+    async def _save_enrollment(
         self, enrollment_data: Dict, course: CanvasCourse
     ) -> CanvasEnrollment:
-        """Save enrollment data to the database (sync function)"""
+        """Save enrollment data to the database using native async ORM"""
         user_data = enrollment_data.get("user", {})
 
-        enrollment, created = CanvasEnrollment.objects.update_or_create(
+        enrollment, created = await CanvasEnrollment.objects.aupdate_or_create(
             canvas_id=enrollment_data["id"],
             course=course,
             defaults={
@@ -240,14 +241,14 @@ class Client:
                 "grades": enrollment_data.get("grades", {}),
             },
         )
+
         return enrollment
 
-    @sync_to_async
-    def _save_assignment(
+    async def _save_assignment(
         self, assignment_data: Dict, course: CanvasCourse
     ) -> CanvasAssignment:
-        """Save assignment data to the database (sync function)"""
-        assignment, created = CanvasAssignment.objects.update_or_create(
+        """Save assignment data to the database using native async ORM"""
+        assignment, created = await CanvasAssignment.objects.aupdate_or_create(
             canvas_id=assignment_data["id"],
             course=course,
             defaults={
@@ -297,7 +298,7 @@ class Client:
             and "rubric_settings" in assignment_data
         ):
             rubric_settings = assignment_data["rubric_settings"]
-            rubric, _ = CanvasRubric.objects.update_or_create(
+            rubric, _ = await CanvasRubric.objects.aupdate_or_create(
                 canvas_id=str(rubric_settings["id"]),
                 defaults={
                     "title": rubric_settings.get("title", "Untitled Rubric"),
@@ -307,7 +308,7 @@ class Client:
 
             # Save criteria and ratings
             for criterion_data in assignment_data["rubric"]:
-                criterion, _ = CanvasRubricCriterion.objects.update_or_create(
+                criterion, _ = await CanvasRubricCriterion.objects.aupdate_or_create(
                     rubric=rubric,
                     canvas_id=criterion_data["id"],
                     defaults={
@@ -322,7 +323,7 @@ class Client:
 
                 # Save ratings for this criterion
                 for rating_data in criterion_data.get("ratings", []):
-                    CanvasRubricRating.objects.update_or_create(
+                    await CanvasRubricRating.objects.aupdate_or_create(
                         criterion=criterion,
                         canvas_id=rating_data["id"],
                         defaults={
@@ -334,14 +335,13 @@ class Client:
 
         return assignment
 
-    @sync_to_async
-    def _save_submission(
+    async def _save_submission(
         self, submission_data: Dict, assignment: CanvasAssignment
     ) -> Optional[CanvasSubmission]:
-        """Save submission data to the database (sync function)"""
+        """Save submission data to the database using native async ORM"""
         # Find the enrollment
         try:
-            enrollment = CanvasEnrollment.objects.get(
+            enrollment = await CanvasEnrollment.objects.aget(
                 course=assignment.course, user_id=submission_data["user_id"]
             )
         except CanvasEnrollment.DoesNotExist:
@@ -355,7 +355,7 @@ class Client:
         if excused is None:
             excused = False
 
-        submission, created = CanvasSubmission.objects.update_or_create(
+        submission, created = await CanvasSubmission.objects.aupdate_or_create(
             canvas_id=submission_data["id"],
             assignment=assignment,
             enrollment=enrollment,
@@ -478,7 +478,6 @@ class Client:
                     "user_id" in enrollment_data
                     and enrollment_data["user_id"] in user_emails
                 ):
-
                     # Make sure there's a user dict
                     if "user" not in enrollment_data:
                         enrollment_data["user"] = {}
@@ -618,10 +617,8 @@ class Client:
                 logger.error(f"Traceback: {traceback.format_exc()}")
 
             # Update last sync timestamp
-            from django.utils import timezone
-
             self.integration.last_sync = timezone.now()
-            await sync_to_async(self.integration.save)()
+            await self.integration.asave()
 
             # Mark sync as complete
             if user_id:
@@ -635,8 +632,6 @@ class Client:
                 )
 
                 # Small delay to ensure the UI gets updated before completion
-                import asyncio
-
                 await asyncio.sleep(0.5)
 
                 await SyncProgress.async_complete_sync(
@@ -762,10 +757,9 @@ class Client:
 
         return response
 
-    @sync_to_async
-    def _save_group_category(self, category_data: Dict, course: CanvasCourse):
-        """Save group category data to the database (sync function)"""
-        category, created = CanvasGroupCategory.objects.update_or_create(
+    async def _save_group_category(self, category_data: Dict, course: CanvasCourse):
+        """Save group category data to the database using native async ORM"""
+        category, created = await CanvasGroupCategory.objects.aupdate_or_create(
             canvas_id=category_data["id"],
             defaults={
                 "course": course,
@@ -784,18 +778,16 @@ class Client:
         )
         return category
 
-    @sync_to_async
-    def _save_group(self, group_data: Dict, category):
-        """Save group data to the database (sync function)"""
+    async def _save_group(self, group_data: Dict, category):
+        """Save group data to the database using native async ORM"""
         from .models import CanvasGroup
-        from django.utils import timezone
 
         # Safely handle description which might be None
         description = group_data.get("description", "")
         if description is None:
             description = ""
 
-        group, created = CanvasGroup.objects.update_or_create(
+        group, created = await CanvasGroup.objects.aupdate_or_create(
             canvas_id=group_data["id"],
             defaults={
                 "category": category,
@@ -813,10 +805,9 @@ class Client:
         )
         return group
 
-    @sync_to_async
-    def _save_group_membership(self, member_data: Dict, group):
-        """Save group membership data to the database (sync function)"""
-        from .models import CanvasGroupMembership, CanvasEnrollment
+    async def _save_group_membership(self, member_data: Dict, group):
+        """Save group membership data to the database using native async ORM"""
+        from .models import CanvasGroupMembership
         from core.models import Student
         import logging
 
@@ -827,35 +818,37 @@ class Client:
         if "id" in member_data:
             try:
                 # First try exact match by canvas_user_id
-                student = Student.objects.filter(
+                student = await Student.objects.filter(
                     canvas_user_id=str(member_data["id"])
-                ).first()
+                ).afirst()
 
                 # If student not found, try to find by enrollment
                 if student is None:
                     # Look for enrollment with this user_id to find a linked student
-                    enrollment = CanvasEnrollment.objects.filter(
+                    enrollment = await CanvasEnrollment.objects.filter(
                         user_id=member_data["id"], course=group.category.course
-                    ).first()
+                    ).afirst()
 
                     if enrollment and enrollment.student:
                         student = enrollment.student
                         # Update the student's canvas_user_id for future lookups
                         if not student.canvas_user_id:
                             student.canvas_user_id = str(member_data["id"])
-                            student.save(update_fields=["canvas_user_id"])
+                            # Use async save
+                            await student.asave(update_fields=["canvas_user_id"])
                             logger.info(
                                 f"Updated student {student.full_name} with Canvas user ID {member_data['id']}"
                             )
 
                 # If still not found, look by email as a last resort
                 if student is None and member_data.get("email"):
-                    student = Student.objects.filter(
-                        email=member_data["email"]).first()
+                    student = await Student.objects.filter(
+                        email=member_data["email"]
+                    ).afirst()
                     if student:
                         # Update the student's canvas_user_id
                         student.canvas_user_id = str(member_data["id"])
-                        student.save(update_fields=["canvas_user_id"])
+                        await student.asave(update_fields=["canvas_user_id"])
                         logger.info(
                             f"Matched student {student.full_name} by email with Canvas user ID {member_data['id']}"
                         )
@@ -865,7 +858,7 @@ class Client:
                     f"Error finding student for member {member_data.get('name')}: {str(e)}"
                 )
 
-        membership, created = CanvasGroupMembership.objects.update_or_create(
+        membership, created = await CanvasGroupMembership.objects.aupdate_or_create(
             group=group,
             user_id=member_data["id"],
             defaults={
