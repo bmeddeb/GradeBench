@@ -6,7 +6,6 @@ These view functions support the drag-and-drop functionality for assigning stude
 import json
 import logging
 import random
-from typing import Dict, Any, List, Optional
 
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
