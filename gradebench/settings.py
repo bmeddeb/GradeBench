@@ -275,3 +275,30 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# Add file-based logging for canvas sync errors
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'canvas_file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR / 'canvas_sync.log',
+            'formatter': 'verbose',
+        },
+    },
+    'formatters': {
+        'verbose': {
+            'format': '%(levelname)s %(asctime)s [%(name)s] %(message)s'
+        },
+    },
+    'loggers': {
+        # Capture logs from all lms modules, including utils
+        'lms': {
+            'handlers': ['canvas_file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+    },
+}

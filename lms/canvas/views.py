@@ -254,7 +254,7 @@ def canvas_sync(request):
                 f"Successfully synced {len(synced_courses)} courses from Canvas"
             )
         except Exception as e:
-            logger.error(f"Error syncing courses: {e}")
+            logger.exception("Error syncing courses from Canvas")
             # Update progress with error
             SyncProgress.complete_sync(
                 user_id,
@@ -670,6 +670,8 @@ def canvas_sync_selected_courses(request):
         try:
             asyncio.run(sync_courses(client, course_ids, user_id))
         except Exception as e:
+            # Log full exception for debugging
+            logger.exception("Error syncing selected courses")
             # Handle any unexpected errors in the thread
             SyncProgress.complete_sync(
                 user_id, None, success=False, error=str(e))

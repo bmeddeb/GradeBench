@@ -1,3 +1,4 @@
+# lms/utils.py
 """
 Common utility functions for the LMS app.
 """
