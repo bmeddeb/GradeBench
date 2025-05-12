@@ -300,7 +300,7 @@ class SyncMixin:
 
     async def sync_all_courses(self, user_id: int = None) -> List['CanvasCourse']:
         """
-        Sync all available courses
+        Sync all available courses concurrently
 
         Args:
             user_id: ID of the user initiating the sync (for progress tracking)
@@ -331,9 +331,6 @@ class SyncMixin:
 
             # Update progress based on course count
             course_count = len(courses_data)
-            progress_per_course = 95 / max(
-                course_count, 1
-            )  # 95% of progress for courses, 5% for setup/cleanup
 
             # Update progress to show found courses
             if user_id:
@@ -345,58 +342,119 @@ class SyncMixin:
                     message=f"Found {course_count} courses to sync",
                 )
 
-            # Sync each course
+            # Process in batches with concurrent execution
+            MAX_CONCURRENT = 5  # Maximum courses to sync concurrently
             errors = []
+            
+            # Create a shared status dictionary
+            course_statuses = {}
             for i, course_data in enumerate(courses_data):
-                course_name = course_data.get(
-                    "name", f"Course {course_data.get('id', 'unknown')}"
-                )
-                progress_start = 5 + (i * progress_per_course)
-
+                course_id = course_data["id"]
+                course_name = course_data.get("name", f"Course {course_id}")
+                course_statuses[str(course_id)] = {
+                    "index": i,
+                    "name": course_name,
+                    "status": "queued",
+                    "progress": 0,
+                    "error": None
+                }
+            
+            # Define a task for processing a single course
+            async def process_course_task(course_data):
+                course_id = course_data["id"]
+                course_name = course_data.get("name", f"Course {course_id}")
+                course_id_str = str(course_id)
+                
                 try:
-                    # Update progress at the overall level
+                    # Update this course's status to in progress
+                    course_statuses[course_id_str]["status"] = "in_progress"
+                    
+                    # Count completed and in-progress courses
+                    completed = sum(1 for status in course_statuses.values() 
+                                  if status["status"] in ["completed", "error"])
+                    in_progress = sum(1 for status in course_statuses.values() 
+                                  if status["status"] == "in_progress")
+                    
+                    # Update overall progress
                     if user_id:
+                        current_progress = 5 + (completed * 90 / course_count)
                         await SyncProgress.async_update(
                             user_id,
-                            current=progress_start,
+                            current=current_progress,
                             total=100,
                             status="syncing_course",
-                            message=f"Syncing course {i+1} of {course_count}: {course_name}",
+                            message=f"Syncing {in_progress} courses concurrently ({completed}/{course_count} completed)",
                         )
-
-                    # Sync the individual course (this will track its own progress if user_id is provided)
-                    # Note: we pass None for the user_id to avoid nested progress tracking
-                    # We'll handle all progress tracking here for the overall process
-                    course = await self.sync_course(course_data["id"], None)
-                    synced_courses.append(course)
-
-                    # Update progress after successfully syncing this course
+                    
+                    # Sync the course with no individual progress tracking
+                    course = await self.sync_course(course_id, None)
+                    
+                    # Mark as completed
+                    course_statuses[course_id_str]["status"] = "completed"
+                    course_statuses[course_id_str]["progress"] = 100
+                    
+                    # Count completed courses again
+                    completed = sum(1 for status in course_statuses.values() 
+                                  if status["status"] in ["completed", "error"])
+                    in_progress = sum(1 for status in course_statuses.values() 
+                                  if status["status"] == "in_progress")
+                    
+                    # Update overall progress
                     if user_id:
-                        percentage = int((i + 1) / course_count * 100)
+                        current_progress = 5 + (completed * 90 / course_count)
                         await SyncProgress.async_update(
                             user_id,
-                            current=progress_start + progress_per_course,
+                            current=current_progress,
                             total=100,
-                            status=SyncProgress.STATUS_COMPLETED,
-                            message=f"Completed course {i+1} of {course_count}: {course_name} ({percentage}% complete)",
+                            status="syncing_course",
+                            message=f"Syncing {in_progress} courses concurrently ({completed}/{course_count} completed)",
                         )
-
+                    
+                    return {"course": course, "success": True}
+                    
                 except Exception as e:
-                    errors.append({"course": course_name, "error": str(e)})
-                    logger.error(
-                        f"Error syncing course {course_data.get('id')}: {e}")
+                    error_info = {"course": course_name, "error": str(e)}
+                    logger.error(f"Error syncing course {course_id}: {e}")
                     logger.error(f"Traceback: {traceback.format_exc()}")
-
-                    # Update progress to show error for this course
+                    
+                    # Mark as error
+                    course_statuses[course_id_str]["status"] = "error"
+                    course_statuses[course_id_str]["error"] = str(e)
+                    
+                    # Count completed courses again
+                    completed = sum(1 for status in course_statuses.values() 
+                                  if status["status"] in ["completed", "error"])
+                    in_progress = sum(1 for status in course_statuses.values() 
+                                  if status["status"] == "in_progress")
+                    
+                    # Update overall progress
                     if user_id:
+                        current_progress = 5 + (completed * 90 / course_count)
                         await SyncProgress.async_update(
                             user_id,
-                            current=progress_start + progress_per_course,
+                            current=current_progress,
                             total=100,
-                            status=SyncProgress.STATUS_ERROR,
-                            message=f"Error syncing course {i+1} of {course_count}: {course_name}",
+                            status="error",
+                            message=f"Error in course: {course_name}. Continuing with others... ({completed}/{course_count})",
                         )
+                    
+                    return {"error": error_info, "success": False}
 
+            # Process courses in batches to limit concurrency
+            for i in range(0, len(courses_data), MAX_CONCURRENT):
+                batch = courses_data[i:i+MAX_CONCURRENT]
+                tasks = [process_course_task(course_data) for course_data in batch]
+                
+                # Run the batch of tasks concurrently
+                results = await asyncio.gather(*tasks, return_exceptions=False)
+                
+                # Process results
+                for result in results:
+                    if result["success"]:
+                        synced_courses.append(result["course"])
+                    else:
+                        errors.append(result["error"])
+            
             # Mark the overall sync as complete
             if user_id:
                 success_message = (

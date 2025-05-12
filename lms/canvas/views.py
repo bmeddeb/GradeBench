@@ -761,8 +761,37 @@ def canvas_sync_selected_courses(request):
                     "completed_at": None
                 } for course_id in course_ids
             }
-
-        for i, course_id in enumerate(course_ids):
+            
+        # Update all courses to "Queued" status
+        for course_id in course_ids:
+            course_id_str = str(course_id)
+            course_statuses[course_id_str]["status"] = SyncProgress.STATUS_QUEUED
+            course_statuses[course_id_str]["message"] = "Queued for sync"
+            course_statuses[course_id_str]["progress"] = 0
+        
+        # Update batch progress with all courses queued
+        await SyncProgress.async_update_batch(
+            user_id,
+            batch_id,
+            course_statuses,
+            current=0,
+            total=len(course_ids),
+            status=SyncProgress.STATUS_IN_PROGRESS,
+            message=f"Starting sync of {len(course_ids)} courses"
+        )
+        
+        # Also update standard progress for compatibility
+        await SyncProgress.async_update(
+            user_id,
+            None,
+            current=0,
+            total=len(course_ids),
+            status="syncing_course",
+            message=f"Starting sync of {len(course_ids)} courses"
+        )
+        
+        # Define a task for each course
+        async def sync_course_task(course_id, i):
             course_id_str = str(course_id)
             try:
                 # Mark this course as in progress
@@ -771,25 +800,15 @@ def canvas_sync_selected_courses(request):
                 course_statuses[course_id_str]["progress"] = 0
                 course_statuses[course_id_str]["started_at"] = timezone.now().isoformat()
                 
-                # Update batch progress
+                # Update batch progress just for this course
                 await SyncProgress.async_update_batch(
                     user_id,
                     batch_id,
                     course_statuses,
-                    current=i,
+                    current=len([s for s in course_statuses.values() if s.get("status") == SyncProgress.STATUS_SUCCESS]),
                     total=len(course_ids),
                     status=SyncProgress.STATUS_IN_PROGRESS,
-                    message=f"Syncing course {i+1} of {len(course_ids)}: {course_statuses[course_id_str]['name']}"
-                )
-                
-                # Also update the standard progress for compatibility
-                await SyncProgress.async_update(
-                    user_id,
-                    None,
-                    current=i,
-                    total=len(course_ids),
-                    status="syncing_course",
-                    message=f"Syncing course {i+1} of {len(course_ids)}: {course_statuses[course_id_str]['name']}"
+                    message=f"Processing {len(course_ids)} courses concurrently"
                 )
                 
                 # Create a progress callback for this course
@@ -799,20 +818,21 @@ def canvas_sync_selected_courses(request):
                     course_statuses[course_id_str]["message"] = message
                     course_statuses[course_id_str]["progress"] = int(progress)
                     
-                    # Update the batch progress
+                    # Update the batch progress - count completed courses
+                    completed_count = len([s for s in course_statuses.values() 
+                                          if s.get("status") in [SyncProgress.STATUS_SUCCESS, SyncProgress.STATUS_ERROR]])
+                    
                     await SyncProgress.async_update_batch(
                         user_id,
                         batch_id,
                         course_statuses,
-                        current=i,  # Keep the same overall count
+                        current=completed_count,
                         total=len(course_ids),
                         status=SyncProgress.STATUS_IN_PROGRESS,
-                        message=f"Syncing course {i+1} of {len(course_ids)}: {course_statuses[course_id_str]['name']}"
+                        message=f"Processing {len(course_ids)} courses concurrently"
                     )
                 
-                # This will automatically update progress through the client
-                # We pass None for the user_id to avoid duplicating progress tracking
-                # but we use our custom callback to update the batch progress
+                # This will automatically update progress through the callback
                 course = await client.sync_course(course_id, None, update_course_progress)
                 
                 # Mark course as completed in batch
@@ -821,7 +841,22 @@ def canvas_sync_selected_courses(request):
                 course_statuses[course_id_str]["progress"] = 100
                 course_statuses[course_id_str]["completed_at"] = timezone.now().isoformat()
                 
-                synced.append(course_id)
+                # Count completed courses for the overall progress
+                completed_count = len([s for s in course_statuses.values() 
+                                      if s.get("status") in [SyncProgress.STATUS_SUCCESS, SyncProgress.STATUS_ERROR]])
+                
+                # Update batch progress
+                await SyncProgress.async_update_batch(
+                    user_id,
+                    batch_id,
+                    course_statuses,
+                    current=completed_count,
+                    total=len(course_ids),
+                    status=SyncProgress.STATUS_IN_PROGRESS,
+                    message=f"Completed {completed_count} of {len(course_ids)} courses"
+                )
+                
+                return {"course_id": course_id, "success": True, "course": course}
             except Exception as e:
                 logger.error(f"Error syncing course {course_id}: {e}")
                 
@@ -830,29 +865,43 @@ def canvas_sync_selected_courses(request):
                 course_statuses[course_id_str]["message"] = f"Error: {str(e)}"
                 course_statuses[course_id_str]["completed_at"] = timezone.now().isoformat()
                 
-                errors.append({"course_id": course_id, "error": str(e)})
+                # Count completed courses (including errors) for the overall progress
+                completed_count = len([s for s in course_statuses.values() 
+                                      if s.get("status") in [SyncProgress.STATUS_SUCCESS, SyncProgress.STATUS_ERROR]])
+                
+                # Update batch progress
+                await SyncProgress.async_update_batch(
+                    user_id,
+                    batch_id,
+                    course_statuses,
+                    current=completed_count,
+                    total=len(course_ids),
+                    status=SyncProgress.STATUS_IN_PROGRESS,
+                    message=f"Completed {completed_count} of {len(course_ids)} courses"
+                )
+                
+                return {"course_id": course_id, "success": False, "error": str(e)}
+        
+        # Create task list with a max concurrency of 5 courses at a time
+        # This helps prevent overwhelming the Canvas API or the server
+        MAX_CONCURRENT = 5
+        tasks = []
+        
+        # Process courses in batches of MAX_CONCURRENT
+        for i in range(0, len(course_ids), MAX_CONCURRENT):
+            batch = course_ids[i:i+MAX_CONCURRENT]
+            current_tasks = [sync_course_task(course_id, idx) for idx, course_id in enumerate(batch)]
             
-            # Update batch progress after each course
-            await SyncProgress.async_update_batch(
-                user_id,
-                batch_id,
-                course_statuses,
-                current=i+1,
-                total=len(course_ids),
-                status=SyncProgress.STATUS_IN_PROGRESS,
-                message=f"Completed {i+1} of {len(course_ids)} courses"
-            )
+            # Wait for all tasks in this batch to complete
+            results = await asyncio.gather(*current_tasks, return_exceptions=False)
             
-            # Also update standard progress for compatibility
-            await SyncProgress.async_update(
-                user_id,
-                None,
-                current=i+1,
-                total=len(course_ids),
-                status="syncing_course",
-                message=f"Completed {i+1} of {len(course_ids)} courses"
-            )
-
+            # Process results
+            for result in results:
+                if result.get("success", False):
+                    synced.append(result["course_id"])
+                else:
+                    errors.append({"course_id": result["course_id"], "error": result.get("error", "Unknown error")})
+        
         # Mark the overall sync as complete
         success = len(synced) > 0
         message = f"Completed sync of {len(synced)} out of {len(course_ids)} courses."
