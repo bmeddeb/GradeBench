@@ -6,39 +6,38 @@
 {% block nav_canvas_courses %}active{% endblock %}
 
 {% block canvas_content %}
-<div class="row">
-    <div class="col-md-8 offset-md-2">
+<div class="row justify-content-center">
+    <div class="col-md-8">
         <div class="card">
             <div class="card-header bg-danger text-white">
-                <h4 class="card-title">Delete Canvas Course</h4>
-                <p class="card-category">Warning: This action cannot be undone</p>
+                <h4 class="card-title mb-0">Delete Canvas Course</h4>
             </div>
-            <div class="card-content">
-                <div class="alert alert-warning">
-                    <h4>You are about to delete the following course:</h4>
-                    <p><strong>{{ course.course_code }}:</strong> {{ course.name }}</p>
+            <div class="card-body">
+                <div class="alert mb-4 p-4" style="background-color: #66615b; color: white; border: none;">
+                    <h4 class="alert-heading">You are about to delete the following course:</h4>
+                    <p class="mb-3 fs-5"><strong>{{ course.course_code }}:</strong> {{ course.name }}</p>
                     
-                    <h5>This will delete:</h5>
-                    <ul>
+                    <h5 class="mt-4">This will delete:</h5>
+                    <ul class="mb-3">
                         <li>All assignments in this course</li>
                         <li>All student enrollments in this course</li>
                         <li>All submissions in this course</li>
                         <li>All connections to this course</li>
                     </ul>
                     
-                    <p><strong>Important:</strong> This action only removes the course from GradeBench. It will <em>not</em> affect the original course on Canvas.</p>
+                    <p class="mb-0"><strong>Important:</strong> This action only removes the course from GradeBench. It will <em>not</em> affect the original course on Canvas.</p>
                 </div>
                 
-                <div class="row">
-                    <div class="col-md-6">
-                        <a href="{% url 'canvas_course_detail' course_id=course.canvas_id %}" class="btn btn-secondary btn-fill btn-block">
+                <div class="row mt-4 justify-content-center">
+                    <div class="col-md-5 mb-3 mb-md-0">
+                        <a href="{% url 'canvas_course_detail' course_id=course.canvas_id %}" class="btn btn-secondary btn-fill btn-lg btn-block w-100">
                             <i class="fa fa-arrow-left"></i> Cancel
                         </a>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-5">
                         <form method="post">
                             {% csrf_token %}
-                            <button type="submit" class="btn btn-danger btn-fill btn-block">
+                            <button type="submit" class="btn btn-danger btn-fill btn-lg btn-block w-100">
                                 <i class="fa fa-trash"></i> Delete Course
                             </button>
                         </form>
