@@ -251,9 +251,11 @@
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <!-- Use final version with drag and drop functionality -->
 <script src="{% static 'js/canvas-group-sortable-fixed.js' %}"></script>
+<!-- Include delete group modal with spinner -->
+<script src="{% static 'js/delete-group-modal.js' %}"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Initialize modal
+        // Initialize modal (used only for delete group set, not for delete group)
         let deleteModal = new bootstrap.Modal(document.getElementById('confirmDeleteModal'));
         let confirmDeleteButton = document.getElementById('confirmDeleteButton');
         let currentDeleteAction = null;
@@ -578,15 +580,7 @@
                 const deleteBtn = groupCard.querySelector('.delete-group-btn');
                 deleteBtn.setAttribute('data-group-id', group.id);
                 deleteBtn.setAttribute('data-group-name', group.name);
-                deleteBtn.addEventListener('click', function() {
-                    // Show confirmation modal
-                    document.getElementById('confirmDeleteModalBody').textContent =
-                        `Are you sure you want to delete the group "${group.name}"?`;
-
-                    // Set up the delete action
-                    currentDeleteAction = () => deleteGroup(group.id);
-                    deleteModal.show();
-                });
+                // Delete button handling is delegated to delete-group-modal.js
 
                 const description = groupCard.querySelector('.group-description');
                 if (group.description) {
@@ -745,32 +739,49 @@
         }
 
         // Function to delete a group
-        function deleteGroup(groupId) {
-            // Create a POST request with CSRF token
-            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        function deleteGroup(groupId, groupName) {
+            // Create a progress modal
+            let progressModal = document.createElement('div');
+            progressModal.className = 'modal fade';
+            progressModal.id = 'deleteGroupProgressModal';
+            progressModal.setAttribute('tabindex', '-1');
+            progressModal.setAttribute('aria-labelledby', 'deleteGroupProgressModalLabel');
+            progressModal.setAttribute('aria-hidden', 'true');
+            progressModal.setAttribute('data-bs-backdrop', 'static');
+            progressModal.setAttribute('data-bs-keyboard', 'false');
 
-            // Show the delete operation in progress 
-            const modal = document.getElementById('confirmDeleteModal');
-            const modalBody = document.getElementById('confirmDeleteModalBody');
-            const confirmButton = document.getElementById('confirmDeleteButton');
-            const closeButton = modal.querySelector('.btn-close');
-            const cancelButton = modal.querySelector('.btn-secondary');
-
-            // Disable buttons and show spinner
-            confirmButton.disabled = true;
-            closeButton.disabled = true;
-            cancelButton.disabled = true;
-            
-            // Replace current text with a loading indicator
-            const originalText = modalBody.innerHTML;
-            modalBody.innerHTML = `
-                <div class="text-center">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Deleting group...</span>
+            progressModal.innerHTML = `
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="deleteGroupProgressModalLabel">Deleting Group</h5>
+                        </div>
+                        <div class="modal-body text-center">
+                            <div class="spinner-border text-primary mb-3" role="status">
+                                <span class="visually-hidden">Deleting group...</span>
+                            </div>
+                            <p>Deleting group "${groupName}" and updating Canvas...</p>
+                            <p class="text-muted small">This may take a few moments. Please don't close this window.</p>
+                        </div>
                     </div>
-                    <p class="mt-2">Deleting group and updating Canvas...</p>
                 </div>
             `;
+
+            // First hide the confirmation modal
+            const modalInstance = bootstrap.Modal.getInstance(document.getElementById('confirmDeleteModal'));
+            if (modalInstance) {
+                modalInstance.hide();
+            }
+
+            // Add progress modal to body
+            document.body.appendChild(progressModal);
+
+            // Show the progress modal
+            const bsProgressModal = new bootstrap.Modal(progressModal);
+            bsProgressModal.show();
+
+            // Create a POST request with CSRF token
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
             fetch(`/canvas/course/{{ course.canvas_id }}/group/${groupId}/delete/`, {
                 method: 'POST',
@@ -782,23 +793,15 @@
             })
             .then(response => response.json())
             .then(data => {
-                if (data.success) {
-                    // Close the modal
-                    const modalInstance = bootstrap.Modal.getInstance(modal);
-                    modalInstance.hide();
-
-                    // Show success message using notify
-                    if (typeof $ !== 'undefined' && typeof $.notify === 'function') {
-                        $.notify({
-                            message: data.message
-                        }, {
-                            type: 'success',
-                            placement: { from: 'top', align: 'center' },
-                            z_index: 2000,
-                            delay: 3000
-                        });
+                // Hide and remove the progress modal
+                bsProgressModal.hide();
+                setTimeout(() => {
+                    if (document.body.contains(progressModal)) {
+                        document.body.removeChild(progressModal);
                     }
+                }, 300);
 
+                if (data.success) {
                     // Reload the active tab data
                     const activeTab = document.querySelector('#groupSetTabs .nav-link.active');
                     if (activeTab) {
@@ -810,14 +813,6 @@
                         loadGroupSetData(categoryId);
                     }
                 } else {
-                    // Restore original modal content
-                    modalBody.innerHTML = originalText;
-                    
-                    // Re-enable buttons
-                    confirmButton.disabled = false;
-                    closeButton.disabled = false;
-                    cancelButton.disabled = false;
-                    
                     // Show error message
                     if (typeof $ !== 'undefined' && typeof $.notify === 'function') {
                         $.notify({
@@ -835,15 +830,15 @@
             })
             .catch(error => {
                 console.error('Error deleting group:', error);
-                
-                // Restore original modal content
-                modalBody.innerHTML = originalText;
-                
-                // Re-enable buttons
-                confirmButton.disabled = false;
-                closeButton.disabled = false;
-                cancelButton.disabled = false;
-                
+
+                // Hide and remove the progress modal
+                bsProgressModal.hide();
+                setTimeout(() => {
+                    if (document.body.contains(progressModal)) {
+                        document.body.removeChild(progressModal);
+                    }
+                }, 300);
+
                 // Show error message
                 if (typeof $ !== 'undefined' && typeof $.notify === 'function') {
                     $.notify({
