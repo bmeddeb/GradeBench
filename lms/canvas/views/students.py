@@ -13,6 +13,7 @@ from ..models import (
     CanvasEnrollment,
     CanvasAssignment,
     CanvasSubmission,
+    CanvasGroupMembership,
 )
 from ..decorators import canvas_integration_required
 
@@ -24,17 +25,17 @@ class StudentListView(ListView):
     """Class-based view for listing Canvas students"""
     template_name = "canvas/students_list.html"
     context_object_name = "students"
-    
+
     def get_queryset(self):
-        """Get students grouped by user_id"""
+        """Get students grouped by user_id with their group memberships"""
         integration = self.request.canvas_integration
-        
+
         # Get all enrollments that are students from all courses
         enrollments = CanvasEnrollment.objects.filter(
-            course__integration=integration, 
+            course__integration=integration,
             role="StudentEnrollment"
         ).select_related("course")
-        
+
         # Group by student
         students_by_id = {}
         for enrollment in enrollments:
@@ -44,10 +45,34 @@ class StudentListView(ListView):
                     "name": enrollment.user_name,
                     "email": enrollment.email,
                     "courses": [],
+                    "groups": [],  # New field to store group memberships
                 }
             students_by_id[enrollment.user_id]["courses"].append(
                 {"course": enrollment.course, "enrollment": enrollment}
             )
+
+        # Get group memberships for each student
+        if students_by_id:
+            user_ids = list(students_by_id.keys())
+            memberships = CanvasGroupMembership.objects.filter(
+                user_id__in=user_ids,
+                group__category__course__integration=integration
+            ).select_related('group', 'group__category', 'group__category__course')
+
+            # Add group memberships to each student's data
+            for membership in memberships:
+                if membership.user_id in students_by_id:
+                    group_info = {
+                        "id": membership.group.id,
+                        "canvas_id": membership.group.canvas_id,
+                        "name": membership.group.name,
+                        "category_name": membership.group.category.name,
+                        "category_id": membership.group.category.id,  # Use the internal DB ID, not canvas_id
+                        "category_canvas_id": membership.group.category.canvas_id,  # Keep this for reference
+                        "course_id": membership.group.category.course.canvas_id,
+                        "course_code": membership.group.category.course.course_code
+                    }
+                    students_by_id[membership.user_id]["groups"].append(group_info)
         
         return list(students_by_id.values())
     

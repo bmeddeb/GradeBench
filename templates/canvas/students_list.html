@@ -5,6 +5,56 @@
 {% block page_title %}Canvas Students{% endblock %}
 {% block nav_canvas_students %}active{% endblock %}
 
+{% block extra_css %}
+{{ block.super }}
+<!-- DataTables CSS -->
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css"/>
+<style>
+    .bootstrap-tagsinput {
+        width: 100%;
+        min-height: 40px;
+    }
+    .bootstrap-tagsinput .badge {
+        margin: 2px;
+        padding: 5px 8px;
+    }
+    .badge[data-group-id], .group-badge, .badge[data-course-id], .course-badge {
+        cursor: pointer;
+        transition: all 0.3s;
+        margin: 2px 3px;
+        display: inline-block;
+    }
+    .badge[data-group-id]:hover, .group-badge:hover {
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        transform: translateY(-1px);
+        background-color: #28a745 !important; /* Slightly darker green */
+    }
+    .badge[data-course-id]:hover, .course-badge:hover {
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        transform: translateY(-1px);
+        background-color: #0d6efd !important; /* Slightly darker blue */
+    }
+    table.dataTable thead .sorting:after,
+    table.dataTable thead .sorting_asc:after,
+    table.dataTable thead .sorting_desc:after {
+        top: 8px;
+        right: 4px;
+    }
+    /* Improve table appearance */
+    #students-table {
+        width: 100% !important;
+    }
+    #students-table th {
+        font-weight: bold;
+    }
+    /* Make group badges more visible */
+    .tagsinput {
+        display: flex;
+        flex-wrap: wrap;
+    }
+</style>
+{% endblock %}
+
 {% block canvas_content %}
 <div class="row">
     <div class="col-md-12">
@@ -25,12 +75,13 @@
             <div class="card-body">
                 <div class="table-responsive">
                     {% if students %}
-                    <table class="table table-hover">
+                    <table id="students-table" class="table table-hover table-striped">
                         <thead class="text-primary">
                             <tr>
                                 <th>Name</th>
                                 <th>Email</th>
                                 <th>Courses</th>
+                                <th>Groups</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -39,14 +90,29 @@
                             <tr>
                                 <td>{{ student.name }}</td>
                                 <td>{{ student.email|default:"Not available" }}</td>
+                                <td data-sort="{{ student.courses.0.course.course_code|default:'' }}">
+                                    <div class="tagsinput">
+                                        {% for course_info in student.courses %}
+                                        <a href="{% url 'canvas_course_detail' course_id=course_info.course.canvas_id %}" class="badge bg-info course-badge" title="Click to view course">
+                                            <i class="fa fa-bookmark fa-xs me-1"></i>
+                                            {{ course_info.course.course_code }}
+                                        </a>
+                                        {% endfor %}
+                                    </div>
+                                </td>
                                 <td>
-                                    {% for course_info in student.courses %}
-                                    <span class="badge bg-info">{{ course_info.course.course_code }}</span>
-                                    {% endfor %}
+                                    <div class="tagsinput">
+                                        {% for group in student.groups %}
+                                        <a href="{% url 'canvas_course_groups' course_id=group.course_id %}#category-{{ group.category_id }}" class="badge badge-success group-badge" title="Click to view group">
+                                            <i class="fa fa-users fa-xs me-1"></i>
+                                            {{ group.name }} ({{ group.category_name }})
+                                        </a>
+                                        {% endfor %}
+                                    </div>
                                 </td>
                                 <td>
                                     {% for course_info in student.courses %}
-                                    <a href="{% url 'canvas_student_detail' course_id=course_info.course.canvas_id user_id=student.user_id %}" class="btn btn-info btn-xs">
+                                    <a href="{% url 'canvas_student_detail' course_id=course_info.course.canvas_id user_id=student.user_id %}" class="btn btn-info btn-xs mb-1">
                                         <i class="fa fa-eye"></i> View in {{ course_info.course.course_code }}
                                     </a>
                                     {% if not forloop.last %}<br>{% endif %}
@@ -72,4 +138,28 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<!-- DataTables JS -->
+<script type="text/javascript" src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+<script>
+    // Fix for paper-dashboard.min.js jQuery tagsinput error
+    $.fn.tagsinput = $.fn.tagsinput || function() { return this; };
+    
+    $(document).ready(function() {
+        // Initialize DataTable for sorting
+        $('#students-table').DataTable({
+            "order": [[0, "asc"]],  // Default sort by name
+            "paging": false,
+            "info": false,
+            "searching": true,
+            "columnDefs": [
+                { "orderable": false, "targets": 4 }  // Disable sorting on actions column
+            ]
+        });
+    });
+</script>
 {% endblock %}

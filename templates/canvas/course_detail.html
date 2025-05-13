@@ -7,6 +7,7 @@
 {% block nav_canvas_dashboard %}active{% endblock %}
 
 {% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/canvas-sync-progress.css' %}">
 {% endblock %}
 
 {% block canvas_content %}
@@ -16,9 +17,11 @@
             <div class="card-body">
                 <div class="row">
                     <div class="col-5 col-md-4">
-                        <div class="icon-big text-center icon-warning">
-                            <i class="nc-icon nc-single-02 text-warning"></i>
-                        </div>
+                        <a href="{% url 'canvas_students_list' %}">
+                            <div class="icon-big text-center icon-warning shake-icon" style="cursor: pointer;">
+                                <i class="nc-icon nc-single-02 text-warning"></i>
+                            </div>
+                        </a>
                     </div>
                     <div class="col-7 col-md-8">
                         <div class="numbers">
@@ -42,9 +45,11 @@
             <div class="card-body">
                 <div class="row">
                     <div class="col-5 col-md-4">
-                        <div class="icon-big text-center icon-warning">
-                            <i class="nc-icon nc-paper text-success"></i>
-                        </div>
+                        <a href="{% url 'canvas_assignments_list' %}">
+                            <div class="icon-big text-center icon-warning shake-icon" style="cursor: pointer;">
+                                <i class="nc-icon nc-paper text-success"></i>
+                            </div>
+                        </a>
                     </div>
                     <div class="col-7 col-md-8">
                         <div class="numbers">
@@ -68,18 +73,15 @@
             <div class="card-body">
                 <div class="row">
                     <div class="col-5 col-md-4">
-                        <div class="icon-big text-center icon-warning">
-                            <i class="nc-icon nc-vector text-info"></i>
-                        </div>
+                        <a href="{% url 'canvas_course_groups' course_id=course.canvas_id %}">
+                            <div class="icon-big text-center icon-warning pulse-icon" style="cursor: pointer;">
+                                <i class="nc-icon nc-vector text-info"></i>
+                            </div>
+                        </a>
                     </div>
                     <div class="col-7 col-md-8">
                         <div class="numbers">
                             <p class="card-category">Groups</p>
-                            <p class="card-title">
-                                <a href="{% url 'canvas_course_groups' course_id=course.canvas_id %}" class="btn btn-xs btn-info">
-                                    <i class="fa fa-users"></i>
-                                </a>
-                            </p>
                         </div>
                     </div>
                 </div>
@@ -98,18 +100,13 @@
             <div class="card-body">
                 <div class="row">
                     <div class="col-5 col-md-4">
-                        <div class="icon-big text-center icon-warning">
+                        <div class="icon-big text-center icon-warning" role="button" data-bs-toggle="modal" data-bs-target="#syncCoursesModal" style="cursor: pointer;">
                             <i class="nc-icon nc-refresh-69 text-danger"></i>
                         </div>
                     </div>
                     <div class="col-7 col-md-8">
                         <div class="numbers">
-                            <p class="card-category">Sync</p>
-                            <p class="card-title">
-                                <button id="syncCourseBtn" class="btn btn-xs btn-danger" data-course-id="{{ course.canvas_id }}">
-                                    <i class="fa fa-refresh"></i>
-                                </button>
-                            </p>
+                            <p class="card-category">Sync Courses</p>
                         </div>
                     </div>
                 </div>

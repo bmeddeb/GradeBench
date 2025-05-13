@@ -98,26 +98,29 @@
             <div class="card-body">
                 <div class="row">
                     <div class="col-5 col-md-4">
-                        <div class="icon-big text-center icon-warning">
-                            <i class="nc-icon nc-refresh-69 text-danger"></i>
+                        <div class="icon-big text-center icon-warning sync-icon-container" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#syncCoursesModal">
+                            <i class="nc-icon nc-refresh-69 text-danger sync-icon"></i>
                         </div>
                     </div>
                     <div class="col-7 col-md-8">
                         <div class="numbers">
                             <p class="card-category">Sync Courses</p>
                             <p class="card-title">
-                                <button class="btn btn-xs btn-danger" type="button" data-bs-toggle="modal" data-bs-target="#syncCoursesModal">
-                                    <i class="fa fa-refresh"></i>
-                                </button>
+                                <!-- Button removed as requested -->
                             </p>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="card-footer">
+            <div class="card-footer" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#syncCoursesModal">
                 <hr>
                 <div class="stats">
-                    <i class="fa fa-plus"></i> Add/Sync Courses
+                    <i class="fa fa-clock-o"></i> 
+                    {% if integration.last_sync %}
+                    {{ integration.last_sync|date:"M d, H:i" }}
+                    {% else %}
+                    Not synchronized
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -291,4 +294,39 @@
 
 {% block canvas_js %}
 <!-- Using centralized JS from canvas-sync-progress.js -->
+<style>
+    @keyframes rotate-icon {
+        0% {
+            transform: rotate(0);
+        }
+        100% {
+            transform: rotate(3.142rad);
+        }
+    }
+    
+    .sync-icon {
+        transition: transform 0.3s ease;
+    }
+    
+    .sync-icon-rotating {
+        animation: rotate-icon 1s linear infinite;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const syncIconContainer = document.querySelector('.sync-icon-container');
+        const syncIcon = document.querySelector('.sync-icon');
+        
+        if (syncIconContainer && syncIcon) {
+            syncIconContainer.addEventListener('mouseenter', function() {
+                syncIcon.classList.add('sync-icon-rotating');
+            });
+            
+            syncIconContainer.addEventListener('mouseleave', function() {
+                syncIcon.classList.remove('sync-icon-rotating');
+            });
+        }
+    });
+</script>
 {% endblock %}
