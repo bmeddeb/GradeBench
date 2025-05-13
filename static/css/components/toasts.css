@@ -1,0 +1,203 @@
+/**
+ * GradeBench Toast Component Styles
+ * Defines standardized toast notification styles with improved contrast
+ */
+
+/* Base Toast Container */
+.toast-container {
+  position: fixed;
+  top: var(--gb-space-lg);
+  right: var(--gb-space-lg);
+  z-index: var(--gb-z-index-toast);
+  max-width: 350px;
+}
+
+/* Base Toast */
+.toast {
+  width: 100%;
+  border-radius: var(--gb-border-radius-md);
+  box-shadow: var(--gb-shadow-lg);
+  overflow: hidden;
+  margin-bottom: var(--gb-space-md);
+  border: 2px solid;
+}
+
+/* Toast Header */
+.toast-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--gb-space-sm) var(--gb-space-md);
+  font-weight: var(--gb-font-weight-bold);
+  border-bottom: 1px solid;
+}
+
+.toast-header .close {
+  opacity: 1;
+  font-size: 1.5rem;
+  font-weight: var(--gb-font-weight-bold);
+  padding: 0 var(--gb-space-sm);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+/* Toast Body */
+.toast-body {
+  padding: var(--gb-space-md);
+  font-size: 1rem;
+}
+
+/* Improved Contrast Color Variations */
+.toast-primary {
+  background-color: #0d4f91;
+  color: white;
+  border-color: #0a3a6b;
+}
+
+.toast-primary .toast-header {
+  background-color: #0a3a6b;
+  color: white;
+  border-color: #072c53;
+}
+
+.toast-primary .close {
+  color: white;
+}
+
+.toast-secondary {
+  background-color: #4b5563;
+  color: white;
+  border-color: #374151;
+}
+
+.toast-secondary .toast-header {
+  background-color: #374151;
+  color: white;
+  border-color: #1f2937;
+}
+
+.toast-secondary .close {
+  color: white;
+}
+
+.toast-success {
+  background-color: #166534;
+  color: white;
+  border-color: #14532d;
+}
+
+.toast-success .toast-header {
+  background-color: #14532d;
+  color: white;
+  border-color: #134e29;
+}
+
+.toast-success .close {
+  color: white;
+}
+
+.toast-danger, .toast-error {
+  background-color: #991b1b;
+  color: white;
+  border-color: #7f1d1d;
+}
+
+.toast-danger .toast-header, .toast-error .toast-header {
+  background-color: #7f1d1d;
+  color: white;
+  border-color: #7f1d1d;
+}
+
+.toast-danger .close, .toast-error .close {
+  color: white;
+}
+
+.toast-warning {
+  background-color: #92400e;
+  color: white;
+  border-color: #78350f;
+}
+
+.toast-warning .toast-header {
+  background-color: #78350f;
+  color: white;
+  border-color: #78350f;
+}
+
+.toast-warning .close {
+  color: white;
+}
+
+.toast-info {
+  background-color: #0e7490;
+  color: white;
+  border-color: #155e75;
+}
+
+.toast-info .toast-header {
+  background-color: #155e75;
+  color: white;
+  border-color: #164e63;
+}
+
+.toast-info .close {
+  color: white;
+}
+
+/* Improved Bootstrap Notify Compatibility */
+.alert[data-notify="container"] {
+  background-color: #0e7490;
+  color: white;
+  border: 2px solid #155e75;
+  padding: var(--gb-space-md);
+  border-radius: var(--gb-border-radius-md);
+  box-shadow: var(--gb-shadow-lg);
+}
+
+.alert[data-notify="container"][data-notify-type="success"] {
+  background-color: #166534;
+  color: white;
+  border-color: #14532d;
+}
+
+.alert[data-notify="container"][data-notify-type="danger"], 
+.alert[data-notify="container"][data-notify-type="error"] {
+  background-color: #991b1b;
+  color: white;
+  border-color: #7f1d1d;
+}
+
+.alert[data-notify="container"][data-notify-type="warning"] {
+  background-color: #92400e;
+  color: white;
+  border-color: #78350f;
+}
+
+.alert[data-notify="container"][data-notify-type="info"] {
+  background-color: #0e7490;
+  color: white;
+  border-color: #155e75;
+}
+
+.alert[data-notify="container"] .close {
+  color: white;
+  opacity: 1;
+  text-shadow: none;
+  font-weight: var(--gb-font-weight-bold);
+  font-size: 1.5rem;
+}
+
+.alert[data-notify="container"] [data-notify="icon"] {
+  margin-right: var(--gb-space-sm);
+}
+
+.alert[data-notify="container"] [data-notify="title"] {
+  font-weight: var(--gb-font-weight-bold);
+  display: block;
+  margin-bottom: var(--gb-space-xs);
+}
+
+.alert[data-notify="container"] [data-notify="message"] {
+  font-size: 1rem;
+}

@@ -4,6 +4,8 @@
 {% block title %}Push Group Memberships - {{ course.name }}{% endblock %}
 
 {% block extra_head %}
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/canvas-high-contrast.css' %}">
 <style>
     .progress {
         height: 20px;
@@ -14,6 +16,16 @@
     }
     #progressContainer {
         display: none;
+    }
+    /* Additional inline styles for this specific page */
+    .alert-info {
+        font-weight: 500;
+    }
+    #progressMessage, #successMessage, #errorMessage {
+        font-size: 1.1rem;
+    }
+    #currentCount, #totalCount {
+        font-weight: 600;
     }
 </style>
 {% endblock %}
@@ -43,21 +55,21 @@
                     <!-- Progress tracking section (initially hidden) -->
                     <div id="progressContainer" {% if push_in_progress %}style="display: block;"{% endif %}>
                         <div class="alert alert-info">
-                            <p><i class="fas fa-sync fa-spin me-2"></i> <span id="progressMessage">Initializing operation...</span></p>
+                            <p><i class="fas fa-sync fa-spin me-2"></i> <strong>In Progress: </strong><span id="progressMessage">Initializing operation...</span></p>
                         </div>
-                        
+
                         <div class="progress">
-                            <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                            <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated"
                                 role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"
                                 style="width: 0%">
                                 0%
                             </div>
                         </div>
-                        
+
                         <div id="progressDetails" class="mb-3">
-                            <p>Processing groups: <span id="currentCount">0</span> of <span id="totalCount">0</span></p>
+                            <p><strong>Processing groups: </strong><span id="currentCount">0</span> of <span id="totalCount">0</span></p>
                         </div>
-                        
+
                         <div id="operationComplete" style="display: none;">
                             <div class="alert alert-success">
                                 <p><i class="fas fa-check-circle me-2"></i> <span id="successMessage">Operation completed successfully!</span></p>
@@ -66,7 +78,7 @@
                                 <a href="{% url 'canvas_course_groups' course_id=course_id %}" class="btn btn-primary">Return to Groups</a>
                             </div>
                         </div>
-                        
+
                         <div id="operationError" style="display: none;">
                             <div class="alert alert-danger">
                                 <p><i class="fas fa-exclamation-circle me-2"></i> <span id="errorMessage">An error occurred during the operation.</span></p>

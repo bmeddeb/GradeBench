@@ -71,18 +71,22 @@
             $('#progressDetails').hide();
             // Change progress bar style
             $('#progressBar').removeClass('progress-bar-animated').addClass('bg-success');
+            // Also update the alert display for better visibility
+            $('#operationComplete .alert-success').prepend('<strong>Success! </strong>');
         }
-        
+
         // Handle error state
         if (data.status === 'error') {
             $('#errorMessage').text(data.message || 'An error occurred during the operation.');
             if (data.error) {
-                $('#errorMessage').append('<br><small class="text-muted">' + data.error + '</small>');
+                $('#errorMessage').append('<br><small>' + data.error + '</small>');
             }
             $('#operationError').show();
             $('#progressDetails').hide();
-            // Change progress bar style
+            // Change progress bar style and ensure strong contrast
             $('#progressBar').removeClass('progress-bar-animated').addClass('bg-danger');
+            // Also update the alert display for better visibility
+            $('#operationError .alert-danger').prepend('<strong>Error: </strong>');
         }
     }
     
