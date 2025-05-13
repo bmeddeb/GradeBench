@@ -33,26 +33,26 @@ class CourseListView(ListView):
     def get_queryset(self):
         """Get courses with annotated counts"""
         integration = self.request.canvas_integration
-        
+
+        # Get courses with prefetched related data for more accurate counting
         courses = CanvasCourse.objects.filter(
             integration=integration
-        ).annotate(
-            enrollment_count=Count(
-                'enrollments', 
-                filter=Q(enrollments__role="StudentEnrollment")
-            ),
-            assignment_count=Count('assignments')
-        )
-        
-        # Format the data to match what the template expects
-        return [
-            {
+        ).prefetch_related('enrollments', 'assignments')
+
+        # Format the data to match what the template expects with proper counting
+        course_data = []
+        for course in courses:
+            # Count only student enrollments, not all enrollments
+            student_count = sum(1 for e in course.enrollments.all()
+                               if e.role == "StudentEnrollment")
+
+            course_data.append({
                 'course': course,
-                'enrollment_count': course.enrollment_count,
-                'assignment_count': course.assignment_count
-            }
-            for course in courses
-        ]
+                'enrollment_count': student_count,
+                'assignment_count': course.assignments.count()
+            })
+
+        return course_data
     
     def get_context_data(self, **kwargs):
         """Add integration to context"""
@@ -121,26 +121,26 @@ class CourseDashboardView(ListView):
     def get_queryset(self):
         """Get courses with annotated counts"""
         integration = self.request.canvas_integration
-        
+
+        # Get courses with prefetched related data for more accurate counting
         courses = CanvasCourse.objects.filter(
             integration=integration
-        ).annotate(
-            enrollment_count=Count(
-                'enrollments', 
-                filter=Q(enrollments__role="StudentEnrollment")
-            ),
-            assignment_count=Count('assignments')
-        )
-        
-        # Format the data to match what the template expects
-        return [
-            {
+        ).prefetch_related('enrollments', 'assignments')
+
+        # Format the data to match what the template expects with proper counting
+        course_data = []
+        for course in courses:
+            # Count only student enrollments, not all enrollments
+            student_count = sum(1 for e in course.enrollments.all()
+                               if e.role == "StudentEnrollment")
+
+            course_data.append({
                 'course': course,
-                'enrollment_count': course.enrollment_count,
-                'assignment_count': course.assignment_count
-            }
-            for course in courses
-        ]
+                'enrollment_count': student_count,
+                'assignment_count': course.assignments.count()
+            })
+
+        return course_data
     
     def get_context_data(self, **kwargs):
         """Add integration to context"""
