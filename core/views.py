@@ -5,6 +5,7 @@ from django.views.decorators.http import require_http_methods
 from django.http import HttpResponse, JsonResponse
 from django.contrib import messages
 from django.urls import reverse
+from django.contrib.admin.views.decorators import staff_member_required
 from social_django.models import UserSocialAuth
 from django.contrib.auth.models import User
 from .models import UserProfile, CalendarEvent
@@ -17,6 +18,15 @@ import io
 from icalendar import Calendar
 from django.utils import timezone
 from datetime import datetime, timedelta
+
+
+@staff_member_required
+def styleguide(request):
+    """
+    View for the style guide page.
+    Only available to staff members.
+    """
+    return render(request, "styleguide.html")
 
 
 # Create your views here.

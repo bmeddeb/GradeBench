@@ -1,0 +1,559 @@
+{% extends 'base.html' %}
+
+{% block title %}Style Guide | GradeBench{% endblock %}
+{% block page_title %}GradeBench Style Guide{% endblock %}
+
+{% block nav_admin %}active{% endblock %}
+{% block nav_admin_show %}show{% endblock %}
+{% block nav_styleguide %}active{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Style Guide Introduction -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">Style Guide</h4>
+                    <p class="card-category">Documentation of GradeBench design system and components</p>
+                </div>
+                <div class="card-body">
+                    <p>This style guide provides a comprehensive reference for the GradeBench design system. It documents available colors, typography, spacing, and components to maintain consistency across the application.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Color System -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">Color System</h4>
+                    <p class="card-category">Primary and semantic colors used throughout the application</p>
+                </div>
+                <div class="card-body">
+                    <h5>Brand Colors</h5>
+                    <div class="row">
+                        <div class="col-md-3 mb-4">
+                            <div class="p-3 rounded" style="background-color: var(--gb-primary);">
+                                <h6 class="text-white">Primary</h6>
+                                <p class="text-white mb-0">--gb-primary</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-4">
+                            <div class="p-3 rounded" style="background-color: var(--gb-secondary);">
+                                <h6 class="text-white">Secondary</h6>
+                                <p class="text-white mb-0">--gb-secondary</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-4">
+                            <div class="p-3 rounded" style="background-color: var(--gb-success);">
+                                <h6 class="text-white">Success</h6>
+                                <p class="text-white mb-0">--gb-success</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-4">
+                            <div class="p-3 rounded" style="background-color: var(--gb-danger);">
+                                <h6 class="text-white">Danger</h6>
+                                <p class="text-white mb-0">--gb-danger</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-4">
+                            <div class="p-3 rounded" style="background-color: var(--gb-warning);">
+                                <h6 class="text-dark">Warning</h6>
+                                <p class="text-dark mb-0">--gb-warning</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-4">
+                            <div class="p-3 rounded" style="background-color: var(--gb-info);">
+                                <h6 class="text-white">Info</h6>
+                                <p class="text-white mb-0">--gb-info</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h5 class="mt-4">Semantic Colors</h5>
+                    <div class="row">
+                        <div class="col-md-3 mb-4">
+                            <div class="p-3 rounded" style="background-color: var(--gb-text-primary);">
+                                <h6 class="text-white">Text Primary</h6>
+                                <p class="text-white mb-0">--gb-text-primary</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-4">
+                            <div class="p-3 rounded" style="background-color: var(--gb-text-secondary);">
+                                <h6 class="text-white">Text Secondary</h6>
+                                <p class="text-white mb-0">--gb-text-secondary</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-4">
+                            <div class="p-3 rounded" style="background-color: var(--gb-background-body);">
+                                <h6 class="text-dark">Background Body</h6>
+                                <p class="text-dark mb-0">--gb-background-body</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-4">
+                            <div class="p-3 rounded" style="background-color: var(--gb-background-card); border: 1px solid var(--gb-border-light);">
+                                <h6 class="text-dark">Background Card</h6>
+                                <p class="text-dark mb-0">--gb-background-card</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-4">
+                            <div class="p-3 rounded" style="background-color: var(--gb-border-light);">
+                                <h6 class="text-dark">Border Light</h6>
+                                <p class="text-dark mb-0">--gb-border-light</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-4">
+                            <div class="p-3 rounded" style="background-color: var(--gb-border-medium);">
+                                <h6 class="text-dark">Border Medium</h6>
+                                <p class="text-dark mb-0">--gb-border-medium</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-4">
+                            <div class="p-3 rounded" style="background-color: var(--gb-border-dark);">
+                                <h6 class="text-white">Border Dark</h6>
+                                <p class="text-white mb-0">--gb-border-dark</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Typography -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">Typography</h4>
+                    <p class="card-category">Font families, sizes, and weights</p>
+                </div>
+                <div class="card-body">
+                    <h5>Font Family</h5>
+                    <p style="font-family: var(--gb-font-family-base);">Base Font: Montserrat (--gb-font-family-base)</p>
+                    <p style="font-family: var(--gb-font-family-monospace);">Monospace Font: SFMono-Regular, Menlo, Monaco, Consolas (--gb-font-family-monospace)</p>
+
+                    <h5 class="mt-4">Font Sizes</h5>
+                    <p class="fs-xs">Extra Small (--gb-font-size-xs): 0.75rem</p>
+                    <p class="fs-sm">Small (--gb-font-size-sm): 0.875rem</p>
+                    <p class="fs-md">Medium (--gb-font-size-md): 1rem</p>
+                    <p class="fs-lg">Large (--gb-font-size-lg): 1.25rem</p>
+                    <p class="fs-xl">Extra Large (--gb-font-size-xl): 1.5rem</p>
+
+                    <h5 class="mt-4">Font Weights</h5>
+                    <p class="fw-light">Light (--gb-font-weight-light): 300</p>
+                    <p class="fw-normal">Normal (--gb-font-weight-normal): 400</p>
+                    <p class="fw-medium">Medium/Semibold (--gb-font-weight-semibold): 500</p>
+                    <p class="fw-bold">Bold (--gb-font-weight-bold): 700</p>
+
+                    <h5 class="mt-4">Headings</h5>
+                    <h1>Heading 1</h1>
+                    <h2>Heading 2</h2>
+                    <h3>Heading 3</h3>
+                    <h4>Heading 4</h4>
+                    <h5>Heading 5</h5>
+                    <h6>Heading 6</h6>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Spacing -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">Spacing</h4>
+                    <p class="card-category">Standard spacing values</p>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-2 mb-3">
+                            <div class="p-2 bg-light rounded">
+                                <div style="height: calc(var(--gb-space-xs)); background-color: var(--gb-primary);"></div>
+                                <p class="mt-2 mb-0">--gb-space-xs: 0.25rem (4px)</p>
+                            </div>
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <div class="p-2 bg-light rounded">
+                                <div style="height: calc(var(--gb-space-sm)); background-color: var(--gb-primary);"></div>
+                                <p class="mt-2 mb-0">--gb-space-sm: 0.5rem (8px)</p>
+                            </div>
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <div class="p-2 bg-light rounded">
+                                <div style="height: calc(var(--gb-space-md)); background-color: var(--gb-primary);"></div>
+                                <p class="mt-2 mb-0">--gb-space-md: 1rem (16px)</p>
+                            </div>
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <div class="p-2 bg-light rounded">
+                                <div style="height: calc(var(--gb-space-lg)); background-color: var(--gb-primary);"></div>
+                                <p class="mt-2 mb-0">--gb-space-lg: 1.5rem (24px)</p>
+                            </div>
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <div class="p-2 bg-light rounded">
+                                <div style="height: calc(var(--gb-space-xl)); background-color: var(--gb-primary);"></div>
+                                <p class="mt-2 mb-0">--gb-space-xl: 2rem (32px)</p>
+                            </div>
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <div class="p-2 bg-light rounded">
+                                <div style="height: calc(var(--gb-space-xxl)); background-color: var(--gb-primary);"></div>
+                                <p class="mt-2 mb-0">--gb-space-xxl: 3rem (48px)</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Buttons -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">Buttons</h4>
+                    <p class="card-category">Button variants and sizes</p>
+                </div>
+                <div class="card-body">
+                    <h5>Standard Buttons</h5>
+                    <button class="btn btn-primary">Primary</button>
+                    <button class="btn btn-secondary">Secondary</button>
+                    <button class="btn btn-success">Success</button>
+                    <button class="btn btn-danger">Danger</button>
+                    <button class="btn btn-warning">Warning</button>
+                    <button class="btn btn-info">Info</button>
+
+                    <h5 class="mt-4">Outline Buttons</h5>
+                    <button class="btn btn-outline-primary">Primary</button>
+                    <button class="btn btn-outline-secondary">Secondary</button>
+                    <button class="btn btn-outline-success">Success</button>
+                    <button class="btn btn-outline-danger">Danger</button>
+                    <button class="btn btn-outline-warning">Warning</button>
+                    <button class="btn btn-outline-info">Info</button>
+
+                    <h5 class="mt-4">Button Sizes</h5>
+                    <button class="btn btn-primary btn-sm">Small</button>
+                    <button class="btn btn-primary">Default</button>
+                    <button class="btn btn-primary btn-lg">Large</button>
+
+                    <h5 class="mt-4">Icon Buttons</h5>
+                    <button class="btn btn-primary btn-icon"><i class="fa fa-plus"></i></button>
+                    <button class="btn btn-success btn-icon"><i class="fa fa-check"></i></button>
+                    <button class="btn btn-danger btn-icon"><i class="fa fa-trash"></i></button>
+                    <button class="btn btn-warning btn-icon"><i class="fa fa-exclamation"></i></button>
+                    <button class="btn btn-info btn-icon"><i class="fa fa-info"></i></button>
+
+                    <h5 class="mt-4">Button States</h5>
+                    <button class="btn btn-primary active">Active</button>
+                    <button class="btn btn-primary" disabled>Disabled</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cards -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">Cards</h4>
+                    <p class="card-category">Card variations and styles</p>
+                </div>
+                <div class="card-body">
+                    <h5>Basic Card</h5>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title">Card Title</h5>
+                                </div>
+                                <div class="card-body">
+                                    <p class="card-text">This is a basic card example with a header and body.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title">Card with Footer</h5>
+                                </div>
+                                <div class="card-body">
+                                    <p class="card-text">This card includes a footer section.</p>
+                                </div>
+                                <div class="card-footer">
+                                    <small class="text-muted">Last updated 3 mins ago</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="card card-primary">
+                                <div class="card-header">
+                                    <h5 class="card-title">Primary Card</h5>
+                                </div>
+                                <div class="card-body">
+                                    <p class="card-text">This is a card with the primary color.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h5 class="mt-4">Card Variations</h5>
+                    <div class="row mt-3">
+                        <div class="col-md-4">
+                            <div class="card card-success">
+                                <div class="card-header">
+                                    <h5 class="card-title">Success Card</h5>
+                                </div>
+                                <div class="card-body">
+                                    <p class="card-text">A success-themed card variation.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="card card-warning">
+                                <div class="card-header">
+                                    <h5 class="card-title">Warning Card</h5>
+                                </div>
+                                <div class="card-body">
+                                    <p class="card-text">A warning-themed card variation.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="card card-danger">
+                                <div class="card-header">
+                                    <h5 class="card-title">Danger Card</h5>
+                                </div>
+                                <div class="card-body">
+                                    <p class="card-text">A danger-themed card variation.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Forms -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">Forms</h4>
+                    <p class="card-category">Form controls and elements</p>
+                </div>
+                <div class="card-body">
+                    <h5>Text Inputs</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="form-label">Text Input</label>
+                                <input type="text" class="form-control" placeholder="Enter text">
+                                <div class="form-text">Helper text for the input field.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="form-label">Disabled Input</label>
+                                <input type="text" class="form-control" placeholder="Disabled input" disabled>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h5 class="mt-4">Select Inputs</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="form-label">Select</label>
+                                <select class="form-select">
+                                    <option selected>Select an option</option>
+                                    <option value="1">Option 1</option>
+                                    <option value="2">Option 2</option>
+                                    <option value="3">Option 3</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="form-label">Multiple Select</label>
+                                <select class="form-select" multiple>
+                                    <option value="1">Option 1</option>
+                                    <option value="2">Option 2</option>
+                                    <option value="3">Option 3</option>
+                                    <option value="4">Option 4</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h5 class="mt-4">Checkboxes & Radios</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="flexCheckDefault">
+                                <label class="form-check-label" for="flexCheckDefault">
+                                    Default checkbox
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="flexCheckChecked" checked>
+                                <label class="form-check-label" for="flexCheckChecked">
+                                    Checked checkbox
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="flexRadioDefault" id="flexRadioDefault1">
+                                <label class="form-check-label" for="flexRadioDefault1">
+                                    Default radio
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="flexRadioDefault" id="flexRadioDefault2" checked>
+                                <label class="form-check-label" for="flexRadioDefault2">
+                                    Selected radio
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h5 class="mt-4">Input Groups</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="input-group mb-3">
+                                <span class="input-group-text">@</span>
+                                <input type="text" class="form-control" placeholder="Username">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="input-group mb-3">
+                                <input type="text" class="form-control" placeholder="Search">
+                                <button class="btn btn-primary" type="button">Search</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alerts -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">Alerts</h4>
+                    <p class="card-category">Alert message variations</p>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-primary" role="alert">
+                        A primary alert with <a href="#" class="alert-link">an example link</a>.
+                    </div>
+                    <div class="alert alert-secondary" role="alert">
+                        A secondary alert with <a href="#" class="alert-link">an example link</a>.
+                    </div>
+                    <div class="alert alert-success" role="alert">
+                        A success alert with <a href="#" class="alert-link">an example link</a>.
+                    </div>
+                    <div class="alert alert-danger" role="alert">
+                        A danger alert with <a href="#" class="alert-link">an example link</a>.
+                    </div>
+                    <div class="alert alert-warning" role="alert">
+                        A warning alert with <a href="#" class="alert-link">an example link</a>.
+                    </div>
+                    <div class="alert alert-info" role="alert">
+                        An info alert with <a href="#" class="alert-link">an example link</a>.
+                    </div>
+
+                    <h5 class="mt-4">Dismissible Alert</h5>
+                    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                        <strong>Holy guacamole!</strong> You should check in on some of those fields below.
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+
+                    <h5 class="mt-4">Alert with Icon</h5>
+                    <div class="alert alert-info alert-icon" role="alert">
+                        <i class="fa fa-info-circle"></i>
+                        <div class="alert-content">
+                            <h4 class="alert-heading">Well done!</h4>
+                            <p>This is an example of an alert with an icon and additional content.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Utility Classes -->
+    <div class="row mt-4 mb-5">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">Utility Classes</h4>
+                    <p class="card-category">Common utility classes for spacing, alignment, etc.</p>
+                </div>
+                <div class="card-body">
+                    <h5>Spacing Utilities</h5>
+                    <div class="bg-light p-3 mb-3">
+                        <div class="bg-primary text-white p-2 m-3">m-3: Margin of 1rem (16px) on all sides</div>
+                        <div class="bg-primary text-white p-2 mt-4">mt-4: Margin top of 1.5rem (24px)</div>
+                        <div class="bg-primary text-white p-2 mb-2">mb-2: Margin bottom of 0.5rem (8px)</div>
+                        <div class="bg-primary text-white p-2 mx-5">mx-5: Margin left and right of 2rem (32px)</div>
+                        <div class="bg-primary text-white p-2 my-3">my-3: Margin top and bottom of 1rem (16px)</div>
+                    </div>
+
+                    <h5 class="mt-4">Text Utilities</h5>
+                    <p class="text-primary">text-primary</p>
+                    <p class="text-secondary">text-secondary</p>
+                    <p class="text-success">text-success</p>
+                    <p class="text-danger">text-danger</p>
+                    <p class="text-warning">text-warning</p>
+                    <p class="text-info">text-info</p>
+                    <p class="fw-bold">fw-bold: Font weight bold</p>
+                    <p class="text-uppercase">text-uppercase: TEXT TRANSFORMED TO UPPERCASE</p>
+                    <p class="fs-lg">fs-lg: Larger font size</p>
+
+                    <h5 class="mt-4">Flex Utilities</h5>
+                    <div class="d-flex justify-content-between bg-light p-3 mb-3">
+                        <div class="bg-primary text-white p-2">Item 1</div>
+                        <div class="bg-primary text-white p-2">Item 2</div>
+                        <div class="bg-primary text-white p-2">Item 3</div>
+                    </div>
+                    <div class="d-flex justify-content-center bg-light p-3 mb-3">
+                        <div class="bg-primary text-white p-2 me-2">Center Item 1</div>
+                        <div class="bg-primary text-white p-2">Center Item 2</div>
+                    </div>
+                    <div class="d-flex align-items-center bg-light p-3 mb-3" style="height: 100px;">
+                        <div class="bg-primary text-white p-2">Vertically Centered</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize elements that need JavaScript (like tooltips, etc.)
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function(tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    });
+</script>
+{% endblock %}

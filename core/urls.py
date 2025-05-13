@@ -12,4 +12,5 @@ urlpatterns = [
     # Calendar API routes
     path("api/calendar/events/", views.calendar_events, name="calendar_events"),
     path("api/calendar/upload-ics/", views.upload_ics, name="upload_ics"),
+    path("styleguide/", views.styleguide, name="styleguide"),
 ]

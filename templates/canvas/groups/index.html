@@ -971,68 +971,68 @@
     /* Card styling */
     .group-card {
         height: 100%;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        border: 1px solid #dee2e6;
+        box-shadow: var(--gb-shadow-sm);
+        border: var(--gb-card-border-width) solid var(--gb-border-light);
     }
 
     .group-card .card-header {
-        background-color: #f8f9fa;
-        border-bottom: 1px solid #dee2e6;
-        font-weight: 600;
+        background-color: var(--gb-secondary-light);
+        border-bottom: var(--gb-card-border-width) solid var(--gb-border-light);
+        font-weight: var(--gb-font-weight-semibold);
     }
 
     .group-card .card-body {
         max-height: 250px;
         overflow-y: auto;
-        padding: 1rem;
+        padding: var(--gb-space-md);
     }
 
     /* Unassigned students styling */
     .unassigned-students-card {
         height: 100%;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        border: 1px solid #ffeeba;
+        box-shadow: var(--gb-shadow-sm);
+        border: var(--gb-card-border-width) solid var(--gb-warning-light);
     }
 
     .unassigned-students-card .card-body {
         max-height: 250px;
         overflow-y: auto;
-        padding: 1rem;
+        padding: var(--gb-space-md);
     }
 
     .unassigned-students-card .card-header {
-        background-color: #fff3cd;
-        border-bottom: 1px solid #ffeeba;
-        color: #856404;
-        font-weight: 600;
+        background-color: var(--gb-warning-light);
+        border-bottom: var(--gb-card-border-width) solid var(--gb-warning-light);
+        color: var(--gb-warning-dark);
+        font-weight: var(--gb-font-weight-semibold);
     }
 
     /* Drag and drop styling */
     .student-item {
         cursor: grab;
-        transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s;
-        border-radius: 4px;
-        padding: 8px 10px;
-        margin-bottom: 8px;
-        background-color: #f8f9fa;
-        border-left: 3px solid #5e72e4;
+        transition: background-color var(--gb-transition-fast), transform var(--gb-transition-fast), box-shadow var(--gb-transition-fast);
+        border-radius: var(--gb-border-radius-sm);
+        padding: var(--gb-space-sm) var(--gb-space-md);
+        margin-bottom: var(--gb-space-sm);
+        background-color: var(--gb-secondary-light);
+        border-left: 3px solid var(--gb-primary);
         user-select: none;
     }
 
     .student-item:hover {
-        background-color: #e9ecef;
+        background-color: var(--gb-border-light);
     }
 
     .student-item.sortable-chosen {
-        background-color: #cce5ff;
+        background-color: var(--gb-primary-light);
         transform: scale(0.98);
         opacity: 0.8;
-        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        box-shadow: var(--gb-shadow-md);
     }
 
     .student-item.sortable-ghost {
         opacity: 0.4;
-        background-color: #e9ecef;
+        background-color: var(--gb-border-light);
     }
 
     .student-item.sortable-drag {
@@ -1041,9 +1041,9 @@
 
     .members-list, .unassigned-list {
         min-height: 50px;
-        padding: 8px;
+        padding: var(--gb-space-sm);
         background-color: rgba(0,0,0,0.02);
-        border-radius: 4px;
+        border-radius: var(--gb-border-radius-sm);
     }
 
     .members-list.sortable-drag, .unassigned-list.sortable-drag {
@@ -1061,8 +1061,8 @@
     }
 
     .student-email {
-        font-size: 0.8em;
-        color: #6c757d;
+        font-size: var(--gb-font-size-xs);
+        color: var(--gb-text-secondary);
     }
 
     .sortable-fallback {
@@ -1073,57 +1073,57 @@
     /* Drop zone indicators */
     .group-drop-zone, .unassigned-drop-zone {
         display: none;
-        border: 2px dashed #5e72e4;
-        border-radius: 4px;
-        margin: 8px 0;
-        padding: 10px;
+        border: 2px dashed var(--gb-primary);
+        border-radius: var(--gb-border-radius-sm);
+        margin: var(--gb-space-sm) 0;
+        padding: var(--gb-space-md);
         background-color: rgba(94, 114, 228, 0.05);
         text-align: center;
-        color: #5e72e4;
+        color: var(--gb-primary);
     }
 
     /* Group with no members placeholder */
     .empty-group-placeholder {
         display: block;
-        padding: 10px;
+        padding: var(--gb-space-md);
         text-align: center;
-        color: #6c757d;
+        color: var(--gb-text-secondary);
         background-color: rgba(0,0,0,0.02);
-        border-radius: 4px;
-        margin-top: 8px;
+        border-radius: var(--gb-border-radius-sm);
+        margin-top: var(--gb-space-sm);
     }
 
     /* Button styling */
     .btn-outline-secondary {
-        border-color: #6c757d;
-        color: #6c757d;
+        border-color: var(--gb-secondary);
+        color: var(--gb-secondary);
     }
 
     .btn-outline-secondary:disabled {
-        color: #6c757d;
+        color: var(--gb-secondary);
         background-color: transparent;
-        border-color: #6c757d;
+        border-color: var(--gb-secondary);
         opacity: 0.65;
     }
 
     /* Progress container */
     .progress-container {
-        margin-bottom: 20px;
+        margin-bottom: var(--gb-space-md);
     }
 
     .progress-message {
         display: block;
-        margin-bottom: 5px;
-        font-weight: 500;
+        margin-bottom: var(--gb-space-xs);
+        font-weight: var(--gb-font-weight-semibold);
     }
 
     .progress {
         height: 0.75rem;
-        background-color: #e9ecef;
+        background-color: var(--gb-secondary-light);
     }
 
     .progress-bar {
-        background-color: #007bff;
+        background-color: var(--gb-primary);
     }
 
     /* Member lists */
@@ -1131,7 +1131,7 @@
     .unassigned-list .list-group-item {
         border-left: none;
         border-right: none;
-        padding: 0.5rem 0.75rem;
+        padding: var(--gb-space-sm) var(--gb-space-md);
     }
 
     .members-list .list-group-item:first-child,
@@ -1140,41 +1140,41 @@
     }
 
     .member-name {
-        font-weight: 500;
-        color: #212529;
+        font-weight: var(--gb-font-weight-semibold);
+        color: var(--gb-text-primary);
     }
 
     /* Tab styling */
     .nav-tabs {
-        border-bottom: 1px solid #dee2e6;
+        border-bottom: 1px solid var(--gb-border-light);
     }
 
     .nav-tabs .nav-link {
-        color: #495057;
+        color: var(--gb-text-primary);
         border: 1px solid transparent;
     }
 
     .nav-tabs .nav-link.active {
-        color: #007bff;
-        background-color: #fff;
-        border-color: #dee2e6 #dee2e6 #fff;
-        font-weight: 600;
+        color: var(--gb-primary);
+        background-color: var(--gb-background-card);
+        border-color: var(--gb-border-light) var(--gb-border-light) var(--gb-background-card);
+        font-weight: var(--gb-font-weight-semibold);
     }
 
     .nav-tabs .nav-link:hover {
-        border-color: #e9ecef #e9ecef #dee2e6;
+        border-color: var(--gb-secondary-light) var(--gb-secondary-light) var(--gb-border-light);
     }
 
     /* Category details */
     .category-info {
-        background-color: #f8f9fa;
-        padding: 1rem;
-        border-radius: 0.25rem;
-        border: 1px solid #e9ecef;
+        background-color: var(--gb-secondary-light);
+        padding: var(--gb-space-md);
+        border-radius: var(--gb-border-radius-sm);
+        border: 1px solid var(--gb-border-light);
     }
 
     .category-details {
-        margin-top: 0.5rem;
+        margin-top: var(--gb-space-sm);
     }
 
     .badge {
@@ -1187,17 +1187,17 @@
 
     /* Group description */
     .group-description {
-        margin-bottom: 0.75rem;
-        color: #495057;
+        margin-bottom: var(--gb-space-md);
+        color: var(--gb-text-primary);
     }
 
     /* Space between category action buttons */
     .category-actions .btn {
-        margin-left: 0.25rem;
+        margin-left: var(--gb-space-xs);
     }
 
     .group-actions .btn {
-        margin-left: 0.25rem;
+        margin-left: var(--gb-space-xs);
     }
 
     /* Save changes banner */
@@ -1206,14 +1206,14 @@
         bottom: 0;
         left: 0;
         right: 0;
-        background-color: #fff3cd;
-        padding: 10px;
-        margin-top: 20px;
-        border-top: 1px solid #ffeeba;
+        background-color: var(--gb-warning-light);
+        padding: var(--gb-space-md);
+        margin-top: var(--gb-space-md);
+        border-top: 1px solid var(--gb-warning);
         display: none;
         align-items: center;
         justify-content: space-between;
-        z-index: 100;
+        z-index: var(--gb-z-index-fixed);
     }
 
     .save-changes-banner.visible {

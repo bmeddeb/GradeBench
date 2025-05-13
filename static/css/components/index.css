@@ -1,0 +1,12 @@
+/**
+ * GradeBench Component Index
+ * This file imports all the component styles in the correct order
+ */
+
+@import 'utilities.css';
+@import 'buttons.css';
+@import 'cards.css';
+@import 'forms.css';
+@import 'alerts.css';
+
+/* Add new component imports here as they are developed */
