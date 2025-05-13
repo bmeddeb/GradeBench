@@ -59,6 +59,7 @@ from .views.groups import (
     edit_group,
     delete_group,
     push_course_group_memberships,
+    push_group_memberships_progress,
 )
 
 # Import special Ajax views from views_group_assignment since they're not in our modular structure yet

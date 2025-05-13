@@ -89,6 +89,12 @@ urlpatterns = [
         views.push_course_group_memberships,
         name="canvas_push_group_memberships",
     ),
+    # Get push group memberships progress
+    path(
+        "course/<int:course_id>/push_group_memberships/progress/",
+        views.push_group_memberships_progress,
+        name="canvas_push_group_memberships_progress",
+    ),
     # Group set details (AJAX)
     path(
         "course/<int:course_id>/group_set/<int:group_set_id>/details/",

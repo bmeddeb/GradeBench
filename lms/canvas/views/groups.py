@@ -3,13 +3,15 @@ Views for Canvas groups management
 """
 
 import logging
+import threading
+import asyncio
+import uuid
 from django.shortcuts import render, redirect, get_object_or_404
-from django.views.generic import ListView, DetailView
+from django.views.generic import ListView
 from django.utils.decorators import method_decorator
 from django.contrib import messages
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
-from django.db.models import Count, Q
 
 from ..models import (
     CanvasCourse,
@@ -20,6 +22,7 @@ from ..models import (
 )
 from ..decorators import canvas_integration_required, canvas_integration_required_json
 from ..utils import get_json_error_response, get_json_success_response
+from ..progress import SyncProgress
 from ..sync_utils import (
     create_group_category_sync,
     update_group_category_sync,
@@ -27,7 +30,7 @@ from ..sync_utils import (
     create_group_sync,
     update_group_sync,
     delete_group_sync,
-    push_all_group_memberships_sync,
+    push_all_group_memberships_async,
 )
 
 logger = logging.getLogger(__name__)
@@ -529,45 +532,103 @@ def push_course_group_memberships(request, course_id):
     """
     Explicitly push all group memberships for a course to Canvas.
     This ensures Canvas has the same group memberships as our local database.
+    Uses async processing with progress tracking.
     """
+
     integration = request.canvas_integration
-    
+
     # Get the course
     course = get_object_or_404(
         CanvasCourse, canvas_id=course_id, integration=integration
     )
-    
+
     if request.method == "POST":
-        try:
-            # Push all memberships
-            stats = push_all_group_memberships_sync(integration, course_id)
-            
-            if stats["errors"] > 0:
-                messages.warning(
-                    request,
-                    f"Pushed memberships for {stats['groups_updated']} groups, but encountered {stats['errors']} errors. See logs for details."
+        # Get the user ID for progress tracking
+        user_id = request.user.id
+
+        # Initialize progress tracking
+        SyncProgress.start_sync(
+            user_id,
+            course_id,
+            total_steps=1  # Will be updated once we know how many groups there are
+        )
+
+        # Start the push in a background thread
+        def run_push():
+            try:
+                # Run the async push function
+                stats = asyncio.run(push_all_group_memberships_async(
+                    integration, course_id, user_id))
+
+                logger.info(f"Push completed: {stats}")
+            except Exception as e:
+                logger.exception("Error in push_all_group_memberships_async")
+                # Update progress to show error
+                SyncProgress.complete_sync(
+                    user_id,
+                    course_id,
+                    success=False,
+                    message="Failed to push group memberships",
+                    error=str(e)
                 )
-            else:
-                messages.success(
-                    request,
-                    f"Successfully pushed memberships for {stats['groups_updated']} groups to Canvas."
-                )
-            
-            return redirect("canvas_course_groups", course_id=course_id)
-        
-        except Exception as e:
-            messages.error(
-                request, f"Error pushing group memberships: {str(e)}")
-            return redirect("canvas_course_groups", course_id=course_id)
-    
+
+        # Start the push in a background thread
+        push_thread = threading.Thread(target=run_push)
+        push_thread.daemon = True
+        push_thread.start()
+
+        # Store operation ID in session for progress tracking
+        request.session[f"push_memberships_{course_id}_in_progress"] = True
+
+        # Redirect to the progress page
+        messages.info(
+            request,
+            "Starting to push group memberships to Canvas. This may take a moment. Progress will be shown below."
+        )
+
+        # Return to confirmation page with progress tracking
+        return render(
+            request,
+            "canvas/groups/confirm_push_memberships.html",
+            {
+                "course": course,
+                "push_in_progress": True,
+                "course_id": course_id,
+            },
+        )
+
     # If it's a GET request, show confirmation page
     return render(
         request,
         "canvas/groups/confirm_push_memberships.html",
         {
             "course": course,
+            "course_id": course_id,
         },
     )
+
+
+@canvas_integration_required_json
+def push_group_memberships_progress(request, course_id):
+    """
+    Get the current progress of a group memberships push operation.
+    Used by AJAX to update the progress UI.
+    """
+    user_id = request.user.id
+
+    from ..progress import SyncProgress
+    progress = SyncProgress.get(user_id, course_id)
+
+    # If the status is completed or error, clear any session flags
+    if progress.get("status") in [
+        SyncProgress.STATUS_COMPLETED,
+        SyncProgress.STATUS_ERROR,
+    ]:
+        session_key = f"push_memberships_{course_id}_in_progress"
+        if session_key in request.session:
+            del request.session[session_key]
+
+    return JsonResponse(progress)
 
 
 # Function-based views for compatibility

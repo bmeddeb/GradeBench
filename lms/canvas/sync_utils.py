@@ -888,3 +888,170 @@ def push_all_group_memberships_sync(integration, course_id):
             stats["errors"] += 1
 
     return stats
+
+
+async def push_group_memberships_async(integration, group_id, user_ids):
+    """
+    Push group memberships to Canvas asynchronously.
+    This updates the group members in Canvas to match the provided user IDs.
+
+    Args:
+        integration: CanvasIntegration instance
+        group_id: Canvas group ID to update members for
+        user_ids: List of Canvas user IDs to set as members (overwrites existing members)
+
+    Returns:
+        dict: Canvas API response or True if successful
+    """
+    from lms.canvas.client import Client
+
+    # Create a Canvas API client with the provided integration
+    client = Client(integration)
+
+    try:
+        # Use the client's update_group method which is already async-safe
+        response = await client.set_group_members(group_id, user_ids)
+        return response
+    except Exception as e:
+        error_msg = f"Canvas API error: {str(e)}"
+        logger.error(error_msg)
+        raise ValueError(error_msg)
+
+
+async def push_all_group_memberships_async(integration, course_id, user_id=None, update_progress=None):
+    """
+    Push all group memberships for a course to Canvas asynchronously.
+    This ensures that the Canvas group memberships match our local database.
+
+    Args:
+        integration: CanvasIntegration instance
+        course_id: Canvas course ID
+        user_id: Optional user ID for progress tracking
+        update_progress: Optional callback function for progress updates
+
+    Returns:
+        dict: Summary of the operation with counts
+    """
+    from asgiref.sync import sync_to_async
+    from lms.canvas.models import CanvasCourse, CanvasGroup, CanvasGroupMembership
+    from lms.canvas.progress import SyncProgress
+
+    # Get the course
+    course = await sync_to_async(CanvasCourse.objects.get)(canvas_id=course_id)
+
+    # Track statistics
+    stats = {
+        "groups_updated": 0,
+        "errors": 0,
+        "total_groups": 0,
+    }
+
+    # Get all groups for this course
+    groups = await sync_to_async(lambda: list(CanvasGroup.objects.filter(category__course=course)))()
+    total_groups = len(groups)
+    stats["total_groups"] = total_groups
+
+    # Initialize progress tracking if user_id is provided
+    if user_id:
+        await SyncProgress.async_start_sync(user_id, course_id, total_steps=total_groups)
+        await SyncProgress.async_update(
+            user_id,
+            course_id,
+            current=0,
+            total=total_groups,
+            status=SyncProgress.STATUS_IN_PROGRESS,
+            message=f"Starting to push memberships for {total_groups} groups..."
+        )
+
+    # Process groups sequentially to avoid issues with mixing sync/async code
+    for idx, group in enumerate(groups):
+        # Process each group
+        await process_group_memberships(integration, group, stats, user_id, total_groups, idx)
+
+        # Update progress every few groups to avoid too many DB operations
+        if user_id and (idx % 3 == 0 or idx == total_groups - 1):
+            current_progress = idx + 1
+            percent_complete = int((current_progress / total_groups) * 100)
+            message = f"Processed {current_progress} of {total_groups} groups"
+
+            await SyncProgress.async_update(
+                user_id,
+                course_id,
+                current=current_progress,
+                total=total_groups,
+                status=SyncProgress.STATUS_IN_PROGRESS,
+                message=message
+            )
+
+            # Call the progress callback if provided
+            if update_progress:
+                await update_progress(SyncProgress.STATUS_IN_PROGRESS, message, percent_complete)
+
+    # Complete progress tracking if user_id is provided
+    if user_id:
+        success = stats["errors"] == 0
+        message = f"Successfully pushed memberships for {stats['groups_updated']} groups"
+        error = None
+
+        if not success:
+            message = f"Pushed memberships with {stats['errors']} errors out of {total_groups} groups"
+            error = f"Encountered {stats['errors']} errors during push"
+
+        await SyncProgress.async_complete_sync(
+            user_id,
+            course_id,
+            success=success,
+            message=message,
+            error=error
+        )
+
+    return stats
+
+
+async def process_group_memberships(integration, group, stats, user_id, total_groups, current_index):
+    """
+    Process memberships for a single group asynchronously.
+    Helper function for push_all_group_memberships_async.
+
+    Args:
+        integration: CanvasIntegration instance
+        group: CanvasGroup instance to process
+        stats: Statistics dictionary to update
+        user_id: Optional user ID for progress tracking
+        total_groups: Total number of groups being processed
+        current_index: Current index of this group in the overall process
+
+    Returns:
+        None, but updates the stats dictionary in place
+    """
+    from asgiref.sync import sync_to_async
+    from lms.canvas.models import CanvasGroupMembership
+    from lms.canvas.progress import SyncProgress
+
+    try:
+        # Get all memberships for this group
+        memberships = await sync_to_async(lambda: list(CanvasGroupMembership.objects.filter(group=group)))()
+        user_ids = [membership.user_id for membership in memberships]
+
+        # Only push if there are members to assign
+        if user_ids:
+            # Update progress if user_id is provided
+            if user_id:
+                await SyncProgress.async_update(
+                    user_id,
+                    None,  # No course_id for individual group updates
+                    current=current_index,
+                    total=total_groups,
+                    status="pushing_memberships",
+                    message=f"Pushing memberships for group: {group.name}"
+                )
+
+            # Push to Canvas using the safer Canvas Client
+            await push_group_memberships_async(integration, group.canvas_id, user_ids)
+            stats["groups_updated"] += 1
+            logger.info(f"Successfully pushed {len(user_ids)} memberships for group {group.name}")
+
+    except Exception as e:
+        logger.error(f"Error pushing memberships for group {group.name}: {str(e)}")
+        logger.exception("Full stack trace:")
+        stats["errors"] += 1
