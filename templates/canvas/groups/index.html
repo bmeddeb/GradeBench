@@ -267,15 +267,52 @@
             tab.addEventListener('click', function() {
                 const categoryId = this.getAttribute('data-category-id');
                 loadGroupSetData(categoryId);
+
+                // Update URL hash (for bookmarking and history)
+                window.location.hash = `category-${categoryId}`;
             });
         });
 
-        // Load data for the active tab on page load
-        if (groupSetTabs.length > 0) {
-            const activeTab = document.querySelector('#groupSetTabs .nav-link.active');
-            if (activeTab) {
-                const categoryId = activeTab.getAttribute('data-category-id');
+        // Function to select a tab by category ID
+        function selectTabByCategory(categoryId) {
+            // Find the tab for this category
+            const tab = document.querySelector(`#groupSetTabs .nav-link[data-category-id="${categoryId}"]`);
+            if (tab) {
+                // Get the Bootstrap tab instance
+                const bsTab = new bootstrap.Tab(tab);
+                // Show this tab
+                bsTab.show();
+                // Load data for this category
                 loadGroupSetData(categoryId);
+                return true;
+            }
+            return false;
+        }
+
+        // Check URL hash for category ID on page load
+        const hashMatch = window.location.hash.match(/^#category-(\d+)$/);
+        if (hashMatch && hashMatch[1]) {
+            // Try to select the tab based on the hash
+            const selectedCategory = hashMatch[1];
+            if (selectTabByCategory(selectedCategory)) {
+                // Successfully selected tab
+                console.log(`Selected category ${selectedCategory} from URL hash`);
+            } else {
+                // Fallback to default tab
+                const activeTab = document.querySelector('#groupSetTabs .nav-link.active');
+                if (activeTab) {
+                    const categoryId = activeTab.getAttribute('data-category-id');
+                    loadGroupSetData(categoryId);
+                }
+            }
+        } else {
+            // No hash or invalid hash, load default tab
+            if (groupSetTabs.length > 0) {
+                const activeTab = document.querySelector('#groupSetTabs .nav-link.active');
+                if (activeTab) {
+                    const categoryId = activeTab.getAttribute('data-category-id');
+                    loadGroupSetData(categoryId);
+                }
             }
         }
 

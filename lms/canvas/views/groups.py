@@ -248,7 +248,10 @@ def create_group_set(request, course_id):
             
             messages.success(
                 request, f"Group set '{name}' created successfully")
-            return redirect("canvas_course_groups", course_id=course_id)
+            # Redirect with hash fragment to select the newly created group set
+            from django.urls import reverse
+            url = reverse("canvas_course_groups", kwargs={"course_id": course_id})
+            return redirect(f"{url}#category-{category.id}")
         
         except Exception as e:
             messages.error(request, f"Error creating group set: {str(e)}")
@@ -307,7 +310,10 @@ def edit_group_set(request, course_id, group_set_id):
             
             messages.success(
                 request, f"Group set '{name}' updated successfully")
-            return redirect("canvas_course_groups", course_id=course_id)
+            # Redirect with hash fragment to select the updated group set
+            from django.urls import reverse
+            url = reverse("canvas_course_groups", kwargs={"course_id": course_id})
+            return redirect(f"{url}#category-{category.id}")
         
         except Exception as e:
             messages.error(request, f"Error updating group set: {str(e)}")
@@ -396,7 +402,10 @@ def create_group(request, course_id, group_set_id):
             )
             
             messages.success(request, f"Group '{name}' created successfully")
-            return redirect("canvas_course_groups", course_id=course_id)
+            # Redirect with hash fragment to select the group's category
+            from django.urls import reverse
+            url = reverse("canvas_course_groups", kwargs={"course_id": course_id})
+            return redirect(f"{url}#category-{group_set.id}")
         
         except Exception as e:
             messages.error(request, f"Error creating group: {str(e)}")
@@ -452,7 +461,10 @@ def edit_group(request, course_id, group_id):
             )
             
             messages.success(request, f"Group '{name}' updated successfully")
-            return redirect("canvas_course_groups", course_id=course_id)
+            # Redirect with hash fragment to select the group's category
+            from django.urls import reverse
+            url = reverse("canvas_course_groups", kwargs={"course_id": course_id})
+            return redirect(f"{url}#category-{group.category.id}")
         
         except Exception as e:
             messages.error(request, f"Error updating group: {str(e)}")
