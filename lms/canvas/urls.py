@@ -41,6 +41,9 @@ urlpatterns = [
     # Assignments list
     path("assignment/", views.canvas_assignments_list,
          name="canvas_assignments_list"),
+    # Quizzes list
+    path("quiz/", views.canvas_quizzes_list,
+         name="canvas_quizzes_list"),
     # Course detail
     path("course/<int:course_id>/", views.course_detail,
          name="canvas_course_detail"),
@@ -61,6 +64,12 @@ urlpatterns = [
         "course/<int:course_id>/assignment/<int:assignment_id>/",
         views.assignment_detail,
         name="canvas_assignment_detail",
+    ),
+    # Quiz detail
+    path(
+        "course/<int:course_id>/quiz/<int:quiz_id>/",
+        views.quiz_detail,
+        name="canvas_quiz_detail",
     ),
     # Student detail
     path(

@@ -1,0 +1,115 @@
+{% extends 'canvas/base.html' %}
+{% load static %}
+
+{% block title %}Canvas Quizzes | GradeBench{% endblock %}
+{% block page_title %}Canvas Quizzes{% endblock %}
+{% block nav_canvas_quizzes %}active{% endblock %}
+
+{% block canvas_content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <h4 class="card-title">Canvas Quizzes</h4>
+                    <p class="card-category">All quizzes across Canvas courses</p>
+                </div>
+                {% if quizzes_by_course %}
+                <div>
+                    <a href="{% url 'canvas_courses_list' %}" class="btn btn-primary btn-sm">
+                        <i class="fa fa-plus"></i> Add More Courses
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if quizzes_by_course %}
+                    {% for course_data in quizzes_by_course %}
+                    <div class="course-section mb-4">
+                        <h4>{{ course_data.course.course_code }}: {{ course_data.course.name }}</h4>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="text-primary">
+                                    <tr>
+                                        <th>Title</th>
+                                        <th>Quiz Type</th>
+                                        <th>Due Date</th>
+                                        <th>Points</th>
+                                        <th>Time Limit</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for quiz in course_data.quizzes %}
+                                    <tr>
+                                        <td>{{ quiz.title }}</td>
+                                        <td>
+                                            {% if quiz.quiz_type == 'assignment' %}
+                                                Graded Quiz
+                                            {% elif quiz.quiz_type == 'practice_quiz' %}
+                                                Practice Quiz
+                                            {% elif quiz.quiz_type == 'graded_survey' %}
+                                                Graded Survey
+                                            {% elif quiz.quiz_type == 'survey' %}
+                                                Ungraded Survey
+                                            {% else %}
+                                                {{ quiz.quiz_type|title }}
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if quiz.due_at %}
+                                            {{ quiz.due_at|date:"M d, Y" }}
+                                            {% else %}
+                                            No due date
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ quiz.points_possible }}</td>
+                                        <td>
+                                            {% if quiz.time_limit %}
+                                                {{ quiz.time_limit }} minutes
+                                            {% else %}
+                                                No limit
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if quiz.published %}
+                                            <span class="badge bg-success">Published</span>
+                                            {% else %}
+                                            <span class="badge bg-warning">Unpublished</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="{% url 'canvas_quiz_detail' course_id=course_data.course.canvas_id quiz_id=quiz.canvas_id %}" class="btn btn-info btn-xs">
+                                                <i class="fa fa-eye"></i> View
+                                            </a>
+                                            {% if quiz.assignment %}
+                                            <a href="{% url 'canvas_assignment_detail' course_id=course_data.course.canvas_id assignment_id=quiz.assignment.canvas_id %}" class="btn btn-secondary btn-xs">
+                                                <i class="fa fa-tasks"></i> Assignment
+                                            </a>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    {% if not forloop.last %}<hr class="mb-4">{% endif %}
+                    {% endfor %}
+                {% else %}
+                <div class="text-center py-5">
+                    <h3>No quizzes found</h3>
+                    <p>No quizzes have been created in any Canvas courses yet.</p>
+                    <p>
+                        <a href="{% url 'canvas_courses_list' %}" class="btn btn-primary btn-fill mt-3">
+                            <i class="fa fa-plus"></i> Add Courses from Canvas
+                        </a>
+                    </p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

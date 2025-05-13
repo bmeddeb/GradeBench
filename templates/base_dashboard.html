@@ -138,6 +138,12 @@
                                         <span class="sidebar-normal">Canvas Assignments</span>
                                     </a>
                                 </li>
+                                <li class="{% block nav_canvas_quizzes %}{% endblock %}">
+                                    <a href="{% url 'canvas_quizzes_list' %}">
+                                        <span class="sidebar-mini-icon"><i class="fa fa-question-circle"></i></span>
+                                        <span class="sidebar-normal">Canvas Quizzes</span>
+                                    </a>
+                                </li>
                                 <li class="{% block nav_canvas_setup %}{% endblock %}">
                                     <a href="{% url 'canvas_setup' %}">
                                         <span class="sidebar-mini-icon"><i class="fa fa-cog"></i></span>

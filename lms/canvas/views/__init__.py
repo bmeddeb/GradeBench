@@ -8,6 +8,7 @@ from .assignments import *
 from .groups import *
 from .sync import *
 from .setup import *
+from .quizzes import *
 
 # Backward compatibility with existing imports
 from ..views import get_integration_for_user

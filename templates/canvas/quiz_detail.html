@@ -1,0 +1,283 @@
+{% extends 'canvas/base.html' %}
+{% load static %}
+
+{% block title %}{{ quiz.title }} | {{ course.course_code }} | GradeBench Canvas{% endblock %}
+{% block page_title %}{{ quiz.title }}{% endblock %}
+{% block nav_canvas_dashboard %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+    .quiz-description {
+        padding: 15px;
+        background-color: #f9f9f9;
+        border-radius: 4px;
+        margin-bottom: 15px;
+    }
+    .time-limit-icon {
+        color: #FF9500;
+    }
+    .shuffle-icon {
+        color: #2CA8FF;
+    }
+    .quiz-settings-badge {
+        display: inline-block;
+        margin-right: 10px;
+        margin-bottom: 10px;
+        padding: 7px 10px;
+        border-radius: 20px;
+        background-color: #f5f5f5;
+    }
+</style>
+{% endblock %}
+
+{% block canvas_content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title">Quiz Details</h4>
+                <p class="card-category">{{ course.course_code }}: {{ quiz.title }}</p>
+            </div>
+            <div class="card-content">
+                {% if quiz.description %}
+                <div class="quiz-description">
+                    {{ quiz.description|safe }}
+                </div>
+                {% endif %}
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>Quiz Information</h5>
+                        <table class="table">
+                            <tbody>
+                                <tr>
+                                    <th>Quiz Type</th>
+                                    <td>
+                                        {{ quiz_type_display }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Points</th>
+                                    <td>{{ quiz.points_possible }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Due Date</th>
+                                    <td>
+                                        {% if quiz.due_at %}
+                                        {{ quiz.due_at|date:"F d, Y, h:i a" }}
+                                        {% else %}
+                                        No due date
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Available From</th>
+                                    <td>
+                                        {% if quiz.unlock_at %}
+                                        {{ quiz.unlock_at|date:"F d, Y, h:i a" }}
+                                        {% else %}
+                                        Always available
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Available Until</th>
+                                    <td>
+                                        {% if quiz.lock_at %}
+                                        {{ quiz.lock_at|date:"F d, Y, h:i a" }}
+                                        {% else %}
+                                        No lock date
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Time Limit</th>
+                                    <td>
+                                        {% if quiz.time_limit %}
+                                        {{ quiz.time_limit }} minutes
+                                        {% else %}
+                                        No time limit
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Scoring Policy</th>
+                                    <td>
+                                        {% if quiz.scoring_policy == 'keep_highest' %}
+                                        Keep Highest Score
+                                        {% elif quiz.scoring_policy == 'keep_latest' %}
+                                        Keep Latest Score
+                                        {% elif quiz.scoring_policy == 'keep_average' %}
+                                        Keep Average Score
+                                        {% else %}
+                                        {{ quiz.scoring_policy|default:"Default" }}
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Status</th>
+                                    <td>
+                                        {% if quiz.published %}
+                                        <span class="badge bg-success">Published</span>
+                                        {% else %}
+                                        <span class="badge bg-warning">Unpublished</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="col-md-6">
+                        <h5>Quiz Settings</h5>
+                        <div>
+                            {% if quiz.shuffle_answers %}
+                            <div class="quiz-settings-badge">
+                                <i class="fa fa-random shuffle-icon"></i> Shuffle Answers
+                            </div>
+                            {% endif %}
+                            
+                            {% if quiz.one_question_at_a_time %}
+                            <div class="quiz-settings-badge">
+                                <i class="fa fa-step-forward"></i> One Question at a Time
+                            </div>
+                            {% endif %}
+                            
+                            {% if quiz.show_correct_answers %}
+                            <div class="quiz-settings-badge">
+                                <i class="fa fa-check-circle"></i> Show Correct Answers
+                            </div>
+                            {% endif %}
+                            
+                            {% if quiz.time_limit %}
+                            <div class="quiz-settings-badge">
+                                <i class="fa fa-clock-o time-limit-icon"></i> {{ quiz.time_limit }} Minutes Time Limit
+                            </div>
+                            {% endif %}
+                            
+                            {% if quiz.hide_results %}
+                            <div class="quiz-settings-badge">
+                                <i class="fa fa-eye-slash"></i> Hide Results: {{ quiz.hide_results }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        {% if assignment %}
+                        <h5 class="mt-4">Associated Assignment</h5>
+                        <div class="card">
+                            <div class="card-content">
+                                <h6>{{ assignment.name }}</h6>
+                                <p>This quiz appears as an assignment in the gradebook</p>
+                                <a href="{% url 'canvas_assignment_detail' course_id=course.canvas_id assignment_id=assignment.canvas_id %}" class="btn btn-info btn-sm">
+                                    <i class="fa fa-tasks"></i> View Assignment
+                                </a>
+                            </div>
+                        </div>
+                        
+                        {% if assignment_stats %}
+                        <h5 class="mt-4">Submission Statistics</h5>
+                        <div class="row text-center">
+                            <div class="col-xs-6">
+                                <div class="card">
+                                    <div class="card-content">
+                                        <h3>{{ assignment_stats.submitted_count }} / {{ assignment_stats.submissions_count }}</h3>
+                                        <p>Submitted</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-xs-6">
+                                <div class="card">
+                                    <div class="card-content">
+                                        <h3>{{ assignment_stats.graded_count }} / {{ assignment_stats.submissions_count }}</h3>
+                                        <p>Graded</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% else %}
+                        <div class="alert alert-info mt-4">
+                            <p>This quiz is not graded and doesn't appear in the gradebook</p>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="text-center" style="margin-top: 20px;">
+                            {% if assignment %}
+                            <a href="{{ assignment.html_url }}" target="_blank" class="btn btn-primary btn-fill">
+                                <i class="fa fa-external-link"></i> View in Canvas
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title">Quiz Information</h4>
+                <p class="card-category">Details about this quiz</p>
+            </div>
+            <div class="card-content">
+                <div class="info-item">
+                    <h5>Created</h5>
+                    <p>{{ quiz.created_at|date:"F d, Y, h:i a" }}</p>
+                </div>
+                
+                <div class="info-item">
+                    <h5>Last Updated</h5>
+                    <p>{{ quiz.updated_at|date:"F d, Y, h:i a" }}</p>
+                </div>
+                
+                {% if assignment_stats %}
+                <div class="info-item">
+                    <h5>Submission Status</h5>
+                    <div class="progress">
+                        <div class="progress-bar progress-bar-info" role="progressbar"
+                             aria-valuenow="{{ assignment_stats.submitted_count }}" 
+                             aria-valuemin="0" 
+                             aria-valuemax="{{ assignment_stats.submissions_count }}"
+                             style="width: {% widthratio assignment_stats.submitted_count assignment_stats.submissions_count 100 %}%">
+                        </div>
+                    </div>
+                    <p class="text-center">
+                        {{ assignment_stats.submitted_count }} of {{ assignment_stats.submissions_count }} submitted
+                    </p>
+                </div>
+                
+                <div class="info-item">
+                    <h5>Results</h5>
+                    <div class="row text-center">
+                        <div class="col-xs-6">
+                            <div>
+                                <h4>{{ assignment_stats.late_count }}</h4>
+                                <p>Late</p>
+                            </div>
+                        </div>
+                        <div class="col-xs-6">
+                            <div>
+                                <h4>{{ assignment_stats.missing_count }}</h4>
+                                <p>Missing</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <div class="info-item">
+                    <h5>Course Information</h5>
+                    <p>
+                        <strong>Course Code:</strong> {{ course.course_code }}<br>
+                        <strong>Course Name:</strong> {{ course.name }}<br>
+                        <a href="{% url 'canvas_course_detail' course_id=course.canvas_id %}" class="btn btn-info btn-sm mt-2">
+                            <i class="fa fa-graduation-cap"></i> View Course
+                        </a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
