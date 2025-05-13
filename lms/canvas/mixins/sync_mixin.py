@@ -178,6 +178,32 @@ class SyncMixin:
                 for submission_data in submissions_data:
                     await self._save_submission(submission_data, assignment)
 
+            # Step 7.5: Sync quizzes
+            await update_progress(
+                8.5, 10, SyncProgress.STATUS_SYNCING_QUIZZES,
+                "Syncing Canvas quizzes..."
+            )
+            
+            try:
+                # Fetch quizzes
+                quizzes_data = await self.get_quizzes(course_id)
+                quiz_count = len(quizzes_data)
+                
+                await update_progress(
+                    8.5, 10, SyncProgress.STATUS_SYNCING_QUIZZES,
+                    f"Fetched {quiz_count} quizzes for course {course.name}"
+                )
+                
+                # Save quizzes to database
+                for quiz_data in quizzes_data:
+                    await self._save_quiz(quiz_data, course)
+                    
+                logger.info(f"Synced {quiz_count} quizzes for course {course.name}")
+            except Exception as e:
+                logger.error(f"Error syncing quizzes: {e}")
+                logger.error(f"Traceback: {traceback.format_exc()}")
+                # Continue with sync even if quizzes fail
+                
             # Step 8: Sync Canvas groups and teams
             await update_progress(
                 9, 10, "syncing_groups",

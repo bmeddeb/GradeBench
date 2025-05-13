@@ -20,6 +20,7 @@ class SyncProgress:
     STATUS_FETCHING_SUBMISSIONS = "fetching_submissions"
     STATUS_PROCESSING_SUBMISSIONS = "processing_submissions"
     STATUS_SAVING_DATA = "saving_data"
+    STATUS_SYNCING_QUIZZES = "syncing_quizzes"
     STATUS_COMPLETED = "completed"
     STATUS_ERROR = "error"
 

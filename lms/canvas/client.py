@@ -12,6 +12,7 @@ from lms.canvas.mixins.enrollment_mixin import EnrollmentMixin
 from lms.canvas.mixins.assignment_mixin import AssignmentMixin
 from lms.canvas.mixins.group_mixin import GroupMixin
 from lms.canvas.mixins.sync_mixin import SyncMixin
+from lms.canvas.mixins.quiz_mixin import QuizMixin
 
 # Import models
 from .models import (
@@ -26,13 +27,14 @@ from .models import (
     CanvasGroupCategory,
     CanvasGroup,
     CanvasGroupMembership,
+    CanvasQuiz,
 )
 from core.models import Student
 
 logger = logging.getLogger(__name__)
 
 
-class Client(RequestMixin, CourseMixin, EnrollmentMixin, AssignmentMixin, GroupMixin, SyncMixin):
+class Client(RequestMixin, CourseMixin, EnrollmentMixin, AssignmentMixin, GroupMixin, SyncMixin, QuizMixin):
     """Async client for interacting with the Canvas API"""
 
     def __init__(self, integration: CanvasIntegration):
@@ -61,5 +63,6 @@ class Client(RequestMixin, CourseMixin, EnrollmentMixin, AssignmentMixin, GroupM
             'CanvasGroupCategory': CanvasGroupCategory,
             'CanvasGroup': CanvasGroup,
             'CanvasGroupMembership': CanvasGroupMembership,
+            'CanvasQuiz': CanvasQuiz,
             'Student': Student,
         })

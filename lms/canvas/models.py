@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from encrypted_model_fields.fields import EncryptedCharField
 from core.async_utils import AsyncModelMixin
+from django.utils import timezone
 
 
 class CanvasIntegration(models.Model):
@@ -317,3 +318,51 @@ class CanvasGroupMembership(models.Model, AsyncModelMixin):
 
     def __str__(self):
         return f"{self.name} in {self.group.name}"
+
+
+class CanvasQuiz(models.Model):
+    """Canvas Quiz Information"""
+    
+    QUIZ_TYPES = (
+        ("assignment", "Assignment"),
+        ("practice_quiz", "Practice Quiz"),
+        ("graded_survey", "Graded Survey"),
+        ("survey", "Survey"),
+    )
+    
+    canvas_id = models.PositiveIntegerField(unique=True)
+    course = models.ForeignKey(
+        CanvasCourse, on_delete=models.CASCADE, related_name="quizzes"
+    )
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True)
+    quiz_type = models.CharField(
+        max_length=20, choices=QUIZ_TYPES, default="assignment"
+    )
+    assignment = models.OneToOneField(
+        CanvasAssignment, 
+        on_delete=models.CASCADE, 
+        related_name="quiz",
+        null=True,
+        blank=True
+    )
+    time_limit = models.PositiveIntegerField(null=True, blank=True)  # in minutes
+    shuffle_answers = models.BooleanField(default=False)
+    one_question_at_a_time = models.BooleanField(default=False)
+    show_correct_answers = models.BooleanField(default=True)
+    hide_results = models.CharField(max_length=50, null=True, blank=True)
+    due_at = models.DateTimeField(null=True, blank=True)
+    lock_at = models.DateTimeField(null=True, blank=True)
+    unlock_at = models.DateTimeField(null=True, blank=True)
+    points_possible = models.FloatField(default=0.0)
+    scoring_policy = models.CharField(max_length=50, null=True, blank=True)
+    published = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name_plural = "Canvas Quizzes"
+    
+    def __str__(self):
+        return f"{self.title} ({self.course})"
