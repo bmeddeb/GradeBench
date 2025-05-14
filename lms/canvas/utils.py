@@ -67,6 +67,8 @@ def get_or_create_team_from_group(group: CanvasGroup, course: CanvasCourse) -> T
         defaults={
             "name": group.name[:100],
             "description": group.description or "",
+            "canvas_group_set_id": group.category.canvas_id,
+            "canvas_group_set_name": group.category.name,
         },
     )
     

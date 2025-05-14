@@ -122,6 +122,12 @@ class Team(models.Model, AsyncModelMixin):
     canvas_group_id = models.PositiveIntegerField(
         null=True, blank=True, db_index=True, help_text="Canvas /api/v1/groups/:id"
     )
+    canvas_group_set_id = models.PositiveIntegerField(
+        null=True, blank=True, db_index=True, help_text="Canvas group category/set ID"
+    )
+    canvas_group_set_name = models.CharField(
+        max_length=255, blank=True, null=True, help_text="Canvas group category/set name"
+    )
     last_synced_at = models.DateTimeField(
         null=True, blank=True, help_text="When this team was last synced with Canvas"
     )
