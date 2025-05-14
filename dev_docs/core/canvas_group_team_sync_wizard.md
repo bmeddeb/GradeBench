@@ -10,8 +10,8 @@ In GradeBench, Canvas groups need to be imported as Core Teams to integrate with
 
 - [x] Analyze current model structure
 - [x] Design database field additions
-- [ ] Update Team model with new fields
-- [ ] Create database migrations
+- [x] Update Team model with new fields
+- [x] Create database migrations
 - [ ] Design wizard interface mockups
 - [ ] Implement backend service logic
 - [ ] Create wizard templates
