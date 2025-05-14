@@ -3,7 +3,7 @@ from django.urls import path, include
 # (to be modularized)
 from .views.auth import HomeView, LoginView, ProfileView, UpdateProfileAjaxView, StyleguideView, LogoutView
 from .views.github import disconnect_github, async_github_profile
-from .views.calendar import calendar_events, upload_ics
+from .views.calendar import CalendarEventsView, UploadICSView
 from .views.wizard import WizardView
 
 urlpatterns = [
@@ -17,8 +17,9 @@ urlpatterns = [
          name="update_profile_async"),
     path("canvas/", include("lms.canvas.urls")),
     # Calendar API routes
-    path("api/calendar/events/", calendar_events, name="calendar_events"),
-    path("api/calendar/upload-ics/", upload_ics, name="upload_ics"),
+    path("api/calendar/events/", CalendarEventsView.as_view(),
+         name="calendar_events"),
+    path("api/calendar/upload-ics/", UploadICSView.as_view(), name="upload_ics"),
     path("styleguide/", StyleguideView.as_view(), name="styleguide"),
     # Canvas Group to Team Sync Wizard
     path("wizard/", WizardView.as_view(), name="wizard_main"),
