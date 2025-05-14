@@ -135,7 +135,10 @@ class Team(models.Model, AsyncModelMixin):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        indexes = [models.Index(fields=["canvas_course", "canvas_group_id"])]
+        indexes = [
+            models.Index(fields=["canvas_course", "canvas_group_id"]),
+            models.Index(fields=["canvas_group_set_id"]),
+        ]
 
     def __str__(self):
         return self.name

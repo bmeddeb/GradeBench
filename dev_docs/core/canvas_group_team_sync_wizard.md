@@ -4,7 +4,7 @@ This document describes the design for the Canvas Group to Core Team synchroniza
 
 ## Background
 
-In GradeBench, Canvas groups need to be imported as Core Teams to integrate with other systems like GitHub repositories. This process should be user-driven with explicit control over which groups become teams.
+In GradeBench, Canvas groups need to be imported as Core Teams to integrate with other systems like GitHub repositories and Taiga project management. This process should be user-driven with explicit control over which groups become teams.
 
 ## Implementation Progress
 
@@ -16,6 +16,7 @@ In GradeBench, Canvas groups need to be imported as Core Teams to integrate with
 - [ ] Implement backend service logic
 - [ ] Create wizard templates
 - [ ] Add GitHub integration
+- [ ] Add Taiga placeholder integration
 - [ ] Test end-to-end flow
 - [ ] Deploy to production
 
@@ -44,13 +45,17 @@ canvas_group_set_name = models.CharField(
 
 The synchronization process will follow a step-by-step wizard approach using the paper-dashboard-pro wizard template.
 
-### Step 1: Course Selection
+### Step 1: Course Selection and Integration Options
 - Display all Canvas courses with filters for:
   - Term/semester
   - Active/inactive status
   - Search by course name/code
 - Allow selection of one or multiple courses to continue
 - Include course details (number of students, existing groups)
+- **Integration Toggles**:
+  - GitHub Integration switch (on/off)
+  - Taiga Integration switch (on/off)
+  - Both can be toggled independently
 - "Next" button to proceed to Step 2
 
 ### Step 2: Group Set Selection
@@ -74,19 +79,27 @@ The synchronization process will follow a step-by-step wizard approach using the
   - Current import status (new/existing)
 - "Back" and "Next" buttons
 
-### Step 4: GitHub Configuration
-- Table of selected groups with fields for GitHub configuration:
-  - GitHub organization (text field)
-  - Team description override (optional)
-- Batch actions to apply the same GitHub org to multiple groups
-- Option to validate GitHub organization names
+### Step 4: Integration Configuration
+- This step dynamically adjusts based on the integration toggles selected in Step 1
+- **If GitHub Integration is enabled**:
+  - Table of selected groups with fields for GitHub configuration:
+    - GitHub organization (text field)
+    - Team description override (optional)
+  - Batch actions to apply the same GitHub org to multiple groups
+  - Option to validate GitHub organization names
+- **If Taiga Integration is enabled**:
+  - Table of selected groups with fields for Taiga configuration:
+    - Taiga instance selection (dropdown)
+    - Project template (dropdown)
+    - Project prefix (text field)
+  - Batch actions to apply the same Taiga settings to multiple groups
 - "Back" and "Next" buttons
 
 ### Step 5: Confirmation
 - Summary of actions to be performed:
   - Number of new teams to create
   - Number of existing teams to update
-  - GitHub organizations to use
+  - Integration details (GitHub and/or Taiga)
 - Preview of resulting Core Teams structure
 - "Back" and "Process" buttons
 
@@ -94,6 +107,7 @@ The synchronization process will follow a step-by-step wizard approach using the
 - Success/failure status for each team
 - Details of any errors encountered
 - Option to retry failed imports
+- Integration status for GitHub and/or Taiga
 - "Done" and "Start Over" buttons
 
 ## Implementation Details
@@ -102,6 +116,7 @@ The synchronization process will follow a step-by-step wizard approach using the
    - [ ] Create a TeamSyncService class that handles the logic for each step
    - [ ] Implement methods for retrieving available courses, group sets, and groups
    - [ ] Add functions for Team creation/update with GitHub details
+   - [ ] Create placeholder functions for Taiga integration
 
 2. **Database Model Updates**
    - [ ] Add canvas_group_set_id and canvas_group_set_name to Team model
@@ -113,25 +128,33 @@ The synchronization process will follow a step-by-step wizard approach using the
    - [ ] Create a new WizardView class that manages wizard state
    - [ ] Implement AJAX endpoints for each step's data needs
    - [ ] Use session to store in-progress selections
+   - [ ] Add logic to handle integration toggle state
 
 4. **Templates**
-   - [ ] Create template for step 1 (course selection)
+   - [ ] Create template for step 1 (course selection with integration toggles)
    - [ ] Create template for step 2 (group set selection)
    - [ ] Create template for step 3 (group selection)
-   - [ ] Create template for step 4 (GitHub configuration)
+   - [ ] Create template for step 4 (integration configuration - GitHub/Taiga)
    - [ ] Create template for step 5 (confirmation)
    - [ ] Create template for step 6 (results)
    - [ ] Implement client-side validation
-   - [ ] Add JavaScript for dynamic UI updates
+   - [ ] Add JavaScript for dynamic UI updates and conditional display based on toggles
 
 5. **GitHub Integration**
    - [ ] Add optional validation against GitHub API
    - [ ] Store GitHub organization info for future use
    - [ ] Implement background job for GitHub team creation
 
+6. **Taiga Integration (Placeholders)**
+   - [ ] Create UI elements for Taiga configuration (disabled for initial release)
+   - [ ] Add Taiga fields to Team model (for future implementation)
+   - [ ] Create placeholder functions that log but don't execute Taiga operations
+
 ## Benefits
 
-This wizard approach offers a structured, user-friendly process that guides users through the synchronization while providing flexibility and control at each step. Users have full visibility into what groups are being imported and can immediately configure GitHub integration details.
+This wizard approach offers a structured, user-friendly process that guides users through the synchronization while providing flexibility and control at each step. Users have full visibility into what groups are being imported and can immediately configure GitHub and/or Taiga integration details.
+
+The modular design with integration toggles allows users to choose only the integrations they need, while the architecture supports adding more integrations in the future.
 
 ## Future Enhancements
 
@@ -139,3 +162,5 @@ This wizard approach offers a structured, user-friendly process that guides user
 - [ ] Implement periodic synchronization to keep teams updated
 - [ ] Add email notifications for completed imports
 - [ ] Create dashboard for monitoring team synchronization status
+- [ ] Complete Taiga integration functionality
+- [ ] Add more integration options (e.g., Slack, Jira)

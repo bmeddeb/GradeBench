@@ -1,6 +1,7 @@
 from django.db import models
 from core.models import Team, Student
 from core.async_utils import AsyncModelMixin
+from django.utils import timezone
 
 
 class Collaborator(models.Model, AsyncModelMixin):
@@ -47,9 +48,8 @@ class Branch(models.Model):
 
 class Commit(models.Model):
     sha = models.CharField(max_length=255, unique=True, db_index=True)
-    short_sha = models.CharField(max_length=7, db_index=True)
-    message = models.TextField()
-    summary = models.TextField()
+    short_sha = models.CharField(max_length=7, db_index=True, blank=True)
+    summary = models.TextField(blank=True)
     date = models.DateTimeField()
     additions = models.IntegerField(default=0)
     deletions = models.IntegerField(default=0)
@@ -58,14 +58,14 @@ class Commit(models.Model):
     is_merged = models.BooleanField(default=False)
 
     # Author information
-    author_name = models.CharField(max_length=255)
-    author_email = models.EmailField()
-    author_time = models.DateTimeField()
+    author_name = models.CharField(max_length=255, default="unknown")
+    author_email = models.EmailField(default="unknown@example.com")
+    author_time = models.DateTimeField(default=timezone.now)
 
     # Committer information
-    committer_name = models.CharField(max_length=255)
-    committer_email = models.EmailField()
-    committer_time = models.DateTimeField()
+    committer_name = models.CharField(max_length=255, default="unknown")
+    committer_email = models.EmailField(default="unknown@example.com")
+    committer_time = models.DateTimeField(default=timezone.now)
 
     # Relationships
     repository = models.ForeignKey(
