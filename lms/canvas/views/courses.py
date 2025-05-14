@@ -55,9 +55,19 @@ class CourseListView(ListView):
         return course_data
     
     def get_context_data(self, **kwargs):
-        """Add integration to context"""
+        """Add integration and quiz count to context"""
         context = super().get_context_data(**kwargs)
-        context['integration'] = self.request.canvas_integration
+        integration = self.request.canvas_integration
+        context['integration'] = integration
+        
+        # Count all quizzes across all courses
+        try:
+            from ..models import CanvasQuiz
+            quiz_count = CanvasQuiz.objects.filter(course__integration=integration).count()
+        except (ImportError, Exception):
+            quiz_count = 0
+        context['total_quizzes'] = quiz_count
+        
         return context
 
 
@@ -143,9 +153,25 @@ class CourseDashboardView(ListView):
         return course_data
     
     def get_context_data(self, **kwargs):
-        """Add integration to context"""
+        """Add integration and count metrics to context"""
         context = super().get_context_data(**kwargs)
-        context['integration'] = self.request.canvas_integration
+        integration = self.request.canvas_integration
+        context['integration'] = integration
+        
+        # Count all quiz assignments across all courses
+        quiz_count = CanvasAssignment.objects.filter(
+            course__integration=integration,
+            is_quiz_assignment=True
+        ).count()
+        context['total_quizzes'] = quiz_count
+        
+        # Count all non-quiz assignments across all courses
+        assignment_count = CanvasAssignment.objects.filter(
+            course__integration=integration,
+            is_quiz_assignment=False
+        ).count()
+        context['total_assignments'] = assignment_count
+        
         return context
 
 

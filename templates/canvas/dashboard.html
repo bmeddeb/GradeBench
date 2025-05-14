@@ -43,13 +43,13 @@
                 <div class="row">
                     <div class="col-5 col-md-4">
                         <div class="icon-big text-center icon-warning">
-                            <i class="nc-icon nc-hat-3 text-success"></i>
+                            <i class="nc-icon nc-paper text-success"></i>
                         </div>
                     </div>
                     <div class="col-7 col-md-8">
                         <div class="numbers">
-                            <p class="card-category">Total Courses</p>
-                            <p class="card-title">{{ integration.courses.count }}</p>
+                            <p class="card-category">Assignments</p>
+                            <p class="card-title">{{ total_assignments }}</p>
                         </div>
                     </div>
                 </div>
@@ -57,7 +57,7 @@
             <div class="card-footer">
                 <hr>
                 <div class="stats">
-                    <i class="fa fa-calendar-o"></i> All Available
+                    <i class="fa fa-tasks"></i> Non-Quiz Assignments
                 </div>
             </div>
         </div>
@@ -68,7 +68,35 @@
                 <div class="row">
                     <div class="col-5 col-md-4">
                         <div class="icon-big text-center icon-warning">
-                            <i class="nc-icon nc-time-alarm text-primary"></i>
+                            <i class="nc-icon nc-bullet-list-67 text-info"></i>
+                        </div>
+                    </div>
+                    <div class="col-7 col-md-8">
+                        <div class="numbers">
+                            <p class="card-category">Total Quizzes</p>
+                            <p class="card-title">
+                                {{ total_quizzes|default:"0" }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer">
+                <hr>
+                <div class="stats">
+                    <i class="fa fa-question-circle"></i> 
+                    Canvas Quizzes
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 col-sm-6">
+        <div class="card card-stats">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-5 col-md-4">
+                        <div class="icon-big text-center icon-warning sync-icon-container" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#syncCoursesModal">
+                            <i class="nc-icon nc-time-alarm text-primary sync-icon"></i>
                         </div>
                     </div>
                     <div class="col-7 col-md-8">
@@ -85,42 +113,12 @@
                     </div>
                 </div>
             </div>
-            <div class="card-footer">
-                <hr>
-                <div class="stats">
-                    <i class="fa fa-clock-o"></i> 
-                    {% if integration.last_sync %}
-                    {{ integration.last_sync|user_timezone:user|date:"H:i" }}
-                    {% else %}
-                    Not synchronized
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-lg-3 col-md-6 col-sm-6">
-        <div class="card card-stats">
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-5 col-md-4">
-                        <div class="icon-big text-center icon-warning sync-icon-container" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#syncCoursesModal">
-                            <i class="nc-icon nc-refresh-69 text-danger sync-icon"></i>
-                        </div>
-                    </div>
-                    <div class="col-7 col-md-8">
-                        <div class="numbers">
-                            <p class="card-category">Sync Courses</p>
-                            
-                        </div>
-                    </div>
-                </div>
-            </div>
             <div class="card-footer" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#syncCoursesModal">
                 <hr>
                 <div class="stats">
                     <i class="fa fa-clock-o"></i> 
                     {% if integration.last_sync %}
-                    {{ integration.last_sync|user_timezone:user|date:"M d, H:i" }}
+                    {{ integration.last_sync|user_timezone:user|date:"H:i" }}
                     {% else %}
                     Not synchronized
                     {% endif %}
@@ -296,7 +294,7 @@
 {% endblock %}
 
 {% block canvas_js %}
-<!-- Using centralized JS from canvas-sync-progress.js -->
+<!-- Using centralized JS from canvas-sync-progress.js and Sync-modal.js -->
 <style>
     @keyframes rotate-icon {
         0% {
@@ -316,6 +314,8 @@
     }
 </style>
 
+<script src="{% static 'js/canvas-sync-progress.js' %}"></script>
+<script src="{% static 'js/Sync-modal.js' %}"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const syncIconContainer = document.querySelector('.sync-icon-container');
