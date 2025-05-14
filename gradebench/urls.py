@@ -26,10 +26,11 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("", include("core.urls")),
     path("social-auth/", include("social_django.urls", namespace="social")),
-    path("logout/", core_views.logout_view, name="logout"),
+    path("logout/", core_views.LogoutView.as_view(), name="logout"),
     path("canvas/", include("lms.canvas.urls")),
 ]
 
 # Serve media files during development
 if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.MEDIA_URL,
+                          document_root=settings.MEDIA_ROOT)
