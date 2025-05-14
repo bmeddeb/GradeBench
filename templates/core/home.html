@@ -37,7 +37,7 @@
             <div class="card-footer">
                 <hr>
                 <div class="stats">
-                    <i class="fa fa-clock-o"></i> 
+                    <i class="fa fa-clock-o"></i>
                     <span class="timezone-info">{{ user.profile.timezone }}</span>
                 </div>
             </div>
@@ -219,6 +219,8 @@
     // Pass the user's timezone to the clock JavaScript
     const userTimezone = '{{ user.profile.timezone }}';
 </script>
+<!-- Add Luxon for timezone-aware clock -->
+<script src="https://cdn.jsdelivr.net/npm/luxon@3/build/global/luxon.min.js"></script>
 <script src="{% static 'js/user-timezone-clock.js' %}"></script>
 
 <script>
@@ -239,9 +241,9 @@
             }
             return cookieValue;
         }
-        
+
         const csrftoken = getCookie('csrftoken');
-        
+
         $.ajaxSetup({
             beforeSend: function(xhr, settings) {
                 if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
@@ -249,7 +251,7 @@
                 }
             }
         });
-        
+
         // Initialize FullCalendar
         const calendarEl = document.getElementById('calendar');
         const calendar = new FullCalendar.Calendar(calendarEl, {
@@ -303,58 +305,58 @@
                 // Show event details in modal
                 $('#eventTitle').text(info.event.title);
                 $('#eventStart').text(formatDate(info.event.start));
-                
+
                 if (info.event.end) {
                     $('#eventEnd').text(formatDate(info.event.end));
                 } else {
                     $('#eventEnd').text('N/A');
                 }
-                
+
                 if (info.event.extendedProps.location) {
                     $('#eventLocation').text(info.event.extendedProps.location);
                 } else {
                     $('#eventLocation').text('N/A');
                 }
-                
+
                 if (info.event.extendedProps.description) {
                     $('#eventDescriptionContainer').show();
                     $('#eventDescription').text(info.event.extendedProps.description);
                 } else {
                     $('#eventDescriptionContainer').hide();
                 }
-                
+
                 $('#eventDetailsModal').modal('show');
             }
         });
-        
+
         calendar.render();
-        
+
         // Format date for event details modal
         function formatDate(date) {
             if (!date) return 'N/A';
-            
-            const options = { 
+
+            const options = {
                 weekday: 'long',
-                year: 'numeric', 
-                month: 'long', 
+                year: 'numeric',
+                month: 'long',
                 day: 'numeric',
                 hour: '2-digit',
                 minute: '2-digit'
             };
-            
+
             return date.toLocaleDateString(undefined, options);
         }
-        
+
         // Handle ICS file upload
         $('#submitIcsUpload').click(function() {
             const formData = new FormData($('#uploadIcsForm')[0]);
             const fileInput = $('#icsFile')[0];
-            
+
             if (fileInput.files.length === 0) {
                 alert('Please select a file to upload');
                 return;
             }
-            
+
             $.ajax({
                 url: '/api/calendar/upload-ics/',
                 type: 'POST',
@@ -363,7 +365,7 @@
                 contentType: false,
                 success: function(response) {
                     $('#importIcsModal').modal('hide');
-                    
+
                     // Show success notification
                     $.notify({
                         icon: "nc-icon nc-check-2",
@@ -376,20 +378,20 @@
                             align: 'right'
                         }
                     });
-                    
+
                     // Refresh calendar
                     calendar.refetchEvents();
-                    
+
                     // Reset form
                     $('#uploadIcsForm')[0].reset();
                 },
                 error: function(xhr) {
                     let errorMessage = 'An error occurred while importing the calendar file.';
-                    
+
                     if (xhr.responseJSON && xhr.responseJSON.message) {
                         errorMessage = xhr.responseJSON.message;
                     }
-                    
+
                     // Show error notification
                     $.notify({
                         icon: "nc-icon nc-simple-remove",
