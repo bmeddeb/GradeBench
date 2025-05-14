@@ -48,23 +48,23 @@
             </div>
             <div class="card-content">
                 {% if assignment.description %}
-                <div class="assignment-description">
+                <div class="assignment-description p-3 mb-4 rounded">
                     {{ assignment.description|safe }}
                 </div>
                 {% endif %}
 
                 <div class="row">
                     <div class="col-md-6">
-                        <h5>Assignment Information</h5>
-                        <table class="table">
+                        <h5 class="mb-3 ps-3">Assignment Information</h5>
+                        <table class="table table-striped">
                             <tbody>
                                 <tr>
-                                    <th>Points</th>
-                                    <td>{{ assignment.points_possible }}</td>
+                                    <th class="ps-3">Points</th>
+                                    <td class="ps-3">{{ assignment.points_possible }}</td>
                                 </tr>
                                 <tr>
-                                    <th>Due Date</th>
-                                    <td>
+                                    <th class="ps-3">Due Date</th>
+                                    <td class="ps-3">
                                         {% if assignment.due_at %}
                                         {{ assignment.due_at|user_timezone:user|date:"F d, Y, h:i a" }}
                                         {% else %}
@@ -73,8 +73,8 @@
                                     </td>
                                 </tr>
                                 <tr>
-                                    <th>Available From</th>
-                                    <td>
+                                    <th class="ps-3">Available From</th>
+                                    <td class="ps-3">
                                         {% if assignment.unlock_at %}
                                         {{ assignment.unlock_at|user_timezone:user|date:"F d, Y, h:i a" }}
                                         {% else %}
@@ -83,8 +83,8 @@
                                     </td>
                                 </tr>
                                 <tr>
-                                    <th>Available Until</th>
-                                    <td>
+                                    <th class="ps-3">Available Until</th>
+                                    <td class="ps-3">
                                         {% if assignment.lock_at %}
                                         {{ assignment.lock_at|user_timezone:user|date:"F d, Y, h:i a" }}
                                         {% else %}
@@ -93,8 +93,8 @@
                                     </td>
                                 </tr>
                                 <tr>
-                                    <th>Submission Types</th>
-                                    <td>
+                                    <th class="ps-3">Submission Types</th>
+                                    <td class="ps-3">
                                         {% for type in assignment.submission_types %}
                                             {% if type == 'online_text_entry' %}
                                                 Text Entry
@@ -118,8 +118,8 @@
                                     </td>
                                 </tr>
                                 <tr>
-                                    <th>Grading Type</th>
-                                    <td>
+                                    <th class="ps-3">Grading Type</th>
+                                    <td class="ps-3">
                                         {% if assignment.grading_type == 'points' %}
                                             Points
                                         {% elif assignment.grading_type == 'percent' %}
@@ -136,8 +136,8 @@
                                     </td>
                                 </tr>
                                 <tr>
-                                    <th>Status</th>
-                                    <td>
+                                    <th class="ps-3">Status</th>
+                                    <td class="ps-3">
                                         {% if assignment.published %}
                                         <span class="badge bg-success">Published</span>
                                         {% else %}
@@ -154,21 +154,21 @@
                     </div>
 
                     <div class="col-md-6">
-                        <h5>Submission Statistics</h5>
+                        <h5 class="mb-3 ps-3">Submission Statistics</h5>
                         <div class="row text-center">
                             <div class="col-xs-6">
-                                <div class="card">
-                                    <div class="card-content">
-                                        <h3>{{ submitted_count }} / {{ submissions|length }}</h3>
-                                        <p>Submitted</p>
+                                <div class="card shadow-sm">
+                                    <div class="card-content text-center p-3">
+                                        <h3 class="mb-2">{{ submitted_count }} / {{ submissions|length }}</h3>
+                                        <p class="mb-0">Submitted</p>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-xs-6">
-                                <div class="card">
-                                    <div class="card-content">
-                                        <h3>{{ graded_count }} / {{ submissions|length }}</h3>
-                                        <p>Graded</p>
+                                <div class="card shadow-sm">
+                                    <div class="card-content text-center p-3">
+                                        <h3 class="mb-2">{{ graded_count }} / {{ submissions|length }}</h3>
+                                        <p class="mb-0">Graded</p>
                                     </div>
                                 </div>
                             </div>
@@ -176,24 +176,24 @@
 
                         <div class="row text-center">
                             <div class="col-xs-6">
-                                <div class="card">
-                                    <div class="card-content">
-                                        <h3>{{ late_count }}</h3>
-                                        <p>Late</p>
+                                <div class="card shadow-sm">
+                                    <div class="card-content text-center p-3">
+                                        <h3 class="mb-2">{{ late_count }}</h3>
+                                        <p class="mb-0">Late</p>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-xs-6">
-                                <div class="card">
-                                    <div class="card-content">
-                                        <h3>{{ missing_count }}</h3>
-                                        <p>Missing</p>
+                                <div class="card shadow-sm">
+                                    <div class="card-content text-center p-3">
+                                        <h3 class="mb-2">{{ missing_count }}</h3>
+                                        <p class="mb-0">Missing</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="text-center" style="margin-top: 20px;">
+                        <div class="text-center mt-4">
                             <a href="{{ assignment.html_url }}" target="_blank" class="btn btn-primary btn-fill">
                                 <i class="fa fa-external-link"></i> View in Canvas
                             </a>
@@ -209,7 +209,7 @@
                 <h4 class="card-title">Assignment Rubric</h4>
             </div>
             <div class="card-content">
-                <table class="rubric-table">
+                <table class="rubric-table table-striped">
                     <thead>
                         <tr>
                             <th>Criteria</th>
@@ -220,7 +220,7 @@
                     <tbody>
                         {% for criterion in rubric.criteria %}
                         <tr>
-                            <td class="criterion-name">
+                            <td class="criterion-name fw-bold">
                                 {{ criterion.description }}
                                 {% if criterion.long_description %}
                                 <p><small>{{ criterion.long_description }}</small></p>
@@ -232,7 +232,7 @@
                                     <div class="rating-description">{{ rating.description }}</div>
                                     <div class="rating-points">{{ rating.points }} pts</div>
                                 </div>
-                                {% if not forloop.last %}<hr style="margin: 5px 0;">{% endif %}
+                                {% if not forloop.last %}<hr class="my-2">{% endif %}
                                 {% endfor %}
                             </td>
                             <td>
@@ -252,11 +252,11 @@
             <div class="card-header">
                 <h4 class="card-title">Student Submissions</h4>
                 <p class="card-category">
-                    {{ submitted_count }} of {{ submissions|length }} submitted
+                    <span class="badge bg-info">{{ submitted_count }} of {{ submissions|length }} submitted</span>
                 </p>
             </div>
             <div class="card-content">
-                <div class="progress">
+                <div class="progress mb-3">
                     <div class="progress-bar progress-bar-info" role="progressbar"
                          aria-valuenow="{{ submitted_count }}" aria-valuemin="0" aria-valuemax="{{ submissions|length }}"
                          style="width: {% widthratio submitted_count submissions|length 100 %}%">
@@ -268,16 +268,16 @@
                     <table class="table table-hover">
                         <thead>
                             <tr>
-                                <th>Student</th>
-                                <th>Status</th>
-                                <th>Score</th>
+                                <th class="ps-3">Student</th>
+                                <th class="ps-3">Status</th>
+                                <th class="ps-3">Score</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for submission in submissions %}
                             <tr>
-                                <td>{{ submission.enrollment.user_name }}</td>
-                                <td>
+                                <td class="ps-3">{{ submission.enrollment.user_name }}</td>
+                                <td class="ps-3">
                                     {% if submission.workflow_state == 'submitted' %}
                                     <span class="badge bg-info">Submitted</span>
                                     {% elif submission.workflow_state == 'graded' %}
@@ -296,7 +296,7 @@
                                     <span class="badge bg-danger">Missing</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td class="ps-3">
                                     {% if submission.score != None %}
                                     {{ submission.score }} / {{ assignment.points_possible }}
                                     {% else %}
@@ -309,8 +309,8 @@
                     </table>
                 </div>
                 {% else %}
-                <div class="text-center">
-                    <p>No submissions found for this assignment.</p>
+                <div class="text-center p-4">
+                    <p class="text-muted">No submissions found for this assignment.</p>
                 </div>
                 {% endif %}
             </div>
