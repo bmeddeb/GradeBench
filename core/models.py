@@ -16,9 +16,11 @@ class UserProfile(models.Model, AsyncModelMixin):
     Base user profile with common fields for all users (instructors/professors/TAs)
     """
 
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
+    user = models.OneToOneField(
+        User, on_delete=models.CASCADE, related_name="profile")
     github_username = models.CharField(max_length=100, blank=True, null=True)
-    github_access_token = EncryptedCharField(max_length=255, blank=True, null=True)
+    github_access_token = EncryptedCharField(
+        max_length=255, blank=True, null=True)
     github_avatar_url = models.URLField(max_length=500, blank=True, null=True)
     profile_picture = models.ImageField(
         upload_to="profile_pictures/", blank=True, null=True
@@ -27,6 +29,7 @@ class UserProfile(models.Model, AsyncModelMixin):
     bio = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    timezone = models.CharField(max_length=63, default="UTC")
 
     def __str__(self):
         return f"{self.user.username}'s profile"
@@ -69,8 +72,10 @@ class StaffProfile(models.Model, AsyncModelMixin):
 
     user_profile = models.OneToOneField(UserProfile, on_delete=models.CASCADE)
     github_tokens = models.ManyToManyField(GitHubToken, blank=True)
-    lms_access_token = EncryptedCharField(max_length=255, blank=True, null=True)
-    lms_refresh_token = EncryptedCharField(max_length=255, blank=True, null=True)
+    lms_access_token = EncryptedCharField(
+        max_length=255, blank=True, null=True)
+    lms_refresh_token = EncryptedCharField(
+        max_length=255, blank=True, null=True)
     lms_token_expires = models.DateTimeField(blank=True, null=True)
 
     class Meta:
@@ -102,7 +107,8 @@ class Team(models.Model, AsyncModelMixin):
 
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True, null=True)
-    github_organization = models.CharField(max_length=100, blank=True, null=True)
+    github_organization = models.CharField(
+        max_length=100, blank=True, null=True)
     github_team_id = models.CharField(max_length=100, blank=True, null=True)
     taiga_project_id = models.CharField(max_length=100, blank=True, null=True)
     # Canvas integration fields
@@ -140,7 +146,8 @@ class Student(models.Model, AsyncModelMixin):
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
     email = models.EmailField(unique=True)
-    student_id = models.CharField(max_length=20, blank=True, null=True, unique=True)
+    student_id = models.CharField(
+        max_length=20, blank=True, null=True, unique=True)
 
     # Team association
     team = models.ForeignKey(
@@ -247,7 +254,8 @@ class CalendarEvent(models.Model, AsyncModelMixin):
     all_day = models.BooleanField(default=False)  # True if no time component
 
     # Recurrence (if event repeats)
-    rrule = models.TextField(blank=True, null=True)  # Stored as iCalendar RRULE string
+    # Stored as iCalendar RRULE string
+    rrule = models.TextField(blank=True, null=True)
 
     # Metadata
     created_at = models.DateTimeField(auto_now_add=True)
@@ -307,7 +315,8 @@ class CalendarEvent(models.Model, AsyncModelMixin):
                 # Handle DTSTART (required)
                 dtstart = component.get("DTSTART").dt
                 if isinstance(dtstart, datetime) and dtstart.tzinfo is None:
-                    dtstart = timezone.make_aware(dtstart)  # Ensure timezone-aware
+                    dtstart = timezone.make_aware(
+                        dtstart)  # Ensure timezone-aware
                 elif not isinstance(dtstart, datetime):
                     # Convert date to datetime for all-day events
                     dtstart = timezone.make_aware(
