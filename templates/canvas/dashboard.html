@@ -1,9 +1,14 @@
 {% extends 'canvas/base.html' %}
 {% load static %}
+{% load user_timezone %}
 
 {% block title %}Canvas Dashboard | GradeBench{% endblock %}
 {% block page_title %}Canvas Dashboard{% endblock %}
 {% block nav_canvas_dashboard %}active{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/components/clock.css' %}">
+{% endblock %}
 
 {% block canvas_content %}
 <div class="row">
@@ -71,7 +76,7 @@
                             <p class="card-category">Last Sync</p>
                             <p class="card-title">
                                 {% if integration.last_sync %}
-                                {{ integration.last_sync|date:"M d" }}
+                                {{ integration.last_sync|user_timezone:user|date:"M d" }}
                                 {% else %}
                                 Never
                                 {% endif %}
@@ -85,7 +90,7 @@
                 <div class="stats">
                     <i class="fa fa-clock-o"></i> 
                     {% if integration.last_sync %}
-                    {{ integration.last_sync|date:"H:i" }}
+                    {{ integration.last_sync|user_timezone:user|date:"H:i" }}
                     {% else %}
                     Not synchronized
                     {% endif %}
@@ -117,7 +122,7 @@
                 <div class="stats">
                     <i class="fa fa-clock-o"></i> 
                     {% if integration.last_sync %}
-                    {{ integration.last_sync|date:"M d, H:i" }}
+                    {{ integration.last_sync|user_timezone:user|date:"M d, H:i" }}
                     {% else %}
                     Not synchronized
                     {% endif %}
@@ -240,7 +245,7 @@
                     </div>
                     <div class="col-8">
                         {% if integration.last_sync %}
-                        {{ integration.last_sync|date:"F d, Y H:i" }}
+                        {{ integration.last_sync|user_timezone:user|date:"F d, Y H:i" }}
                         {% else %}
                         Never synchronized
                         {% endif %}

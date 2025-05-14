@@ -1,5 +1,6 @@
 {% extends 'canvas/base.html' %}
 {% load static %}
+{% load user_timezone %}
 
 {% block title %}Canvas Assignments | GradeBench{% endblock %}
 {% block page_title %}Canvas Assignments{% endblock %}
@@ -44,7 +45,7 @@
                                         <td>{{ assignment.name }}</td>
                                         <td>
                                             {% if assignment.due_at %}
-                                            {{ assignment.due_at|date:"M d, Y" }}
+                                            {{ assignment.due_at|user_timezone:user|date:"M d, Y" }}
                                             {% else %}
                                             No due date
                                             {% endif %}

@@ -1,5 +1,6 @@
 {% extends 'canvas/base.html' %}
 {% load static %}
+{% load user_timezone %}
 
 {% block title %}{{ quiz.title }} | {{ course.course_code }} | GradeBench Canvas{% endblock %}
 {% block page_title %}{{ quiz.title }}{% endblock %}
@@ -64,7 +65,7 @@
                                     <th>Due Date</th>
                                     <td>
                                         {% if quiz.due_at %}
-                                        {{ quiz.due_at|date:"F d, Y, h:i a" }}
+                                        {{ quiz.due_at|user_timezone:user|date:"F d, Y, h:i a" }}
                                         {% else %}
                                         No due date
                                         {% endif %}
@@ -74,7 +75,7 @@
                                     <th>Available From</th>
                                     <td>
                                         {% if quiz.unlock_at %}
-                                        {{ quiz.unlock_at|date:"F d, Y, h:i a" }}
+                                        {{ quiz.unlock_at|user_timezone:user|date:"F d, Y, h:i a" }}
                                         {% else %}
                                         Always available
                                         {% endif %}
@@ -84,7 +85,7 @@
                                     <th>Available Until</th>
                                     <td>
                                         {% if quiz.lock_at %}
-                                        {{ quiz.lock_at|date:"F d, Y, h:i a" }}
+                                        {{ quiz.lock_at|user_timezone:user|date:"F d, Y, h:i a" }}
                                         {% else %}
                                         No lock date
                                         {% endif %}
@@ -223,12 +224,12 @@
             <div class="card-content">
                 <div class="info-item">
                     <h5>Created</h5>
-                    <p>{{ quiz.created_at|date:"F d, Y, h:i a" }}</p>
+                    <p>{{ quiz.created_at|user_timezone:user|date:"F d, Y, h:i a" }}</p>
                 </div>
                 
                 <div class="info-item">
                     <h5>Last Updated</h5>
-                    <p>{{ quiz.updated_at|date:"F d, Y, h:i a" }}</p>
+                    <p>{{ quiz.updated_at|user_timezone:user|date:"F d, Y, h:i a" }}</p>
                 </div>
                 
                 {% if assignment_stats %}

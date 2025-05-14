@@ -18,6 +18,7 @@ import io
 from icalendar import Calendar
 from django.utils import timezone
 from datetime import datetime, timedelta
+import pytz
 
 
 @staff_member_required
@@ -119,6 +120,14 @@ def profile(request):
         if phone_number and phone_number != profile.phone_number:
             profile.phone_number = phone_number
             changes_made = True
+            
+        # Handle timezone change
+        timezone = request.POST.get("timezone")
+        if timezone and timezone != profile.timezone:
+            # Validate timezone
+            if timezone in pytz.common_timezones:
+                profile.timezone = timezone
+                changes_made = True
 
         # Save changes
         user.save()
@@ -131,6 +140,9 @@ def profile(request):
         # Redirect to avoid form resubmission
         return redirect("profile")
 
+    # Get common timezones for the dropdown
+    timezones = pytz.common_timezones
+
     return render(
         request,
         "core/profile.html",
@@ -140,6 +152,7 @@ def profile(request):
             "github_connected": github_connected,
             "github_username": github_username,
             "social_auth": social_auth,
+            "timezones": timezones,
         },
     )
 
@@ -276,6 +289,13 @@ def update_profile_ajax(request):
         if "phone_number" in data and data["phone_number"] != profile.phone_number:
             profile.phone_number = data["phone_number"]
             changes_made = True
+            
+        # Handle timezone change
+        if "timezone" in data and data["timezone"] != profile.timezone:
+            # Validate timezone
+            if data["timezone"] in pytz.common_timezones:
+                profile.timezone = data["timezone"]
+                changes_made = True
 
         # Only save if changes were made
         if changes_made:

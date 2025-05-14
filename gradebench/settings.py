@@ -39,6 +39,9 @@ DEBUG = env.bool("DEBUG", default=False)
 
 ALLOWED_HOSTS = env("ALLOWED_HOSTS", default="").split(",")
 
+# Timezone settings
+USE_TZ = True
+TIME_ZONE = 'UTC'  # Always store in UTC!
 
 # Application definition
 
@@ -124,6 +127,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "core.middleware.SocialAuthExceptionMiddleware",  # Our custom middleware
+    "core.middleware.UserTimezoneMiddleware",  # timezone middleware
 ]
 
 ROOT_URLCONF = "gradebench.urls"

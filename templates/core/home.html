@@ -1,4 +1,6 @@
 {% extends 'base.html' %}
+{% load static %}
+{% load user_timezone %}
 
 {% block title %}Dashboard - GradeBench{% endblock %}
 {% block page_title %}Dashboard{% endblock %}
@@ -8,6 +10,7 @@
 {% block extra_css %}
 <!-- FullCalendar CSS -->
 <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="{% static 'css/components/clock.css' %}" />
 <style>
     /* Paper Dashboard Pro calendar styling */
     .card-calendar {
@@ -214,18 +217,19 @@
 {% block content %}
 <div class="row">
     <div class="col-lg-3 col-md-6 col-sm-6">
-        <div class="card card-stats">
+        <div class="card card-stats timezone-clock-card">
             <div class="card-body">
                 <div class="row">
                     <div class="col-5 col-md-4">
                         <div class="icon-big text-center icon-warning">
-                            <i class="nc-icon nc-globe text-warning"></i>
+                            <i class="nc-icon nc-calendar-60 text-info"></i>
                         </div>
                     </div>
                     <div class="col-7 col-md-8">
                         <div class="numbers">
-                            <p class="card-category">Repositories</p>
-                            <p class="card-title">5</p>
+                            <p class="card-category">Current Time</p>
+                            <p id="user-timezone-clock" class="card-title">00:00</p>
+                            <p id="user-timezone-date" class="timezone-date"></p>
                         </div>
                     </div>
                 </div>
@@ -233,7 +237,8 @@
             <div class="card-footer">
                 <hr>
                 <div class="stats">
-                    <i class="fa fa-refresh"></i> Updated Now
+                    <i class="fa fa-clock-o"></i> 
+                    <span class="timezone-info">{{ user.profile.timezone }}</span>
                 </div>
             </div>
         </div>
@@ -410,6 +415,11 @@
 {% block extra_js %}
 <!-- FullCalendar JS -->
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+<script>
+    // Pass the user's timezone to the clock JavaScript
+    const userTimezone = '{{ user.profile.timezone }}';
+</script>
+<script src="{% static 'js/user-timezone-clock.js' %}"></script>
 
 <script>
     $(document).ready(function() {

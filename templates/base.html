@@ -17,6 +17,7 @@
     <link href="/static/css/variables.css" rel="stylesheet" />
     <link href="/static/css/components/index.css" rel="stylesheet" />
     <link href="/static/css/paper-dashboard.css" rel="stylesheet" />
+
     <style>
         /* Custom styles to fix Bootstrap 5 compatibility issues */
         .profile-dropdown-item {
@@ -390,5 +391,15 @@
     </script>
 
     {% block extra_js %}{% endblock %}
+    <script>
+        (function() {
+            var tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            if (tz && document.cookie.indexOf('detected_timezone=') === -1) {
+                document.cookie = "detected_timezone=" + tz + ";path=/";
+                // Optionally, reload the page so the server picks up the new cookie
+                location.reload();
+            }
+        })();
+     </script>
 </body>
 </html>

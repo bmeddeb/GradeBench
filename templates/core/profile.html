@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load user_timezone %}
 
 {% block title %}Profile - GradeBench{% endblock %}
 {% block page_title %}User Profile{% endblock %}
@@ -28,7 +29,7 @@
                     {% if profile.github_username %}
                     GitHub: {{ profile.github_username }}<br>
                     {% endif %}
-                    Joined: {{ user.date_joined|date:"F j, Y" }}
+                    Joined: {{ user.date_joined|user_timezone:user|date:"F j, Y" }}
                 </p>
             </div>
             <div class="card-footer">
@@ -96,10 +97,21 @@
                         </div>
                     </div>
                     <div class="row">
-                        <div class="col-md-12">
+                        <div class="col-md-6">
                             <div class="form-group">
                                 <label>Phone Number</label>
                                 <input type="text" class="form-control" name="phone_number" value="{{ profile.phone_number|default:'' }}">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Time Zone</label>
+                                <select class="form-control" name="timezone">
+                                    {% for tz in timezones %}
+                                        <option value="{{ tz }}" {% if profile.timezone == tz %}selected{% endif %}>{{ tz }}</option>
+                                    {% endfor %}
+                                </select>
+                                <small class="form-text text-muted">Select your local time zone for date and time display</small>
                             </div>
                         </div>
                     </div>
@@ -122,87 +134,6 @@
     </div>
 </div>
 
-<div class="row">
-    <div class="col-md-12">
-        <div class="card">
-            <div class="card-header">
-                <h4 class="card-title">Connected GitHub Repositories</h4>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table">
-                        <thead class="text-primary">
-                            <tr>
-                                <th>Repository Name</th>
-                                <th>Description</th>
-                                <th class="text-center">Commits</th>
-                                <th class="text-center">Last Activity</th>
-                                <th class="text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>Repository 1</td>
-                                <td>First test repository for Django project</td>
-                                <td class="text-center">42</td>
-                                <td class="text-center">2 days ago</td>
-                                <td class="text-right">
-                                    <button class="btn btn-sm btn-info btn-icon"><i class="fa fa-eye"></i></button>
-                                    <button class="btn btn-sm btn-success btn-icon"><i class="fa fa-refresh"></i></button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>Repository 2</td>
-                                <td>Frontend React application</td>
-                                <td class="text-center">36</td>
-                                <td class="text-center">3 days ago</td>
-                                <td class="text-right">
-                                    <button class="btn btn-sm btn-info btn-icon"><i class="fa fa-eye"></i></button>
-                                    <button class="btn btn-sm btn-success btn-icon"><i class="fa fa-refresh"></i></button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>Repository 3</td>
-                                <td>Backend API service</td>
-                                <td class="text-center">28</td>
-                                <td class="text-center">1 week ago</td>
-                                <td class="text-right">
-                                    <button class="btn btn-sm btn-info btn-icon"><i class="fa fa-eye"></i></button>
-                                    <button class="btn btn-sm btn-success btn-icon"><i class="fa fa-refresh"></i></button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>Repository 4</td>
-                                <td>Documentation website</td>
-                                <td class="text-center">14</td>
-                                <td class="text-center">2 weeks ago</td>
-                                <td class="text-right">
-                                    <button class="btn btn-sm btn-info btn-icon"><i class="fa fa-eye"></i></button>
-                                    <button class="btn btn-sm btn-success btn-icon"><i class="fa fa-refresh"></i></button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>Repository 5</td>
-                                <td>Data analysis tools</td>
-                                <td class="text-center">8</td>
-                                <td class="text-center">3 weeks ago</td>
-                                <td class="text-right">
-                                    <button class="btn btn-sm btn-info btn-icon"><i class="fa fa-eye"></i></button>
-                                    <button class="btn btn-sm btn-success btn-icon"><i class="fa fa-refresh"></i></button>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <div class="row">
-                    <div class="update ml-auto mr-auto">
-                        <button class="btn btn-primary btn-round">Connect New Repository</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -288,7 +219,85 @@
     // You can use this instead of the form submission if you prefer the async approach
     document.querySelector('#profile-form').addEventListener('submit', function(e) {
         e.preventDefault();
-        updateProfileAsync();
+        
+        // Get the timezone from the form
+        const timezoneSelect = document.querySelector('select[name="timezone"]');
+        const timezone = timezoneSelect ? timezoneSelect.value : null;
+        
+        // Add timezone to the data to be sent
+        const data = {
+            username: document.querySelector('input[name="username"]').value,
+            first_name: document.querySelector('input[name="first_name"]').value,
+            last_name: document.querySelector('input[name="last_name"]').value,
+            email: document.querySelector('input[name="email"]').value,
+            phone_number: document.querySelector('input[name="phone_number"]').value,
+            bio: document.querySelector('textarea[name="bio"]').value,
+            timezone: timezone
+        };
+        
+        // Send the update
+        fetch('{% url "update_profile_async" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('input[name="csrfmiddlewaretoken"]').value
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.status === 'success') {
+                // Create a success notification
+                let alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-success alert-dismissible fade show';
+                alertDiv.setAttribute('role', 'alert');
+                
+                // Add close button
+                let closeButton = document.createElement('button');
+                closeButton.className = 'close';
+                closeButton.setAttribute('type', 'button');
+                closeButton.setAttribute('data-bs-dismiss', 'alert');
+                closeButton.setAttribute('aria-label', 'Close');
+                closeButton.innerHTML = '<i class="nc-icon nc-simple-remove"></i>';
+                
+                // Add message
+                let message = document.createElement('span');
+                message.textContent = result.message || 'Profile updated successfully!';
+                
+                // Add elements to alert
+                alertDiv.appendChild(closeButton);
+                alertDiv.appendChild(message);
+                
+                // Add alert to page
+                let messagesContainer = document.querySelector('.messages');
+                if (!messagesContainer) {
+                    messagesContainer = document.createElement('div');
+                    messagesContainer.className = 'messages';
+                    document.querySelector('.content').prepend(messagesContainer);
+                }
+                messagesContainer.appendChild(alertDiv);
+                
+                // Initialize the Bootstrap alert for dismissal
+                new bootstrap.Alert(alertDiv);
+                
+                // Auto-dismiss after 5 seconds
+                setTimeout(() => {
+                    let alert = bootstrap.Alert.getInstance(alertDiv);
+                    if (alert) {
+                        alert.close();
+                    } else {
+                        alertDiv.remove();
+                    }
+                }, 5000);
+            } else {
+                // Show error message
+                alert(result.message || 'Error updating profile.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error updating profile. Please try again.');
+        });
     });
 </script>
 {% endblock %}

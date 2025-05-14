@@ -1,5 +1,6 @@
 {% extends 'canvas/base.html' %}
 {% load static %}
+{% load user_timezone %}
 
 {% block title %}Groups: {{ course.name }} | GradeBench Canvas{% endblock %}
 {% block page_title %}{{ course.course_code }}: {{ course.name }} - Group Management{% endblock %}
@@ -145,7 +146,7 @@
 
                     {% if last_sync %}
                     <span class="ms-3">
-                        <i class="fa fa-clock-o"></i> Last synced: {{ last_sync|date:"M d, Y H:i" }}
+                        <i class="fa fa-clock-o"></i> Last synced: {{ last_sync|user_timezone:user|date:"M d, Y H:i" }}
                     </span>
                     {% endif %}
                 </div>

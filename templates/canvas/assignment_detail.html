@@ -1,5 +1,6 @@
 {% extends 'canvas/base.html' %}
 {% load static %}
+{% load user_timezone %}
 
 {% block title %}{{ assignment.name }} | {{ course.course_code }} | GradeBench Canvas{% endblock %}
 {% block page_title %}{{ assignment.name }}{% endblock %}
@@ -65,7 +66,7 @@
                                     <th>Due Date</th>
                                     <td>
                                         {% if assignment.due_at %}
-                                        {{ assignment.due_at|date:"F d, Y, h:i a" }}
+                                        {{ assignment.due_at|user_timezone:user|date:"F d, Y, h:i a" }}
                                         {% else %}
                                         No due date
                                         {% endif %}
@@ -75,7 +76,7 @@
                                     <th>Available From</th>
                                     <td>
                                         {% if assignment.unlock_at %}
-                                        {{ assignment.unlock_at|date:"F d, Y, h:i a" }}
+                                        {{ assignment.unlock_at|user_timezone:user|date:"F d, Y, h:i a" }}
                                         {% else %}
                                         Always available
                                         {% endif %}
@@ -85,7 +86,7 @@
                                     <th>Available Until</th>
                                     <td>
                                         {% if assignment.lock_at %}
-                                        {{ assignment.lock_at|date:"F d, Y, h:i a" }}
+                                        {{ assignment.lock_at|user_timezone:user|date:"F d, Y, h:i a" }}
                                         {% else %}
                                         No lock date
                                         {% endif %}

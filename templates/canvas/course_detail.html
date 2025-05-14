@@ -1,6 +1,7 @@
 <!-- templates/canvas/course_detail.html -->
 {% extends 'canvas/base.html' %}
 {% load static %}
+{% load user_timezone %}
 
 {% block title %}{{ course.name }} | GradeBench Canvas{% endblock %}
 {% block page_title %}{{ course.course_code }}: {{ course.name }}{% endblock %}
@@ -116,7 +117,7 @@
                 <div class="stats">
                     <i class="fa fa-clock-o"></i>
                     {% if course.updated_at %}
-                        Last update: {{ course.updated_at|date:"M d, H:i" }}
+                        Last update: {{ course.updated_at|user_timezone:user|date:"M d, H:i" }}
                     {% else %}
                         Never synced
                     {% endif %}
@@ -165,7 +166,7 @@
                                 <td>{{ assignment.name }}</td>
                                 <td>
                                     {% if assignment.due_at %}
-                                    {{ assignment.due_at|date:"M d, Y" }}
+                                    {{ assignment.due_at|user_timezone:user|date:"M d, Y" }}
                                     {% else %}
                                     No due date
                                     {% endif %}
@@ -231,7 +232,7 @@
                                 <th>Start Date</th>
                                 <td>
                                     {% if course.start_at %}
-                                    {{ course.start_at|date:"F d, Y" }}
+                                    {{ course.start_at|user_timezone:user|date:"F d, Y" }}
                                     {% else %}
                                     Not specified
                                     {% endif %}
@@ -241,7 +242,7 @@
                                 <th>End Date</th>
                                 <td>
                                     {% if course.end_at %}
-                                    {{ course.end_at|date:"F d, Y" }}
+                                    {{ course.end_at|user_timezone:user|date:"F d, Y" }}
                                     {% else %}
                                     Not specified
                                     {% endif %}
@@ -317,7 +318,7 @@
                                 </td>
                                 <td>
                                     {% if enrollment.last_activity_at %}
-                                    {{ enrollment.last_activity_at|date:"M d, Y" }}
+                                    {{ enrollment.last_activity_at|user_timezone:user|date:"M d, Y" }}
                                     {% else %}
                                     Never
                                     {% endif %}
