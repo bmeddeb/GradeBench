@@ -9,7 +9,7 @@
       </div>
       
       <!-- No groups warning - displayed dynamically when no groups exist -->
-      <div id="no-groups-warning" class="alert alert-warning mt-3" style="display: none;">
+      <div id="no-groups-warning" class="alert alert-warning mt-3" {% if not has_groups %}style="display: block;"{% else %}style="display: none;"{% endif %}>
         <p>
           <strong>Warning:</strong> No Canvas groups found for the selected group sets.
           Please use the Canvas integration to import groups first.

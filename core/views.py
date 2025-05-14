@@ -9,6 +9,7 @@ from django.urls import reverse
 from django.contrib.admin.views.decorators import staff_member_required
 from social_django.models import UserSocialAuth
 from django.contrib.auth.models import User
+from django.conf import settings
 from .models import UserProfile, CalendarEvent
 import httpx
 import json
@@ -404,6 +405,7 @@ def wizard_view(request):
     Renders a multi-step wizard interface for synchronizing Canvas Groups to Core Teams.
     Fetches real data from the database.
     """
+    # Wizard view for Canvas Group to Core Team Sync
     # Import Canvas models here to avoid potential circular imports
     from lms.canvas.models import CanvasCourse, CanvasGroupCategory, CanvasGroup
     import json
@@ -427,9 +429,17 @@ def wizard_view(request):
     wizard_data = request.session['wizard_data']
     current_step = wizard_data.get('current_step', 1)
     
+    # Always start at step 1 for GET requests with no query string
+    # This fixes the issue of jumping to results page
+    if request.method == 'GET' and not request.GET:
+        current_step = 1
+        wizard_data['current_step'] = 1
+        request.session.modified = True
+    
     # Process form submission if this is a POST request
     if request.method == 'POST':
         action = request.POST.get('action', '')
+        # Process form submission with action
         
         # Update wizard data based on form submission
         if current_step == 1:
@@ -639,30 +649,42 @@ def wizard_view(request):
         'current_step': current_step,
         'back_enabled': current_step > 1,
         'next_enabled': True,
-        'wizard_data': wizard_data
+        'wizard_data': wizard_data,
+        # Convert Python booleans to JavaScript strings for JS usage
+        'debug': 'true' if settings.DEBUG else 'false',
+        # Also provide regular Python boolean for Django template usage
+        'debug_mode': settings.DEBUG
     }
     
     # Add step-specific data based on real database data
     if current_step == 1:
         # Fetch actual Canvas courses from the database
         courses = []
-        for course in CanvasCourse.objects.all():
-            courses.append({
-                'canvas_id': course.canvas_id,
-                'course_code': course.course_code,
-                'name': course.name
-            })
+        try:
+            # Query the database for courses
+            query_set = CanvasCourse.objects.all().order_by('canvas_id')
             
-        # Add debug information to see what's happening
-        print(f"Sending {len(courses)} courses to template")
-        if courses:
-            print(f"Sample course data: {courses[0]}")
-        else:
-            print("No courses found in database. Please ensure Canvas courses are imported.")
+            # Process course data
+            for course in query_set:
+                courses.append({
+                    'canvas_id': course.canvas_id,
+                    'course_code': course.course_code,
+                    'name': course.name
+                })
+        except Exception as e:
+            # Handle database errors gracefully
+            courses = []
+            
+        # Convert to JSON for JavaScript
+        courses_json = json.dumps(courses)
         
         context['step_data'] = {
-            'courses': json.dumps(courses)  # Convert to JSON for template
+            'courses': courses,  # For Django template
+            'courses_json': courses_json  # For JavaScript
         }
+        
+        # Add a flag to indicate if courses exist
+        context['has_courses'] = len(courses) > 0
         
     elif current_step == 2:
         # Get selected course from session
@@ -671,22 +693,26 @@ def wizard_view(request):
         # Fetch group sets for the selected course
         group_sets = []
         if course_id:
-            for group_set in CanvasGroupCategory.objects.filter(course__canvas_id=course_id):
-                group_sets.append({
-                    'canvas_id': group_set.canvas_id,
-                    'name': group_set.name,
-                    'group_count': group_set.groups.count()
-                })
+            try:
+                for group_set in CanvasGroupCategory.objects.filter(course__canvas_id=course_id):
+                    group_sets.append({
+                        'canvas_id': group_set.canvas_id,
+                        'name': group_set.name,
+                        'group_count': group_set.groups.count()
+                    })
+            except Exception:
+                # Handle database errors gracefully
+                pass
                 
-        # Print debugging info
-        print(f"Found {len(group_sets)} group sets for course_id: {course_id}")
-        if group_sets:
-            print(f"Sample group set: {group_sets[0]}")
-        else:
-            print("No group sets found. Please ensure they are imported from Canvas.")
+        # Convert to JSON for JavaScript
+        group_sets_json = json.dumps(group_sets)
+        
+        # Add a flag to indicate if group sets exist
+        context['has_group_sets'] = len(group_sets) > 0
                 
         context['step_data'] = {
-            'group_sets': json.dumps(group_sets)
+            'group_sets': group_sets,  # For Django template
+            'group_sets_json': group_sets_json  # For JavaScript
         }
         
     elif current_step == 3:
@@ -702,34 +728,48 @@ def wizard_view(request):
                 try:
                     int_group_set_ids.append(int(id_val))
                 except (ValueError, TypeError):
-                    print(f"Warning: Invalid group set ID: {id_val}")
-                    
-            # Query actual groups from database    
-            for group in CanvasGroup.objects.filter(category__canvas_id__in=int_group_set_ids):
-                groups.append({
-                    'canvas_id': group.canvas_id,
-                    'name': group.name,
-                    'category_id': group.category.canvas_id,
-                    'category_name': group.category.name,
-                    'members_count': group.memberships.count()
-                })
+                    # Skip invalid IDs
+                    pass
+            
+            try:
+                # Query actual groups from database    
+                for group in CanvasGroup.objects.filter(category__canvas_id__in=int_group_set_ids):
+                    groups.append({
+                        'canvas_id': group.canvas_id,
+                        'name': group.name,
+                        'category_id': group.category.canvas_id,
+                        'category_name': group.category.name,
+                        'members_count': group.memberships.count()
+                    })
+            except Exception:
+                # Handle database errors gracefully
+                pass
+                
+        # Convert to JSON for JavaScript
+        groups_json = json.dumps(groups)
         
-        # Print debugging info
-        print(f"Found {len(groups)} groups for selected group sets: {group_set_ids}")
-        if groups:
-            print(f"Sample group: {groups[0]}")
-        else:
-            print("No groups found. Please ensure groups are imported from Canvas.")
+        # Add a flag to indicate if groups exist
+        context['has_groups'] = len(groups) > 0
                 
         context['step_data'] = {
-            'groups': json.dumps(groups)
+            'groups': groups,  # For Django template
+            'groups_json': groups_json  # For JavaScript
         }
         
     elif current_step == 6:
-        # Results page - show created teams - convert to JSON string for template
+        # Results page - show created teams
+        created_teams = wizard_data.get('created_teams', [])
+        
+        # Convert to JSON for JavaScript
+        created_teams_json = json.dumps(created_teams)
+        
         context['step_data'] = {
-            'created_teams': json.dumps(wizard_data.get('created_teams', []))
+            'created_teams': created_teams,  # For Django template
+            'created_teams_json': created_teams_json  # For JavaScript
         }
+        
+        # Debug - print final step_data
+        print("\nFinal created_teams step_data:", context['step_data'])
     
     # Render the appropriate template
     return render(request, 'wizard/wizard_main.html', context)

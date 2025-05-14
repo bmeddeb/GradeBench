@@ -11,8 +11,8 @@
             <div class="card mb-3">
               <div class="card-body">
                 <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="checkbox" name="group_set_ids" value="{{ group_set.id }}" id="group_set_{{ group_set.id }}" style="width: 20px; height: 20px; margin-right: 10px; visibility: visible !important; opacity: 1 !important;">
-                  <label class="form-check-label" for="group_set_{{ group_set.id }}">
+                  <input class="form-check-input" type="checkbox" name="group_set_ids" value="{{ group_set.canvas_id }}" id="group_set_{{ group_set.canvas_id }}" style="width: 20px; height: 20px; margin-right: 10px; visibility: visible !important; opacity: 1 !important;">
+                  <label class="form-check-label" for="group_set_{{ group_set.canvas_id }}">
                     <strong>{{ group_set.name }}</strong> ({{ group_set.group_count }} groups)
                   </label>
                 </div>
@@ -28,7 +28,7 @@
       </div>
       
       <!-- No group sets warning - displayed dynamically when no group sets exist -->
-      <div id="no-group-sets-warning" class="alert alert-warning mt-3" style="display: none;">
+      <div id="no-group-sets-warning" class="alert alert-warning mt-3" {% if not has_group_sets %}style="display: block;"{% else %}style="display: none;"{% endif %}>
         <p>
           <strong>Warning:</strong> No Canvas group sets found for this course. 
           Please use the Canvas integration to import group sets first.

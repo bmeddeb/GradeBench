@@ -1,21 +1,7 @@
-
-// Ensure we have a safe initialization even if jQuery doesn't load properly
-function safeInit() {
-  console.log("Wizard.js - Safe initialization called");
-  
-  // Check if jQuery is available
-  if (typeof $ === 'undefined' || typeof jQuery === 'undefined') {
-    console.error("jQuery is not available. Wizard initialization postponed.");
-    // Try again in 500ms
-    setTimeout(safeInit, 500);
-    return;
-  }
-  
-  console.log("jQuery is available, version: " + jQuery.fn.jquery);
-  
+// Initialize wizard when the DOM is fully loaded
+document.addEventListener('DOMContentLoaded', function() {
   // Ensure wizardContext exists
   if (typeof window.wizardContext === 'undefined') {
-    console.log("Creating empty wizardContext");
     window.wizardContext = {
       current_step: 1,
       courses: [],
@@ -25,38 +11,97 @@ function safeInit() {
     };
   }
   
-  // Initialize wizard
-  console.log("Calling initializeWizard()");
-  initializeWizard();
+  // Start the wizard initialization
+  if (typeof jQuery !== 'undefined') {
+    initializeWizard();
+  } else {
+    initializeWizardWithoutJQuery();
+  }
+});
+
+// Fallback initialization without jQuery
+function initializeWizardWithoutJQuery() {
+  // Get wizard card
+  var wizardCard = document.querySelector('.card-wizard');
+  if (!wizardCard) {
+    return;
+  }
+  
+  // Show the wizard card
+  wizardCard.classList.add('active');
+  
+  // Add current step information and bootstrap tab initialization
+  var currentStep = window.wizardContext.current_step || 1;
+  
+  // Set the active tab
+  var tabLinks = document.querySelectorAll('.nav-pills .nav-link');
+  tabLinks.forEach(function(link, index) {
+    if (index === currentStep - 1) {
+      link.classList.add('active');
+      if (typeof bootstrap !== 'undefined') {
+        new bootstrap.Tab(link).show();
+      }
+    } else {
+      link.classList.remove('active');
+    }
+  });
+  
+  // Basic initialization of buttons
+  var nextBtn = document.getElementById('next-btn');
+  var prevBtn = document.getElementById('previous-btn');
+  var resetBtn = document.getElementById('reset-btn');
+  
+  if (nextBtn) {
+    nextBtn.addEventListener('click', function() {
+      // Submit form with next action
+      var form = document.getElementById('sync-wizard-form');
+      if (form) {
+        var actionInput = document.createElement('input');
+        actionInput.type = 'hidden';
+        actionInput.name = 'action';
+        actionInput.value = 'next';
+        form.appendChild(actionInput);
+        form.submit();
+      }
+    });
+  }
+  
+  if (prevBtn) {
+    prevBtn.addEventListener('click', function() {
+      // Submit form with previous action
+      var form = document.getElementById('sync-wizard-form');
+      if (form) {
+        var actionInput = document.createElement('input');
+        actionInput.type = 'hidden';
+        actionInput.name = 'action';
+        actionInput.value = 'previous';
+        form.appendChild(actionInput);
+        form.submit();
+      }
+    });
+  }
+  
+  if (resetBtn) {
+    resetBtn.addEventListener('click', function() {
+      if (confirm('Are you sure you want to restart the wizard? All progress will be lost.')) {
+        // Submit form with reset action
+        var form = document.getElementById('sync-wizard-form');
+        if (form) {
+          var actionInput = document.createElement('input');
+          actionInput.type = 'hidden';
+          actionInput.name = 'action';
+          actionInput.value = 'reset';
+          form.appendChild(actionInput);
+          form.submit();
+        }
+      }
+    });
+  }
 }
 
-// Use both document ready and DOMContentLoaded for maximum compatibility
-$(document).ready(function() {
-  console.log("Wizard.js - jQuery document ready called");
-  safeInit();
-});
-
-// Backup initialization if jQuery ready fails
-document.addEventListener('DOMContentLoaded', function() {
-  console.log("Wizard.js - DOMContentLoaded called");
-  // If jQuery is already initialized, this will run immediately
-  // Otherwise, it will wait for jQuery to load
-  setTimeout(function() {
-    if (typeof $ !== 'undefined' && typeof $.fn !== 'undefined') {
-      console.log("jQuery is available from DOMContentLoaded");
-    } else {
-      console.log("jQuery not available from DOMContentLoaded, trying safe init");
-    }
-    safeInit();
-  }, 100);
-});
-
 function initializeWizard() {
-  console.log("Initializing wizard");
-  
   // Safety check
   if (typeof $ === 'undefined') {
-    console.error("jQuery still not available!");
     return;
   }
   var $wizardCard = $('.card-wizard');
@@ -91,37 +136,23 @@ function initializeWizard() {
   // Show wizard card (Paper Dashboard CSS hides it until .active)
   $wizardCard.addClass('active');
   
-  // Use the data from Django directly for steps
-  // We'll add empty placeholders here that'll be populated from the server
-  // The step_data is provided in the template context, which is passed from the view
-  
-  // Get wizard context data from the server (Django template)
-  console.log("Loading wizard context data from server");
-  if (!window.wizardContext) {
-    console.error("No wizard context found - data may not have been properly provided by the server");
-  }
-  
-  // Populate course dropdown with data from Django
+  // Conditionally populate course dropdown with JavaScript if the server-side template didn't do it
   const $courseSelect = $('#course_id');
-  if ($courseSelect.length) {
-    console.log("Populating course dropdown");
-    $courseSelect.empty().append('<option value="">Please select a course</option>');
-    
-    // Parse courses from wizardContext if available (with safety check)
+  if ($courseSelect.length && $courseSelect.find('option').length <= 1) {
+    // Course select exists but doesn't have options (just the placeholder) - populate from wizardContext
     const courses = window.wizardContext && window.wizardContext.courses ? window.wizardContext.courses : [];
-    console.log("Courses found:", courses.length);
     
-    // Add real courses from database to dropdown
     if (courses && courses.length) {
       courses.forEach(course => {
         if (course && course.canvas_id && course.course_code && course.name) {
           $courseSelect.append(`<option value="${course.canvas_id}">${course.course_code} - ${course.name}</option>`);
-        } else {
-          console.warn("Invalid course data:", course);
         }
       });
+      
+      // Hide warning and enable next button
+      $('#no-courses-warning').hide();
+      $('#next-btn').prop('disabled', false);
     } else {
-      console.warn("No courses available in the database");
       $courseSelect.append('<option value="" disabled>No courses available - please import courses from Canvas</option>');
       
       // Show the warning message
@@ -130,16 +161,12 @@ function initializeWizard() {
       // Disable next button since we can't proceed without courses
       $('#next-btn').prop('disabled', true);
     }
-  } else {
-    console.warn("Course select element not found");
   }
   
   // Course change handler to fetch group sets via AJAX
   $courseSelect.on('change', function() {
     const courseId = $(this).val();
-    if (courseId) {
-      console.log("Course selected:", courseId);
-      
+    if (courseId) {      
       // Store the course ID in a hidden field
       if (!$('input[name="course_id"]').length) {
         $form.append(`<input type="hidden" name="course_id" value="${courseId}">`);
@@ -149,10 +176,6 @@ function initializeWizard() {
       
       // Enable the Next button now that a course is selected
       $('#next-btn').prop('disabled', false);
-      
-      // In the real implementation, we would fetch group sets via AJAX here
-      // For this implementation, we'll just let the navigation buttons handle it
-      console.log("Course ID stored in hidden field. Will fetch group sets when moving to next step.");
     } else {
       // Disable Next button if no course is selected
       $('#next-btn').prop('disabled', true);
@@ -262,7 +285,6 @@ function initializeWizard() {
       var formData = new FormData($form[0]);
       formData.append('action', 'next');
       
-      console.log("Submitting form via AJAX to move to next step");
       $.ajax({
         url: $form.attr('action'),
         type: 'POST',
@@ -270,20 +292,15 @@ function initializeWizard() {
         processData: false,
         contentType: false,
         success: function(response) {
-          console.log("AJAX form submission successful:", response);
-          
           // Update wizard context with new data if provided
           if (response.wizard_data) {
-            console.log("Received updated wizard_data from server:", response.wizard_data);
             window.wizardContext = response.wizard_data;
             
             // Parse JSON strings if needed
             if (typeof window.wizardContext.courses === 'string') {
               try {
                 window.wizardContext.courses = JSON.parse(window.wizardContext.courses);
-                console.log("Parsed courses from JSON string:", window.wizardContext.courses.length);
               } catch (e) {
-                console.error("Error parsing courses JSON:", e);
                 window.wizardContext.courses = [];
               }
             }
@@ -291,9 +308,7 @@ function initializeWizard() {
             if (typeof window.wizardContext.group_sets === 'string') {
               try {
                 window.wizardContext.group_sets = JSON.parse(window.wizardContext.group_sets);
-                console.log("Parsed group_sets from JSON string:", window.wizardContext.group_sets.length);
               } catch (e) {
-                console.error("Error parsing group_sets JSON:", e);
                 window.wizardContext.group_sets = [];
               }
             }
@@ -301,9 +316,7 @@ function initializeWizard() {
             if (typeof window.wizardContext.groups === 'string') {
               try {
                 window.wizardContext.groups = JSON.parse(window.wizardContext.groups);
-                console.log("Parsed groups from JSON string:", window.wizardContext.groups.length);
               } catch (e) {
-                console.error("Error parsing groups JSON:", e);
                 window.wizardContext.groups = [];
               }
             }
@@ -311,9 +324,7 @@ function initializeWizard() {
             if (typeof window.wizardContext.created_teams === 'string') {
               try {
                 window.wizardContext.created_teams = JSON.parse(window.wizardContext.created_teams);
-                console.log("Parsed created_teams from JSON string:", window.wizardContext.created_teams.length);
               } catch (e) {
-                console.error("Error parsing created_teams JSON:", e);
                 window.wizardContext.created_teams = [];
               }
             }
@@ -342,13 +353,9 @@ function initializeWizard() {
           }
         },
         error: function(xhr, status, error) {
-          console.error("Error submitting form:", error);
-          console.error("Response:", xhr.responseText);
           alert("Error moving to next step: " + error);
         }
       });
-    } else {
-      console.log("Form validation failed or no next tab available");
     }
   });
 
@@ -365,7 +372,6 @@ function initializeWizard() {
       var formData = new FormData($form[0]);
       formData.append('action', 'previous');
       
-      console.log("Submitting form via AJAX to move to previous step");
       $.ajax({
         url: $form.attr('action'),
         type: 'POST',
@@ -373,20 +379,15 @@ function initializeWizard() {
         processData: false,
         contentType: false,
         success: function(response) {
-          console.log("AJAX form submission successful:", response);
-          
           // Update wizard context with new data if provided
           if (response.wizard_data) {
-            console.log("Received updated wizard_data from server:", response.wizard_data);
             window.wizardContext = response.wizard_data;
             
             // Parse JSON strings if needed
             if (typeof window.wizardContext.courses === 'string') {
               try {
                 window.wizardContext.courses = JSON.parse(window.wizardContext.courses);
-                console.log("Parsed courses from JSON string:", window.wizardContext.courses.length);
               } catch (e) {
-                console.error("Error parsing courses JSON:", e);
                 window.wizardContext.courses = [];
               }
             }
@@ -394,9 +395,7 @@ function initializeWizard() {
             if (typeof window.wizardContext.group_sets === 'string') {
               try {
                 window.wizardContext.group_sets = JSON.parse(window.wizardContext.group_sets);
-                console.log("Parsed group_sets from JSON string:", window.wizardContext.group_sets.length);
               } catch (e) {
-                console.error("Error parsing group_sets JSON:", e);
                 window.wizardContext.group_sets = [];
               }
             }
@@ -404,9 +403,7 @@ function initializeWizard() {
             if (typeof window.wizardContext.groups === 'string') {
               try {
                 window.wizardContext.groups = JSON.parse(window.wizardContext.groups);
-                console.log("Parsed groups from JSON string:", window.wizardContext.groups.length);
               } catch (e) {
-                console.error("Error parsing groups JSON:", e);
                 window.wizardContext.groups = [];
               }
             }
@@ -414,9 +411,7 @@ function initializeWizard() {
             if (typeof window.wizardContext.created_teams === 'string') {
               try {
                 window.wizardContext.created_teams = JSON.parse(window.wizardContext.created_teams);
-                console.log("Parsed created_teams from JSON string:", window.wizardContext.created_teams.length);
               } catch (e) {
-                console.error("Error parsing created_teams JSON:", e);
                 window.wizardContext.created_teams = [];
               }
             }
@@ -443,9 +438,6 @@ function initializeWizard() {
           }
         },
         error: function(xhr, status, error) {
-          console.error("Error navigating to previous step:", error);
-          console.error("Response:", xhr.responseText);
-          
           // Fallback to simple navigation if AJAX fails
           $('.nav-pills .nav-link').removeClass('active');
           $prevTab.addClass('active');
@@ -601,7 +593,6 @@ function initializeWizard() {
     
     // Real group data from the server database
     const groups = window.wizardContext.groups || [];
-    console.log(`Processing ${groups.length} groups from database for ${selectedGroupSets.length} selected group sets`);
     
     if (groups.length === 0) {
       // Show the no groups warning

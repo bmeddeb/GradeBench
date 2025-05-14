@@ -17,8 +17,8 @@
         >
           <option value="">Please select a course</option>
           {% for course in step_data.courses %}
-            <option value="{{ course.id }}">
-              {{ course.code }} – {{ course.name }}
+            <option value="{{ course.canvas_id }}">
+              {{ course.course_code }} – {{ course.name }}
             </option>
           {% endfor %}
         </select>
@@ -65,7 +65,7 @@
       </div>
       
       <!-- No courses warning - displayed dynamically when no courses exist -->
-      <div id="no-courses-warning" class="alert alert-warning mt-3" style="display: none;">
+      <div id="no-courses-warning" class="alert alert-warning mt-3" {% if not has_courses %}style="display: block;"{% else %}style="display: none;"{% endif %}>
         <p>
           <strong>Warning:</strong> No Canvas courses found in the database. 
           Please use the Canvas integration to import courses first.

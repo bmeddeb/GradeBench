@@ -26,6 +26,16 @@
 {% block content %}
 <div class="content">
   <div class="col-md-10 mx-auto">
+    <!-- Debug information at top of page -->
+    <div style="background-color: #f8f9fa; padding: 10px; margin-bottom: 15px; border-radius: 5px;">
+      <strong>Debug Info:</strong>
+      <pre>current_step: {{ current_step }}
+step_data: {% if step_data %}Available{% else %}None{% endif %}
+wizard_data: {% if wizard_data %}Available{% else %}None{% endif %}
+back_enabled: {{ back_enabled }}
+has_courses: {{ has_courses|default:"Not set" }}</pre>
+    </div>
+    
     <div class="wizard-container">
       <div class="card card-wizard" data-color="primary" id="wizardSync">
         <form id="sync-wizard-form" method="post" action="{% url 'wizard_main' %}">
@@ -97,31 +107,79 @@
 </div>
 {% endblock %}
 
+{% block extra_head %}
+  <!-- Load jQuery in the head to ensure it's available before any scripts -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+  
+  <!-- Debug script to verify jQuery loaded -->
+  <script>
+    console.log("[HEAD] jQuery loaded: " + (typeof jQuery !== 'undefined'));
+    if (typeof jQuery !== 'undefined') {
+      console.log("[HEAD] jQuery version: " + jQuery.fn.jquery);
+    }
+    
+    // Add boolean values to avoid any True/False conversion issues
+    window.jsTrue = true;
+    window.jsFalse = false;
+    
+    // Define Python True/False as JavaScript true/false to prevent errors
+    window.True = window.jsTrue;
+    window.False = window.jsFalse;
+  </script>
+{% endblock %}
+
 {% block extra_js %}
   {{ block.super }}
   
-  <!-- jQuery first - loaded in the head to ensure availability -->
-  <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
-  
-  <!-- Check jQuery loading -->
+  <!-- Debug compatibility -->
   <script>
-    // Ensure jQuery is loaded
-    document.addEventListener('DOMContentLoaded', function() {
-      if (typeof $ === 'undefined' || typeof jQuery === 'undefined') {
-        console.error("!!! CRITICAL: jQuery failed to load !!!");
-        // Provide fallback proxy
-        window.jQuery = window.$ = function() {
-          console.error("jQuery proxy called - jQuery failed to load");
-        };
-      } else {
-        console.log("jQuery loaded successfully: version " + jQuery.fn.jquery);
-      }
-    });
+    console.log("=== DEBUG SCRIPT LOADING ===");
+    console.log("jQuery available in extra_js: " + (typeof jQuery !== 'undefined'));
+    if (typeof jQuery !== 'undefined') {
+      console.log("jQuery version: " + jQuery.fn.jquery);
+    }
+    
+    if (typeof bootstrap !== 'undefined') {
+      console.log("Bootstrap version: " + bootstrap.Tooltip.VERSION);
+    } else {
+      console.log("Bootstrap not yet loaded");
+    }
+    
+    // Attempt to detect conflicts or issues
+    if (typeof $ !== 'undefined' && typeof jQuery !== 'undefined' && $ !== jQuery) {
+      console.error("$ and jQuery are different objects - potential conflict!");
+    }
+    console.log("===========================");
   </script>
   
   <!-- Bootstrap 5 bundle (includes Popper) -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
 
+  <!-- Second check after Bootstrap loads -->
+  <script>
+    console.log("=== AFTER BOOTSTRAP LOAD ===");
+    console.log("Bootstrap version: " + (typeof bootstrap !== 'undefined' ? bootstrap.Tooltip.VERSION : "not loaded"));
+    
+    // Initialize all tooltips and popovers
+    document.addEventListener('DOMContentLoaded', function() {
+      if (typeof bootstrap !== 'undefined') {
+        // Enable tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+          return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+        
+        // Initialize tabs manually to ensure they work
+        var tabElements = document.querySelectorAll('[data-bs-toggle="tab"]');
+        console.log("Found " + tabElements.length + " tab elements to initialize");
+        tabElements.forEach(function(tabEl) {
+          new bootstrap.Tab(tabEl);
+        });
+      }
+    });
+    console.log("===========================");
+  </script>
+  
   <!-- Form validation -->
   <script src="{% static 'js/plugins/jquery.validate.min.js' %}"></script>
   
