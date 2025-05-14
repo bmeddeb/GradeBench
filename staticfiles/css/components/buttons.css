@@ -1,0 +1,261 @@
+/**
+ * GradeBench Button Component Styles
+ * Defines standardized button styles using CSS variables
+ */
+
+/* Base Button */
+.btn {
+  display: inline-block;
+  font-weight: var(--gb-font-weight-normal);
+  line-height: var(--gb-line-height-normal);
+  text-align: center;
+  text-decoration: none;
+  vertical-align: middle;
+  cursor: pointer;
+  user-select: none;
+  padding: var(--gb-button-padding-y) var(--gb-button-padding-x);
+  font-size: var(--gb-font-size-md);
+  border-radius: var(--gb-border-radius-sm);
+  transition: color var(--gb-transition-fast), background-color var(--gb-transition-fast), 
+              border-color var(--gb-transition-fast), box-shadow var(--gb-transition-fast);
+}
+
+/* Primary Button */
+.btn-primary {
+  color: #fff;
+  background-color: var(--gb-primary);
+  border-color: var(--gb-primary);
+}
+
+.btn-primary:hover {
+  color: #fff;
+  background-color: var(--gb-primary-dark);
+  border-color: var(--gb-primary-dark);
+}
+
+.btn-primary:focus {
+  box-shadow: 0 0 0 0.25rem rgba(var(--gb-primary), 0.5);
+}
+
+/* Secondary Button */
+.btn-secondary {
+  color: #fff;
+  background-color: var(--gb-secondary);
+  border-color: var(--gb-secondary);
+}
+
+.btn-secondary:hover {
+  color: #fff;
+  background-color: var(--gb-secondary-dark);
+  border-color: var(--gb-secondary-dark);
+}
+
+.btn-secondary:focus {
+  box-shadow: 0 0 0 0.25rem rgba(var(--gb-secondary), 0.5);
+}
+
+/* Success Button */
+.btn-success {
+  color: #fff;
+  background-color: var(--gb-success);
+  border-color: var(--gb-success);
+}
+
+.btn-success:hover {
+  color: #fff;
+  background-color: var(--gb-success-dark);
+  border-color: var(--gb-success-dark);
+}
+
+.btn-success:focus {
+  box-shadow: 0 0 0 0.25rem rgba(var(--gb-success), 0.5);
+}
+
+/* Danger Button */
+.btn-danger {
+  color: #fff;
+  background-color: var(--gb-danger);
+  border-color: var(--gb-danger);
+}
+
+.btn-danger:hover {
+  color: #fff;
+  background-color: var(--gb-danger-dark);
+  border-color: var(--gb-danger-dark);
+}
+
+.btn-danger:focus {
+  box-shadow: 0 0 0 0.25rem rgba(var(--gb-danger), 0.5);
+}
+
+/* Warning Button */
+.btn-warning {
+  color: var(--gb-text-primary);
+  background-color: var(--gb-warning);
+  border-color: var(--gb-warning);
+}
+
+.btn-warning:hover {
+  color: var(--gb-text-primary);
+  background-color: var(--gb-warning-dark);
+  border-color: var(--gb-warning-dark);
+}
+
+.btn-warning:focus {
+  box-shadow: 0 0 0 0.25rem rgba(var(--gb-warning), 0.5);
+}
+
+/* Info Button */
+.btn-info {
+  color: #fff;
+  background-color: var(--gb-info);
+  border-color: var(--gb-info);
+}
+
+.btn-info:hover {
+  color: #fff;
+  background-color: var(--gb-info-dark);
+  border-color: var(--gb-info-dark);
+}
+
+.btn-info:focus {
+  box-shadow: 0 0 0 0.25rem rgba(var(--gb-info), 0.5);
+}
+
+/* Outline Buttons */
+.btn-outline-primary {
+  color: var(--gb-primary);
+  border-color: var(--gb-primary);
+  background-color: transparent;
+}
+
+.btn-outline-primary:hover {
+  color: #fff;
+  background-color: var(--gb-primary);
+  border-color: var(--gb-primary);
+}
+
+.btn-outline-secondary {
+  color: var(--gb-secondary);
+  border-color: var(--gb-secondary);
+  background-color: transparent;
+}
+
+.btn-outline-secondary:hover {
+  color: #fff;
+  background-color: var(--gb-secondary);
+  border-color: var(--gb-secondary);
+}
+
+.btn-outline-success {
+  color: var(--gb-success);
+  border-color: var(--gb-success);
+  background-color: transparent;
+}
+
+.btn-outline-success:hover {
+  color: #fff;
+  background-color: var(--gb-success);
+  border-color: var(--gb-success);
+}
+
+.btn-outline-danger {
+  color: var(--gb-danger);
+  border-color: var(--gb-danger);
+  background-color: transparent;
+}
+
+.btn-outline-danger:hover {
+  color: #fff;
+  background-color: var(--gb-danger);
+  border-color: var(--gb-danger);
+}
+
+.btn-outline-warning {
+  color: var(--gb-warning-dark);
+  border-color: var(--gb-warning);
+  background-color: transparent;
+}
+
+.btn-outline-warning:hover {
+  color: var(--gb-text-primary);
+  background-color: var(--gb-warning);
+  border-color: var(--gb-warning);
+}
+
+.btn-outline-info {
+  color: var(--gb-info);
+  border-color: var(--gb-info);
+  background-color: transparent;
+}
+
+.btn-outline-info:hover {
+  color: #fff;
+  background-color: var(--gb-info);
+  border-color: var(--gb-info);
+}
+
+/* Button sizes */
+.btn-sm {
+  padding: var(--gb-button-padding-y-sm) var(--gb-button-padding-x-sm);
+  font-size: var(--gb-font-size-sm);
+  border-radius: calc(var(--gb-border-radius-sm) * 0.8);
+}
+
+.btn-lg {
+  padding: calc(var(--gb-button-padding-y) * 1.25) calc(var(--gb-button-padding-x) * 1.25);
+  font-size: var(--gb-font-size-lg);
+  border-radius: calc(var(--gb-border-radius-sm) * 1.25);
+}
+
+/* Disabled state */
+.btn:disabled, 
+.btn.disabled {
+  opacity: 0.65;
+  pointer-events: none;
+}
+
+/* Button groups */
+.btn-group {
+  position: relative;
+  display: inline-flex;
+  vertical-align: middle;
+}
+
+.btn-group > .btn {
+  position: relative;
+  flex: 1 1 auto;
+}
+
+.btn-group > .btn:not(:first-child) {
+  margin-left: -1px;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.btn-group > .btn:not(:last-child) {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+/* Additional Button Styling */
+.btn-icon {
+  padding: var(--gb-space-sm);
+  border-radius: var(--gb-border-radius-circle);
+  line-height: 1;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-icon.btn-sm {
+  width: 2rem;
+  height: 2rem;
+}
+
+.btn-icon.btn-lg {
+  width: 3.5rem;
+  height: 3.5rem;
+}

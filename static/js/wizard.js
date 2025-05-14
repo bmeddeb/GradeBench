@@ -1,111 +1,127 @@
+
 $(document).ready(function() {
-  // Initialize the bootstrap wizard
-  $('#wizardSync').bootstrapWizard({
+  var $wizardCard = $('.card-wizard');
+  var $form = $wizardCard.find('form');
+
+  // Show wizard card (Paper Dashboard CSS hides it until .active)
+  $wizardCard.addClass('active');
+
+  // Form validation
+  var $validator = $form.validate({
+    rules: {
+      course_id: {
+        required: true
+      }
+      // add more rules per field/step as needed
+    },
+    highlight: function(element) {
+      $(element).closest('.mb-3').addClass('has-danger').removeClass('has-success');
+    },
+    success: function(label) {
+      $(label).closest('.mb-3').addClass('has-success').removeClass('has-danger');
+    }
+  });
+
+  // Initialize wizard
+  $wizardCard.bootstrapWizard({
     tabClass: 'nav nav-pills',
     nextSelector: '.btn-next',
     previousSelector: '.btn-previous',
-    onTabShow: function(tab, navigation, index) {
-      var $total = navigation.find('li').length;
-      var $current = index + 1;
-      
-      // Update progress
-      var $percent = ($current / $total) * 100;
-      $('#wizardSync .progress-bar').css({width: $percent + '%'});
-      
-      // Show/hide buttons based on current step
-      if ($current == 1) {
-        $('#previous-btn').addClass('disabled');
-      } else {
-        $('#previous-btn').removeClass('disabled');
-      }
-      
-      if ($current >= $total) {
-        $('#next-btn').hide();
-        $('#finish-btn').show();
-      } else {
-        $('#next-btn').show();
-        $('#finish-btn').hide();
-      }
+
+    onInit: function(tab, navigation, index) {
+      var totalSteps = navigation.find('li').length;
+      var firstTitle = navigation.find('li:first-child a').html();
+      var $movingTab = $("<div class='moving-tab'></div>").append(firstTitle);
+      $wizardCard.find('.wizard-navigation').append($movingTab);
+
+      refreshAnimation($wizardCard, index);
+      $wizardCard.find('.moving-tab').css('transition', 'transform 0s');
     },
+
+    onTabClick: function(tab, navigation, index) {
+      if (!$validator.form()) {
+        $validator.focusInvalid();
+        return false;
+      }
+      return true;
+    },
+
     onNext: function(tab, navigation, index) {
-      // Submit form with AJAX to update session data
-      var $form = $('#sync-wizard-form');
+      if (!$form.valid()) {
+        $validator.focusInvalid();
+        return false;
+      }
+      // AJAX "next" action
       var formData = new FormData($form[0]);
-      formData.append('step', index);
       formData.append('action', 'next');
-      
-      // You can add form validation here before moving to next step
-      
       $.ajax({
         url: $form.attr('action'),
-        method: 'POST',
+        type: 'POST',
         data: formData,
         processData: false,
-        contentType: false,
-        success: function(response) {
-          // Handle response if needed
-        },
-        error: function(xhr, status, error) {
-          // Handle errors
-          console.error('Error:', error);
-          return false;
-        }
+        contentType: false
       });
-      
       return true;
     },
+
     onPrevious: function(tab, navigation, index) {
-      var $form = $('#sync-wizard-form');
       var formData = new FormData($form[0]);
-      formData.append('step', index + 1); // Current step before going back
       formData.append('action', 'previous');
-      
       $.ajax({
         url: $form.attr('action'),
-        method: 'POST',
+        type: 'POST',
         data: formData,
         processData: false,
-        contentType: false,
-        success: function(response) {
-          // Handle response if needed
-        }
+        contentType: false
       });
-      
       return true;
+    },
+
+    onTabShow: function(tab, navigation, index) {
+      var total = navigation.find('li').length;
+      var current = index + 1;
+      var percent = (current / total) * 100;
+
+      // Update progress bar
+      $wizardCard.find('.progress-bar').css({ width: percent + '%' });
+
+      // Show/hide buttons
+      if (current >= total) {
+        $wizardCard.find('.btn-next').hide();
+        $wizardCard.find('.btn-finish').show();
+      } else {
+        $wizardCard.find('.btn-next').show();
+        $wizardCard.find('.btn-finish').hide();
+      }
+
+      // Update moving-tab text
+      var activeText = navigation.find('li:nth-child(' + current + ') a').html();
+      setTimeout(function() {
+        $wizardCard.find('.moving-tab').html(activeText);
+      }, 150);
+
+      refreshAnimation($wizardCard, index);
     }
   });
-  
-  // Add progress bar to wizard
-  $('#wizardSync .wizard-navigation').append(
+
+  // Append progress bar
+  var stepCount = $wizardCard.find('.wizard-navigation li').length;
+  $wizardCard.find('.wizard-navigation').append(
     '<div class="progress mt-3">' +
-    '  <div class="progress-bar" role="progressbar" aria-valuenow="1" aria-valuemin="1" aria-valuemax="6" style="width: 16.66%;"></div>' +
+      '<div class="progress-bar" role="progressbar" aria-valuemin="1" aria-valuemax="' + stepCount + '" style="width: 0%;"></div>' +
     '</div>'
   );
-  
-  // Handle form submission
-  $('#sync-wizard-form').on('submit', function(e) {
-    e.preventDefault();
-    
-    var $form = $(this);
-    var formData = new FormData($form[0]);
-    formData.append('action', 'finish');
-    
-    $.ajax({
-      url: $form.attr('action'),
-      method: 'POST',
-      data: formData,
-      processData: false,
-      contentType: false,
-      success: function(response) {
-        // Handle successful completion
-        if (response.redirect) {
-          window.location.href = response.redirect;
-        }
-      },
-      error: function(xhr, status, error) {
-        // Handle errors
-        console.error('Error:', error);
-      }
+
+  // Helper to animate moving-tab
+  function refreshAnimation($wizard, index) {
+    var total = $wizard.find('.wizard-navigation li').length;
+    var moveDistance = $wizard.find('.wizard-navigation').width() / total;
+    var $movingTab = $wizard.find('.moving-tab');
+    var verticalLevel = 0;
+
+    $movingTab.css({
+      'width': moveDistance,
+      'transform': 'translate3d(' + (moveDistance * index) + 'px, ' + (verticalLevel * 38) + 'px, 0)'
     });
-  });
+  }
 });

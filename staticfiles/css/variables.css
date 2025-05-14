@@ -1,0 +1,112 @@
+/**
+ * GradeBench CSS Variables
+ * This file contains all the variables used across the application
+ */
+
+:root {
+  /* Brand Colors */
+  --gb-primary: #007bff;
+  --gb-primary-dark: #0056b3;
+  --gb-primary-light: #cce5ff;
+  
+  --gb-secondary: #6c757d;
+  --gb-secondary-dark: #5a6268;
+  --gb-secondary-light: #e9ecef;
+  
+  --gb-success: #28a745;
+  --gb-success-dark: #1e7e34;
+  --gb-success-light: #d4edda;
+  
+  --gb-danger: #dc3545;
+  --gb-danger-dark: #bd2130;
+  --gb-danger-light: #f8d7da;
+  
+  --gb-warning: #ffc107;
+  --gb-warning-dark: #d39e00;
+  --gb-warning-light: #fff3cd;
+  
+  --gb-info: #17a2b8;
+  --gb-info-dark: #117a8b;
+  --gb-info-light: #d1ecf1;
+  
+  /* Semantic Colors */
+  --gb-text-primary: #212529;
+  --gb-text-secondary: #6c757d;
+  --gb-text-muted: #868e96;
+  
+  --gb-background-body: #f8f9fa;
+  --gb-background-card: #ffffff;
+  --gb-background-sidebar: #ffffff;
+  
+  --gb-border-light: #dee2e6;
+  --gb-border-medium: #ced4da;
+  --gb-border-dark: #adb5bd;
+  
+  /* Spacing */
+  --gb-space-xs: 0.25rem;   /* 4px */
+  --gb-space-sm: 0.5rem;    /* 8px */
+  --gb-space-md: 1rem;      /* 16px */
+  --gb-space-lg: 1.5rem;    /* 24px */
+  --gb-space-xl: 2rem;      /* 32px */
+  --gb-space-xxl: 3rem;     /* 48px */
+  
+  /* Typography */
+  --gb-font-family-base: 'Montserrat', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --gb-font-family-monospace: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  
+  --gb-font-size-xs: 0.75rem;   /* 12px */
+  --gb-font-size-sm: 0.875rem;  /* 14px */
+  --gb-font-size-md: 1rem;      /* 16px */
+  --gb-font-size-lg: 1.25rem;   /* 20px */
+  --gb-font-size-xl: 1.5rem;    /* 24px */
+  
+  --gb-font-weight-light: 300;
+  --gb-font-weight-normal: 400;
+  --gb-font-weight-semibold: 500;
+  --gb-font-weight-bold: 700;
+  
+  --gb-line-height-tight: 1.25;
+  --gb-line-height-normal: 1.5;
+  --gb-line-height-loose: 1.75;
+  
+  /* Border Radius */
+  --gb-border-radius-sm: 0.25rem;   /* 4px */
+  --gb-border-radius-md: 0.5rem;    /* 8px */
+  --gb-border-radius-lg: 1rem;      /* 16px */
+  --gb-border-radius-pill: 50rem;   /* pill shape */
+  --gb-border-radius-circle: 50%;   /* circle */
+  
+  /* Box Shadow */
+  --gb-shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+  --gb-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --gb-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+  
+  /* Z-Index */
+  --gb-z-index-dropdown: 1000;
+  --gb-z-index-sticky: 1020;
+  --gb-z-index-fixed: 1030;
+  --gb-z-index-modal-backdrop: 1040;
+  --gb-z-index-modal: 1050;
+  --gb-z-index-popover: 1060;
+  --gb-z-index-tooltip: 1070;
+  
+  /* Transitions */
+  --gb-transition-fast: 0.15s ease;
+  --gb-transition-normal: 0.3s ease;
+  --gb-transition-slow: 0.5s ease;
+  
+  /* Component Specific */
+  --gb-card-border-width: 1px;
+  --gb-card-border-radius: var(--gb-border-radius-sm);
+  --gb-card-padding: var(--gb-space-md);
+  
+  --gb-button-padding-x: 1rem;
+  --gb-button-padding-y: 0.5rem;
+  --gb-button-padding-x-sm: 0.5rem;
+  --gb-button-padding-y-sm: 0.25rem;
+  
+  --gb-input-border-width: 1px;
+  --gb-input-border-radius: var(--gb-border-radius-sm);
+  --gb-input-padding-x: 0.75rem;
+  --gb-input-padding-y: 0.5rem;
+}

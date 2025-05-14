@@ -1,0 +1,236 @@
+/**
+ * High Contrast CSS for Canvas Operations
+ *
+ * This CSS file provides higher contrast colors to improve accessibility
+ * in the Canvas operations UI components.
+ */
+
+/* Replace notification alerts with higher contrast versions */
+.alert-info {
+    background-color: #0e7490 !important;
+    color: #ffffff !important;
+    border-color: #155e75 !important;
+    font-weight: 500 !important;
+}
+
+.alert-success {
+    background-color: #166534 !important;
+    color: #ffffff !important;
+    border-color: #14532d !important;
+    font-weight: 500 !important;
+}
+
+.alert-danger {
+    background-color: #991b1b !important;
+    color: #ffffff !important;
+    border-color: #7f1d1d !important;
+    font-weight: 500 !important;
+}
+
+.alert-warning {
+    background-color: #92400e !important;
+    color: #ffffff !important;
+    border-color: #78350f !important;
+    font-weight: 500 !important;
+}
+
+/* Improved close button for alerts */
+.alert .close,
+.alert .btn-close,
+.alert [data-bs-dismiss="alert"] {
+    color: white !important;
+    opacity: 1 !important;
+    font-size: 1.5rem !important;
+    padding: 0.75rem 1.25rem !important;
+    background: transparent !important;
+    border: none !important;
+    text-shadow: none !important;
+    font-weight: 700 !important;
+}
+
+.alert .close i,
+.alert .btn-close i {
+    color: white !important;
+    opacity: 1 !important;
+    font-size: 1.25rem !important;
+}
+
+/* Make alert icons visible */
+.alert i,
+.alert svg,
+.alert .fa,
+.alert .fas,
+.alert .far,
+.alert .nc-icon {
+    color: white !important;
+    opacity: 1 !important;
+}
+
+/* Primary button with better contrast */
+.btn-primary {
+    background-color: #0d4f91 !important;
+    border-color: #0c4585 !important;
+    color: #ffffff !important;
+}
+
+.btn-primary:hover {
+    background-color: #0b3f79 !important;
+    border-color: #0a3666 !important;
+}
+
+/* Secondary button with better contrast */
+.btn-secondary {
+    background-color: #4b5563 !important;
+    border-color: #374151 !important;
+    color: #ffffff !important;
+}
+
+.btn-secondary:hover {
+    background-color: #374151 !important;
+    border-color: #1f2937 !important;
+}
+
+/* Progress bar colors with better contrast */
+.progress-bar.bg-primary {
+    background-color: #0d4f91 !important;
+}
+
+.progress-bar.bg-success {
+    background-color: #166534 !important;
+}
+
+.progress-bar.bg-danger {
+    background-color: #991b1b !important;
+}
+
+/* Improve contrast for status indicators */
+.status-pending {
+    background-color: #4b5563 !important;
+}
+
+.status-progress {
+    background-color: #0d4f91 !important;
+}
+
+.status-success {
+    background-color: #166534 !important;
+}
+
+.status-error {
+    background-color: #991b1b !important;
+}
+
+/* Ensure text is always readable on color backgrounds */
+.card-header.bg-primary {
+    background-color: #0d4f91 !important;
+    color: #ffffff !important;
+}
+
+/* Operation status containers with improved contrast */
+#operationComplete .alert-success {
+    background-color: #dcfce7 !important;
+    color: #166534 !important;
+    border-color: #bbf7d0 !important;
+}
+
+#operationError .alert-danger {
+    background-color: #fee2e2 !important;
+    color: #991b1b !important;
+    border-color: #fecaca !important;
+}
+
+/* Make sure the operation indicators have good contrast too */
+#operationComplete .alert-success i,
+#operationComplete .alert-success strong {
+    color: #166534 !important;
+}
+
+#operationError .alert-danger i,
+#operationError .alert-danger strong {
+    color: #991b1b !important;
+}
+
+/* Notifications with high contrast */
+.toast.bg-success {
+    background-color: #166534 !important;
+    color: #ffffff !important;
+}
+
+.toast.bg-danger {
+    background-color: #991b1b !important;
+    color: #ffffff !important;
+}
+
+.toast.bg-info {
+    background-color: #0d4f91 !important;
+    color: #ffffff !important;
+}
+
+/* Improved focus indicators for accessibility */
+a:focus, button:focus, input:focus, select:focus, textarea:focus {
+    outline: 3px solid #0d4f91 !important;
+    outline-offset: 2px !important;
+}
+
+/* Course status styles with improved contrast */
+.course-status-item .status-pending + .course-name + .course-status {
+    background-color: #4b5563 !important;
+    color: #ffffff !important;
+}
+
+.course-status-item .status-progress + .course-name + .course-status {
+    background-color: #0d4f91 !important;
+    color: #ffffff !important;
+}
+
+.course-status-item .status-success + .course-name + .course-status {
+    background-color: #166534 !important;
+    color: #ffffff !important;
+}
+
+.course-status-item .status-error + .course-name + .course-status {
+    background-color: #991b1b !important;
+    color: #ffffff !important;
+}
+
+/* Progress bar inner colors */
+.progress-inner.status-pending {
+    background-color: #4b5563 !important;
+}
+
+.progress-inner.status-progress {
+    background-color: #0d4f91 !important;
+}
+
+.progress-inner.status-success {
+    background-color: #166534 !important;
+}
+
+.progress-inner.status-error {
+    background-color: #991b1b !important;
+}
+
+/* Apply to the progress bars in particular */
+#progressBar.progress-bar.bg-success {
+    background-color: #166534 !important;
+}
+
+#progressBar.progress-bar.bg-danger {
+    background-color: #991b1b !important;
+}
+
+/* Ensure text inside progress bar is visible */
+#progressBar {
+    color: #ffffff !important;
+    font-weight: 600 !important;
+}
+
+/* Text colors for progress messaging */
+#progressMessage {
+    color: #ffffff !important;
+}
+
+/* Improve visibility of info messages */
+.text-muted {
+    color: #4b5563 !important;
+}

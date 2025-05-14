@@ -1,0 +1,179 @@
+/**
+ * GradeBench Alert Component Styles
+ * Defines standardized alert styles using CSS variables
+ */
+
+/* Base Alert */
+.alert {
+  position: relative;
+  padding: var(--gb-space-md) var(--gb-space-lg);
+  margin-bottom: var(--gb-space-md);
+  border: 1px solid transparent;
+  border-radius: var(--gb-border-radius-sm);
+}
+
+/* Alert Variations */
+.alert-primary {
+  color: var(--gb-primary-dark);
+  background-color: var(--gb-primary-light);
+  border-color: var(--gb-primary);
+}
+
+.alert-secondary {
+  color: var(--gb-secondary-dark);
+  background-color: var(--gb-secondary-light);
+  border-color: var(--gb-secondary);
+}
+
+.alert-success {
+  color: var(--gb-success-dark);
+  background-color: var(--gb-success-light);
+  border-color: var(--gb-success);
+}
+
+.alert-danger {
+  color: var(--gb-danger-dark);
+  background-color: var(--gb-danger-light);
+  border-color: var(--gb-danger);
+}
+
+.alert-warning {
+  color: var(--gb-warning-dark);
+  background-color: var(--gb-warning-light);
+  border-color: var(--gb-warning);
+}
+
+.alert-info {
+  color: var(--gb-info-dark);
+  background-color: var(--gb-info-light);
+  border-color: var(--gb-info);
+}
+
+/* Alert Dismissible */
+.alert-dismissible {
+  padding-right: 3rem;
+}
+
+.alert-dismissible .close {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 2;
+  padding: var(--gb-space-md) var(--gb-space-lg);
+  color: inherit;
+  background: transparent;
+  border: 0;
+  appearance: none;
+  cursor: pointer;
+}
+
+/* Alert Link */
+.alert-link {
+  font-weight: var(--gb-font-weight-bold);
+  text-decoration: underline;
+}
+
+.alert-primary .alert-link {
+  color: var(--gb-primary-dark);
+}
+
+.alert-secondary .alert-link {
+  color: var(--gb-secondary-dark);
+}
+
+.alert-success .alert-link {
+  color: var(--gb-success-dark);
+}
+
+.alert-danger .alert-link {
+  color: var(--gb-danger-dark);
+}
+
+.alert-warning .alert-link {
+  color: var(--gb-warning-dark);
+}
+
+.alert-info .alert-link {
+  color: var(--gb-info-dark);
+}
+
+/* Alert Heading */
+.alert-heading {
+  color: inherit;
+  margin-top: 0;
+  margin-bottom: var(--gb-space-sm);
+  font-weight: var(--gb-font-weight-bold);
+}
+
+/* Alert with icon */
+.alert-icon {
+  display: flex;
+  align-items: flex-start;
+}
+
+.alert-icon i,
+.alert-icon svg {
+  margin-right: var(--gb-space-md);
+  font-size: 1.5em;
+  margin-top: 0.2em;
+}
+
+.alert-icon .alert-content {
+  flex: 1;
+}
+
+/* Alert animation */
+.alert-fade {
+  opacity: 0;
+  transition: opacity var(--gb-transition-normal);
+}
+
+.alert-fade.show {
+  opacity: 1;
+}
+
+/* Floating Alert (Toast-like) */
+.alert-floating {
+  position: fixed;
+  top: var(--gb-space-md);
+  right: var(--gb-space-md);
+  z-index: var(--gb-z-index-toast);
+  max-width: 350px;
+  box-shadow: var(--gb-shadow-md);
+}
+
+/* Alert with progress bar */
+.alert-with-progress .progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 4px;
+  width: 100%;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 0;
+  margin: 0;
+}
+
+.alert-primary .progress-bar {
+  background-color: var(--gb-primary-dark);
+}
+
+.alert-secondary .progress-bar {
+  background-color: var(--gb-secondary-dark);
+}
+
+.alert-success .progress-bar {
+  background-color: var(--gb-success-dark);
+}
+
+.alert-danger .progress-bar {
+  background-color: var(--gb-danger-dark);
+}
+
+.alert-warning .progress-bar {
+  background-color: var(--gb-warning-dark);
+}
+
+.alert-info .progress-bar {
+  background-color: var(--gb-info-dark);
+}

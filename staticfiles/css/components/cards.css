@@ -1,0 +1,221 @@
+/**
+ * GradeBench Card Component Styles
+ * Defines standardized card styles using CSS variables
+ */
+
+/* Base Card */
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  word-wrap: break-word;
+  background-color: var(--gb-background-card);
+  border: var(--gb-card-border-width) solid var(--gb-border-light);
+  border-radius: var(--gb-card-border-radius);
+  box-shadow: var(--gb-shadow-sm);
+  transition: transform var(--gb-transition-fast), box-shadow var(--gb-transition-fast);
+}
+
+.card:hover {
+  box-shadow: var(--gb-shadow-md);
+}
+
+/* Card Header */
+.card-header {
+  padding: var(--gb-space-md) var(--gb-space-lg);
+  margin-bottom: 0;
+  background-color: var(--gb-secondary-light);
+  border-bottom: var(--gb-card-border-width) solid var(--gb-border-light);
+}
+
+.card-header:first-child {
+  border-radius: calc(var(--gb-card-border-radius) - 1px) calc(var(--gb-card-border-radius) - 1px) 0 0;
+}
+
+/* Card Body */
+.card-body {
+  flex: 1 1 auto;
+  padding: var(--gb-card-padding);
+}
+
+/* Card Footer */
+.card-footer {
+  padding: var(--gb-space-md) var(--gb-space-lg);
+  background-color: var(--gb-secondary-light);
+  border-top: var(--gb-card-border-width) solid var(--gb-border-light);
+}
+
+.card-footer:last-child {
+  border-radius: 0 0 calc(var(--gb-card-border-radius) - 1px) calc(var(--gb-card-border-radius) - 1px);
+}
+
+/* Card Title */
+.card-title {
+  margin-bottom: var(--gb-space-md);
+  font-weight: var(--gb-font-weight-bold);
+  color: var(--gb-text-primary);
+}
+
+/* Card Subtitle */
+.card-subtitle {
+  margin-top: calc(var(--gb-space-sm) * -1);
+  margin-bottom: 0;
+  color: var(--gb-text-secondary);
+}
+
+/* Card Text */
+.card-text {
+  margin-bottom: var(--gb-space-md);
+  color: var(--gb-text-primary);
+}
+
+.card-text:last-child {
+  margin-bottom: 0;
+}
+
+/* Card Link */
+.card-link {
+  color: var(--gb-primary);
+  text-decoration: none;
+}
+
+.card-link:hover {
+  color: var(--gb-primary-dark);
+  text-decoration: underline;
+}
+
+.card-link + .card-link {
+  margin-left: var(--gb-space-md);
+}
+
+/* Card with Image */
+.card-img-top {
+  width: 100%;
+  border-top-left-radius: calc(var(--gb-card-border-radius) - 1px);
+  border-top-right-radius: calc(var(--gb-card-border-radius) - 1px);
+}
+
+.card-img-bottom {
+  width: 100%;
+  border-bottom-right-radius: calc(var(--gb-card-border-radius) - 1px);
+  border-bottom-left-radius: calc(var(--gb-card-border-radius) - 1px);
+}
+
+/* Card Group */
+.card-group {
+  display: flex;
+  flex-flow: row wrap;
+}
+
+.card-group > .card {
+  flex: 1 0 0%;
+  margin-bottom: 0;
+}
+
+.card-group > .card:not(:last-child) {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.card-group > .card:not(:first-child) {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+/* Card Deck (for equal height) */
+.card-deck {
+  display: flex;
+  flex-flow: row wrap;
+  margin-right: calc(var(--gb-space-md) * -1);
+  margin-left: calc(var(--gb-space-md) * -1);
+}
+
+.card-deck .card {
+  flex: 1 0 0%;
+  margin-right: var(--gb-space-md);
+  margin-bottom: var(--gb-space-md);
+  margin-left: var(--gb-space-md);
+}
+
+/* Contextual Card Variants */
+.card-primary {
+  border-color: var(--gb-primary);
+}
+
+.card-primary .card-header,
+.card-primary .card-footer {
+  background-color: var(--gb-primary-light);
+  border-color: var(--gb-primary);
+  color: var(--gb-primary-dark);
+}
+
+.card-success {
+  border-color: var(--gb-success);
+}
+
+.card-success .card-header,
+.card-success .card-footer {
+  background-color: var(--gb-success-light);
+  border-color: var(--gb-success);
+  color: var(--gb-success-dark);
+}
+
+.card-danger {
+  border-color: var(--gb-danger);
+}
+
+.card-danger .card-header,
+.card-danger .card-footer {
+  background-color: var(--gb-danger-light);
+  border-color: var(--gb-danger);
+  color: var(--gb-danger-dark);
+}
+
+.card-warning {
+  border-color: var(--gb-warning);
+}
+
+.card-warning .card-header,
+.card-warning .card-footer {
+  background-color: var(--gb-warning-light);
+  border-color: var(--gb-warning);
+  color: var(--gb-warning-dark);
+}
+
+.card-info {
+  border-color: var(--gb-info);
+}
+
+.card-info .card-header,
+.card-info .card-footer {
+  background-color: var(--gb-info-light);
+  border-color: var(--gb-info);
+  color: var(--gb-info-dark);
+}
+
+/* Custom card sizes */
+.card-sm {
+  max-width: 300px;
+}
+
+.card-md {
+  max-width: 500px;
+}
+
+.card-lg {
+  max-width: 800px;
+}
+
+/* Card with Overlay */
+.card-img-overlay {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  padding: var(--gb-card-padding);
+  background-color: rgba(0, 0, 0, 0.5);
+  color: white;
+  border-radius: var(--gb-card-border-radius);
+}
