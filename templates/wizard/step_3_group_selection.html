@@ -1,8 +1,8 @@
-<div class="tab-pane show active" id="step3">
+<div class="tab-pane fade" id="step3" role="tabpanel">
   <h5 class="info-text">Step 3: Group Selection</h5>
   
   <div class="row">
-    <div class="col-md-10 ml-auto mr-auto">
+    <div class="col-md-10 mx-auto">
       <div class="alert alert-info">
         <p><strong>Placeholder:</strong> This step will show groups from the selected group sets 
         and allow you to choose which ones to synchronize.</p>
@@ -10,37 +10,11 @@
       
       <div class="card">
         <div class="card-header">
-          <h6>Selected Groups (Placeholder)</h6>
+          <h6>Selected Groups</h6>
         </div>
         <div class="card-body">
-          <ul class="list-group">
-            <li class="list-group-item">
-              <div class="form-check">
-                <label class="form-check-label">
-                  <input class="form-check-input" type="checkbox" checked>
-                  <span class="form-check-sign"></span>
-                  Group 1
-                </label>
-              </div>
-            </li>
-            <li class="list-group-item">
-              <div class="form-check">
-                <label class="form-check-label">
-                  <input class="form-check-input" type="checkbox" checked>
-                  <span class="form-check-sign"></span>
-                  Group 2
-                </label>
-              </div>
-            </li>
-            <li class="list-group-item">
-              <div class="form-check">
-                <label class="form-check-label">
-                  <input class="form-check-input" type="checkbox" checked>
-                  <span class="form-check-sign"></span>
-                  Group 3
-                </label>
-              </div>
-            </li>
+          <ul class="list-group" id="groups-container">
+            <!-- Groups will be dynamically populated with JavaScript -->
           </ul>
         </div>
       </div>

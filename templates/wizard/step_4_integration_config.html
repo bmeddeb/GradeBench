@@ -1,8 +1,8 @@
-<div class="tab-pane show active" id="step4">
+<div class="tab-pane fade" id="step4" role="tabpanel">
   <h5 class="info-text">Step 4: Integration Configuration</h5>
   
   <div class="row">
-    <div class="col-md-10 ml-auto mr-auto">
+    <div class="col-md-10 mx-auto">
       <div class="alert alert-info">
         <p><strong>Placeholder:</strong> This step will allow configuration of integrations for the teams
         being created, such as GitHub repositories or project management tools.</p>
@@ -13,32 +13,30 @@
           <h6>Integration Options</h6>
         </div>
         <div class="card-body">
-          <div class="form-group">
+          <div class="mb-3">
             <div class="form-check">
-              <label class="form-check-label">
-                <input class="form-check-input" type="checkbox" name="create_github_repo" value="1">
-                <span class="form-check-sign"></span>
+              <input class="form-check-input" type="checkbox" name="create_github_repo" value="1" id="create_github_repo">
+              <label class="form-check-label" for="create_github_repo">
                 Create GitHub repositories for each team
               </label>
             </div>
           </div>
           
-          <div class="form-group">
+          <div class="mb-3">
             <div class="form-check">
-              <label class="form-check-label">
-                <input class="form-check-input" type="checkbox" name="setup_project_management" value="1">
-                <span class="form-check-sign"></span>
+              <input class="form-check-input" type="checkbox" name="setup_project_management" value="1" id="setup_project_management">
+              <label class="form-check-label" for="setup_project_management">
                 Set up project management boards
               </label>
             </div>
           </div>
           
-          <div class="form-group">
-            <label>Repository Naming Pattern</label>
+          <div class="mb-3">
+            <label class="form-label">Repository Naming Pattern</label>
             <input type="text" class="form-control" name="repo_pattern" value="{course_code}-{group_name}" placeholder="Pattern for repository names">
-            <small class="form-text text-muted">
+            <div class="form-text">
               Available placeholders: {course_code}, {group_name}, {group_id}
-            </small>
+            </div>
           </div>
         </div>
       </div>

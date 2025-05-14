@@ -6,11 +6,25 @@
   {{ block.super }}
   <!-- demo overrides -->
   <link href="{% static 'css/demo.css' %}" rel="stylesheet" />
+  <style>
+    /* Additional styles for the moving tab */
+    .moving-tab {
+      position: absolute;
+      padding: 10px 15px;
+      color: #fff;
+      background-color: #007bff;
+      border-radius: 4px;
+      box-shadow: 0 2px 5px 0 rgba(0, 0, 0, 0.16), 0 2px 10px 0 rgba(0, 0, 0, 0.12);
+      text-align: center;
+      font-weight: 500;
+      z-index: 1;
+      transition: all 0.3s ease;
+    }
+  </style>
 {% endblock %}
 
 {% block content %}
 <div class="content">
-  <div><p>This is a test</p></div>
   <div class="col-md-10 mx-auto">
     <div class="wizard-container">
       <div class="card card-wizard" data-color="primary" id="wizardSync">
@@ -54,22 +68,25 @@
                       {% if not back_enabled %}disabled{% endif %}>
                 Previous
               </button>
+              
+              <button type="button"
+                      id="reset-btn"
+                      class="btn btn-fill btn-warning btn-wd ms-2">
+                Restart Wizard
+              </button>
             </div>
             <div class="float-end">
-              {% if current_step < progress_labels|length %}
-                <button type="button"
-                        id="next-btn"
-                        class="btn btn-next btn-fill btn-primary btn-wd"
-                        {% if not next_enabled %}disabled{% endif %}>
-                  Next
-                </button>
-              {% else %}
-                <button type="submit"
-                        id="finish-btn"
-                        class="btn btn-finish btn-fill btn-primary btn-wd">
-                  Finish
-                </button>
-              {% endif %}
+              <button type="button"
+                      id="next-btn"
+                      class="btn btn-next btn-fill btn-primary btn-wd">
+                Next
+              </button>
+              <button type="submit"
+                      id="finish-btn"
+                      class="btn btn-finish btn-fill btn-primary btn-wd"
+                      style="display: none;">
+                Finish
+              </button>
             </div>
             <div class="clearfix"></div>
           </div>
@@ -88,10 +105,9 @@
   <!-- Bootstrap 5 bundle (includes Popper) -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-  <!-- Wizard plugin -->
-  <script src="{% static 'js/plugins/jquery.bootstrap-wizard.js' %}"></script>
   <!-- Form validation -->
   <script src="{% static 'js/plugins/jquery.validate.min.js' %}"></script>
+  
   <!-- Your custom wizard logic -->
   <script src="{% static 'js/wizard.js' %}"></script>
 {% endblock %}

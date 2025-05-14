@@ -2,17 +2,35 @@
 {% extends "wizard/wizard_base.html" %}
 
 {% block step_content %}
-  {% if current_step == 1 %}
-    {% include "wizard/step_1_course_selection.html" %}
-  {% elif current_step == 2 %}
-    {% include "wizard/step_2_group_set_selection.html" %}
-  {% elif current_step == 3 %}
-    {% include "wizard/step_3_group_selection.html" %}
-  {% elif current_step == 4 %}
-    {% include "wizard/step_4_integration_config.html" %}
-  {% elif current_step == 5 %}
-    {% include "wizard/step_5_confirmation.html" %}
-  {% elif current_step == 6 %}
-    {% include "wizard/step_6_results.html" %}
-  {% endif %}
+  {% include "wizard/step_1_course_selection.html" %}
+  {% include "wizard/step_2_group_set_selection.html" %}
+  {% include "wizard/step_3_group_selection.html" %}
+  {% include "wizard/step_4_integration_config.html" %}
+  {% include "wizard/step_5_confirmation.html" %}
+  {% include "wizard/step_6_results.html" %}
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Make sure the first step is shown initially when the page loads
+      var currentStep = {{ current_step }};
+      
+      // If coming to the page fresh, always start at step 1
+      if (window.location.search === '') {
+        currentStep = 1;
+      }
+      
+      var currentStepSelector = '#step' + currentStep;
+      var currentTabPane = document.querySelector(currentStepSelector);
+      
+      // Make sure the tab content is visible
+      if (currentTabPane) {
+        $('.tab-pane').removeClass('show active');
+        currentTabPane.classList.add('show', 'active');
+      }
+      
+      // Make sure the tab navigation is correct
+      $('.nav-pills .nav-link').removeClass('active');
+      $('.nav-pills .nav-link').eq(currentStep - 1).addClass('active');
+    });
+  </script>
 {% endblock %}

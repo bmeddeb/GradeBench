@@ -1,8 +1,8 @@
-<div class="tab-pane show active" id="step5">
+<div class="tab-pane fade" id="step5" role="tabpanel">
   <h5 class="info-text">Step 5: Confirmation</h5>
   
   <div class="row">
-    <div class="col-md-10 ml-auto mr-auto">
+    <div class="col-md-10 mx-auto">
       <div class="alert alert-warning">
         <p><strong>Review your selections before proceeding:</strong></p>
       </div>
@@ -17,22 +17,22 @@
               <tbody>
                 <tr>
                   <th>Course:</th>
-                  <td>CS101 - Introduction to Computer Science</td>
+                  <td id="summary-course">Please select a course</td>
                 </tr>
                 <tr>
                   <th>Group Sets:</th>
-                  <td>Project Teams (12 groups)</td>
+                  <td id="summary-group-sets">No group sets selected</td>
                 </tr>
                 <tr>
                   <th>Selected Groups:</th>
-                  <td>All groups (12)</td>
+                  <td id="summary-groups">No groups selected</td>
                 </tr>
                 <tr>
                   <th>Sync Options:</th>
                   <td>
                     <ul>
-                      <li>Sync memberships: Yes</li>
-                      <li>Sync leaders: No</li>
+                      <li>Sync memberships: <span id="summary-sync-memberships">Yes</span></li>
+                      <li>Sync leaders: <span id="summary-sync-leaders">No</span></li>
                     </ul>
                   </td>
                 </tr>
@@ -40,8 +40,8 @@
                   <th>Integrations:</th>
                   <td>
                     <ul>
-                      <li>GitHub repositories: Yes</li>
-                      <li>Project management: No</li>
+                      <li>GitHub repositories: <span id="summary-github-repos">No</span></li>
+                      <li>Project management: <span id="summary-project-management">No</span></li>
                     </ul>
                   </td>
                 </tr>
@@ -51,11 +51,10 @@
         </div>
       </div>
       
-      <div class="form-group">
+      <div class="mb-3">
         <div class="form-check">
-          <label class="form-check-label">
-            <input class="form-check-input" type="checkbox" name="confirmed" value="1" required>
-            <span class="form-check-sign"></span>
+          <input class="form-check-input" type="checkbox" name="confirmed" value="1" required id="confirm_checkbox">
+          <label class="form-check-label" for="confirm_checkbox">
             I confirm that I want to create these teams based on the Canvas groups
           </label>
         </div>

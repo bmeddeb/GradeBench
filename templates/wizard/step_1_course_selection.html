@@ -1,5 +1,5 @@
 <!-- templates/wizard/step_1_course_selection.html -->
-<div class="tab-pane fade show active" id="step1" role="tabpanel">
+<div class="tab-pane fade" id="step1" role="tabpanel">
   <h5 class="info-text">Step 1: Course Selection</h5>
 
   <div class="row">
@@ -18,7 +18,7 @@
           <option value="">Please select a course</option>
           {% for course in step_data.courses %}
             <option value="{{ course.id }}">
-              {{ course.code }} – {{ course.name }}
+              {{ course.code }} – {{ course.name }}
             </option>
           {% endfor %}
         </select>
@@ -57,7 +57,7 @@
       <div class="alert alert-info">
         <p>
           <strong>Info:</strong> This wizard will guide you through
-          creating Core Teams from Canvas Groups. You’ll be able to
+          creating Core Teams from Canvas Groups. You'll be able to
           select which group sets and individual groups to include.
         </p>
       </div>

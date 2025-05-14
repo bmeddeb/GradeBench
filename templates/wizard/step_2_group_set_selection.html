@@ -1,19 +1,18 @@
-<div class="tab-pane show active" id="step2">
+<div class="tab-pane fade" id="step2" role="tabpanel">
   <h5 class="info-text">Step 2: Group Set Selection</h5>
   
   <div class="row">
-    <div class="col-md-10 ml-auto mr-auto">
-      <div class="form-group">
-        <label>Select Canvas Group Sets to sync:</label>
+    <div class="col-md-10 mx-auto">
+      <div class="mb-3">
+        <label class="form-label">Select Canvas Group Sets to sync:</label>
         
         <div class="group-sets-container">
           {% for group_set in step_data.group_sets %}
             <div class="card mb-3">
               <div class="card-body">
                 <div class="form-check">
-                  <label class="form-check-label">
-                    <input class="form-check-input" type="checkbox" name="group_set_ids" value="{{ group_set.id }}">
-                    <span class="form-check-sign"></span>
+                  <input class="form-check-input" type="checkbox" name="group_set_ids" value="{{ group_set.id }}" id="group_set_{{ group_set.id }}">
+                  <label class="form-check-label" for="group_set_{{ group_set.id }}">
                     <strong>{{ group_set.name }}</strong> ({{ group_set.group_count }} groups)
                   </label>
                 </div>
