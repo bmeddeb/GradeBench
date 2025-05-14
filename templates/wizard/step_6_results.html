@@ -13,37 +13,80 @@
         </div>
         <div class="card-body">
           <div class="table-responsive">
-            <table class="table">
+            <table class="table" id="results-table">
               <thead>
                 <tr>
                   <th>Team Name</th>
                   <th>Members</th>
+                  <th>Group Set</th>
                   <th>Status</th>
-                  <th>GitHub Repo</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td>Project Team 1</td>
-                  <td>4 members</td>
-                  <td><span class="badge bg-success">Created</span></td>
-                  <td><a href="#">CS101-Team1</a></td>
-                </tr>
-                <tr>
-                  <td>Project Team 2</td>
-                  <td>4 members</td>
-                  <td><span class="badge bg-success">Created</span></td>
-                  <td><a href="#">CS101-Team2</a></td>
-                </tr>
-                <tr>
-                  <td>Project Team 3</td>
-                  <td>4 members</td>
-                  <td><span class="badge bg-success">Created</span></td>
-                  <td><a href="#">CS101-Team3</a></td>
+                  <td colspan="5" class="text-center">
+                    <div class="d-flex justify-content-center">
+                      <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                      </div>
+                    </div>
+                    <p class="mt-2">Creating teams...</p>
+                  </td>
                 </tr>
               </tbody>
             </table>
           </div>
+          
+          <script>
+            // Display real team creation results
+            $(document).ready(function() {
+              if ($('#step6').hasClass('show active')) {
+                // Show the loading spinner first
+                const $resultsTable = $('#results-table tbody');
+                
+                // Simulate a brief loading time
+                setTimeout(function() {
+                  $resultsTable.empty();
+                  
+                  // Get the created teams from the Django context
+                  const createdTeams = window.wizardContext.created_teams || [];
+                  
+                  // Add rows to the results table
+                  if (createdTeams.length > 0) {
+                    createdTeams.forEach(team => {
+                      // Determine badge color based on status
+                      const badgeClass = team.status === 'created' ? 'bg-success' : 'bg-info';
+                      const statusText = team.status === 'created' ? 'Created' : 'Updated';
+                      
+                      $resultsTable.append(`
+                        <tr>
+                          <td>${team.name}</td>
+                          <td>${team.member_count} members</td>
+                          <td>${team.category_name || 'Unknown'}</td>
+                          <td><span class="badge ${badgeClass}">${statusText}</span></td>
+                          <td>
+                            <a href="/teams/${team.id}/" class="btn btn-sm btn-outline-primary">View Team</a>
+                          </td>
+                        </tr>
+                      `);
+                    });
+                  } else {
+                    // If no teams were created, show a message
+                    $resultsTable.append(`
+                      <tr>
+                        <td colspan="5" class="text-center">
+                          <div class="alert alert-warning">
+                            No teams were created. Please go back and select groups to sync.
+                          </div>
+                        </td>
+                      </tr>
+                    `);
+                  }
+                }, 1000);
+              }
+            });
+          </script>
         </div>
       </div>
       

@@ -99,15 +99,32 @@
 
 {% block extra_js %}
   {{ block.super }}
-  <!-- jQuery (needed by bootstrap-wizard) -->
-  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-
+  
+  <!-- jQuery first - loaded in the head to ensure availability -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+  
+  <!-- Check jQuery loading -->
+  <script>
+    // Ensure jQuery is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+      if (typeof $ === 'undefined' || typeof jQuery === 'undefined') {
+        console.error("!!! CRITICAL: jQuery failed to load !!!");
+        // Provide fallback proxy
+        window.jQuery = window.$ = function() {
+          console.error("jQuery proxy called - jQuery failed to load");
+        };
+      } else {
+        console.log("jQuery loaded successfully: version " + jQuery.fn.jquery);
+      }
+    });
+  </script>
+  
   <!-- Bootstrap 5 bundle (includes Popper) -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
 
   <!-- Form validation -->
   <script src="{% static 'js/plugins/jquery.validate.min.js' %}"></script>
   
-  <!-- Your custom wizard logic -->
+  <!-- Your custom wizard logic will be loaded last -->
   <script src="{% static 'js/wizard.js' %}"></script>
 {% endblock %}
