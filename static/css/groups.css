@@ -1,0 +1,137 @@
+/* Card-Style Tabs for Groups Page */
+
+/* Tab styling */
+.nav-tabs {
+    border-bottom: none;
+    margin-bottom: 1.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.nav-tabs .nav-item {
+    flex: 0 0 auto;
+}
+
+.nav-tabs .nav-link {
+    color: var(--gb-text-primary);
+    background-color: white;
+    border: 1px solid var(--gb-border-light);
+    border-radius: 8px;
+    padding: 12px 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    transition: all 0.2s ease;
+    font-weight: 500;
+}
+
+.nav-tabs .nav-link.active {
+    color: var(--gb-primary);
+    border-color: var(--gb-primary);
+    border-width: 2px;
+    background-color: var(--gb-primary-light);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+    font-weight: 600;
+    transform: translateY(-2px);
+}
+
+.nav-tabs .nav-link:hover:not(.active) {
+    background-color: var(--gb-secondary-light);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.06);
+}
+
+.nav-tabs .badge {
+    margin-left: 8px;
+    font-size: 0.85em;
+    padding: 5px 8px;
+}
+
+/* Add some additional styling for better integration */
+.group-management-container {
+    margin-top: 1rem;
+}
+
+/* Enhance category info section */
+.category-info {
+    margin-top: 0.5rem;
+    background-color: var(--gb-secondary-light);
+    padding: var(--gb-space-md);
+    border-radius: var(--gb-border-radius-sm);
+    border: 1px solid var(--gb-border-light);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+}
+
+/* Improve group cards to match the tab style */
+.group-card {
+    height: 100%;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+    border: 1px solid var(--gb-border-light);
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.group-card:hover {
+    box-shadow: 0 3px 6px rgba(0,0,0,0.08);
+    transform: translateY(-1px);
+}
+
+.group-card .card-header {
+    background-color: var(--gb-secondary-light);
+    border-bottom: 1px solid var(--gb-border-light);
+    font-weight: var(--gb-font-weight-semibold);
+    border-radius: 8px 8px 0 0;
+}
+
+/* Improve the unassigned students card */
+.unassigned-students-card {
+    height: 100%;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+    border: 1px solid var(--gb-warning-light);
+    border-radius: 8px;
+}
+
+.unassigned-students-card .card-header {
+    background-color: var(--gb-warning-light);
+    border-bottom: 1px solid var(--gb-warning-light);
+    color: var(--gb-warning-dark);
+    font-weight: var(--gb-font-weight-semibold);
+    border-radius: 8px 8px 0 0;
+}
+
+/* Improve student items styling */
+.student-item {
+    cursor: grab;
+    transition: background-color 0.2s, transform 0.2s, box-shadow 0.2s;
+    border-radius: var(--gb-border-radius-sm);
+    padding: var(--gb-space-sm) var(--gb-space-md);
+    margin-bottom: var(--gb-space-sm);
+    background-color: var(--gb-secondary-light);
+    border-left: 3px solid var(--gb-primary);
+    user-select: none;
+}
+
+.student-item:hover {
+    background-color: var(--gb-background-card);
+    transform: translateY(-1px);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+/* Save changes banner */
+.save-changes-banner {
+    position: sticky;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: var(--gb-warning-light);
+    padding: var(--gb-space-md);
+    margin-top: var(--gb-space-md);
+    border-top: 1px solid var(--gb-warning);
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    z-index: var(--gb-z-index-fixed);
+}
+
+    .save-changes-banner.visible {
+        display: flex;
+    }
