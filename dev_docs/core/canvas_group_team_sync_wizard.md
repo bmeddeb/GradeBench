@@ -6,6 +6,19 @@ This document describes the design for the Canvas Group to Core Team synchroniza
 
 In GradeBench, Canvas groups need to be imported as Core Teams to integrate with other systems like GitHub repositories. This process should be user-driven with explicit control over which groups become teams.
 
+## Implementation Progress
+
+- [x] Analyze current model structure
+- [x] Design database field additions
+- [ ] Update Team model with new fields
+- [ ] Create database migrations
+- [ ] Design wizard interface mockups
+- [ ] Implement backend service logic
+- [ ] Create wizard templates
+- [ ] Add GitHub integration
+- [ ] Test end-to-end flow
+- [ ] Deploy to production
+
 ## Core Team Model Changes
 
 The Core Team model will be enhanced with these additional fields to track Canvas Group Set information:
@@ -86,29 +99,43 @@ The synchronization process will follow a step-by-step wizard approach using the
 ## Implementation Details
 
 1. **Backend Service**
-   - Create a TeamSyncService class that handles the logic for each step
-   - Implement methods for retrieving available courses, group sets, and groups
-   - Add functions for Team creation/update with GitHub details
+   - [ ] Create a TeamSyncService class that handles the logic for each step
+   - [ ] Implement methods for retrieving available courses, group sets, and groups
+   - [ ] Add functions for Team creation/update with GitHub details
 
 2. **Database Model Updates**
-   - Add canvas_group_set_id and canvas_group_set_name to Team model
-   - Create migrations for these changes
-   - Update existing Teams with correct group set info
+   - [ ] Add canvas_group_set_id and canvas_group_set_name to Team model
+   - [ ] Create migrations for these changes
+   - [ ] Update existing Teams with correct group set info
+   - [ ] Add migration command for backfilling existing teams
 
 3. **Frontend Views**
-   - Create a new WizardView class that manages wizard state
-   - Implement AJAX endpoints for each step's data needs
-   - Use session to store in-progress selections
+   - [ ] Create a new WizardView class that manages wizard state
+   - [ ] Implement AJAX endpoints for each step's data needs
+   - [ ] Use session to store in-progress selections
 
 4. **Templates**
-   - Create templates for each wizard step
-   - Implement client-side validation
-   - Use JavaScript for dynamic UI updates
+   - [ ] Create template for step 1 (course selection)
+   - [ ] Create template for step 2 (group set selection)
+   - [ ] Create template for step 3 (group selection)
+   - [ ] Create template for step 4 (GitHub configuration)
+   - [ ] Create template for step 5 (confirmation)
+   - [ ] Create template for step 6 (results)
+   - [ ] Implement client-side validation
+   - [ ] Add JavaScript for dynamic UI updates
 
 5. **GitHub Integration**
-   - Add optional validation against GitHub API
-   - Store GitHub organization info for future use
+   - [ ] Add optional validation against GitHub API
+   - [ ] Store GitHub organization info for future use
+   - [ ] Implement background job for GitHub team creation
 
 ## Benefits
 
 This wizard approach offers a structured, user-friendly process that guides users through the synchronization while providing flexibility and control at each step. Users have full visibility into what groups are being imported and can immediately configure GitHub integration details.
+
+## Future Enhancements
+
+- [ ] Add ability to save wizard progress and resume later
+- [ ] Implement periodic synchronization to keep teams updated
+- [ ] Add email notifications for completed imports
+- [ ] Create dashboard for monitoring team synchronization status
