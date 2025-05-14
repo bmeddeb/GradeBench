@@ -47,12 +47,27 @@ class Branch(models.Model):
 
 class Commit(models.Model):
     sha = models.CharField(max_length=255, unique=True, db_index=True)
+    short_sha = models.CharField(max_length=7, db_index=True)
     message = models.TextField()
+    summary = models.TextField()
     date = models.DateTimeField()
     additions = models.IntegerField(default=0)
     deletions = models.IntegerField(default=0)
+    files_changed = models.IntegerField(default=0)
     url = models.URLField(blank=True)
     is_merged = models.BooleanField(default=False)
+
+    # Author information
+    author_name = models.CharField(max_length=255)
+    author_email = models.EmailField()
+    author_time = models.DateTimeField()
+
+    # Committer information
+    committer_name = models.CharField(max_length=255)
+    committer_email = models.EmailField()
+    committer_time = models.DateTimeField()
+
+    # Relationships
     repository = models.ForeignKey(
         Repository, on_delete=models.CASCADE, related_name="commits"
     )
@@ -62,11 +77,58 @@ class Commit(models.Model):
     branch = models.ForeignKey(
         Branch, on_delete=models.SET_NULL, null=True, blank=True, related_name="commits"
     )
+
+    # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.sha
+
+    def save(self, *args, **kwargs):
+        if self.sha and not self.short_sha:
+            self.short_sha = self.sha[:7]
+        if self.message and not self.summary:
+            self.summary = self.message.splitlines()[0].strip()
+        super().save(*args, **kwargs)
+
+    @property
+    def parents(self):
+        return Commit.objects.filter(
+            id__in=self.parent_relationships.values_list('parent_commit', flat=True)
+        )
+
+    @property
+    def children(self):
+        return Commit.objects.filter(
+            id__in=self.child_relationships.values_list('commit', flat=True)
+        )
+
+
+class CommitParent(models.Model):
+    """Model to track parent-child relationships between commits"""
+    commit = models.ForeignKey(
+        Commit,
+        on_delete=models.CASCADE,
+        related_name='parent_relationships'
+    )
+    parent_commit = models.ForeignKey(
+        Commit,
+        on_delete=models.CASCADE,
+        related_name='child_relationships'
+    )
+    order = models.PositiveSmallIntegerField(
+        default=0,
+        help_text="Order of this parent in the commit's parent list (for merge commits)"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('commit', 'parent_commit')
+        ordering = ['commit', 'order']
+
+    def __str__(self):
+        return f"{self.commit.sha} ← {self.parent_commit.sha}"
 
 
 class PullRequestState(models.TextChoices):
