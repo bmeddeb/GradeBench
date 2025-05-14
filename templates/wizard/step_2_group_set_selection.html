@@ -1,0 +1,32 @@
+<div class="tab-pane show active" id="step2">
+  <h5 class="info-text">Step 2: Group Set Selection</h5>
+  
+  <div class="row">
+    <div class="col-md-10 ml-auto mr-auto">
+      <div class="form-group">
+        <label>Select Canvas Group Sets to sync:</label>
+        
+        <div class="group-sets-container">
+          {% for group_set in step_data.group_sets %}
+            <div class="card mb-3">
+              <div class="card-body">
+                <div class="form-check">
+                  <label class="form-check-label">
+                    <input class="form-check-input" type="checkbox" name="group_set_ids" value="{{ group_set.id }}">
+                    <span class="form-check-sign"></span>
+                    <strong>{{ group_set.name }}</strong> ({{ group_set.group_count }} groups)
+                  </label>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+      
+      <div class="alert alert-info">
+        <p><strong>Note:</strong> You can select multiple group sets. In the next step, 
+        you'll be able to choose specific groups within each set.</p>
+      </div>
+    </div>
+  </div>
+</div>

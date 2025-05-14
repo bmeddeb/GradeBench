@@ -13,4 +13,6 @@ urlpatterns = [
     path("api/calendar/events/", views.calendar_events, name="calendar_events"),
     path("api/calendar/upload-ics/", views.upload_ics, name="upload_ics"),
     path("styleguide/", views.styleguide, name="styleguide"),
+    # Canvas Group to Team Sync Wizard
+    path("wizard/", views.wizard_view, name="wizard_main"),
 ]

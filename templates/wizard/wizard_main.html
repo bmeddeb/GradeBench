@@ -1,0 +1,17 @@
+{% extends "wizard/wizard_base.html" %}
+
+{% block step_content %}
+  {% if current_step == 1 %}
+    {% include "wizard/step_1_course_selection.html" %}
+  {% elif current_step == 2 %}
+    {% include "wizard/step_2_group_set_selection.html" %}
+  {% elif current_step == 3 %}
+    {% include "wizard/step_3_group_selection.html" %}
+  {% elif current_step == 4 %}
+    {% include "wizard/step_4_integration_config.html" %}
+  {% elif current_step == 5 %}
+    {% include "wizard/step_5_confirmation.html" %}
+  {% elif current_step == 6 %}
+    {% include "wizard/step_6_results.html" %}
+  {% endif %}
+{% endblock %}

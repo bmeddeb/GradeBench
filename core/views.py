@@ -394,3 +394,148 @@ def upload_ics(request):
             {"status": "error", "message": f"Error importing ICS file: {str(e)}"},
             status=500,
         )
+
+
+@login_required
+def wizard_view(request):
+    """
+    View for the Canvas Group to Core Team Sync Wizard.
+    Renders a multi-step wizard interface for synchronizing Canvas Groups to Core Teams.
+    
+    Initial implementation is a mock-up without backend functionality.
+    """
+    # Initialize wizard session if not exists
+    if 'wizard_data' not in request.session:
+        request.session['wizard_data'] = {
+            'current_step': 1,
+            'course_id': None,
+            'sync_memberships': True,
+            'sync_leaders': False,
+            'group_set_ids': [],
+            'group_ids': [],
+            'create_github_repo': False,
+            'setup_project_management': False,
+            'repo_pattern': '{course_code}-{group_name}',
+            'confirmed': False
+        }
+    
+    # Get the current step from the session, default to 1
+    wizard_data = request.session['wizard_data']
+    current_step = wizard_data.get('current_step', 1)
+    
+    # Process form submission if this is a POST request
+    if request.method == 'POST':
+        action = request.POST.get('action', '')
+        
+        # Update wizard data based on form submission
+        if current_step == 1:
+            if 'course_id' in request.POST:
+                wizard_data['course_id'] = request.POST.get('course_id')
+            if 'sync_memberships' in request.POST:
+                wizard_data['sync_memberships'] = True
+            else:
+                wizard_data['sync_memberships'] = False
+            if 'sync_leaders' in request.POST:
+                wizard_data['sync_leaders'] = True
+            else:
+                wizard_data['sync_leaders'] = False
+                
+        elif current_step == 2:
+            group_set_ids = request.POST.getlist('group_set_ids')
+            wizard_data['group_set_ids'] = group_set_ids
+            
+        elif current_step == 3:
+            group_ids = request.POST.getlist('group_ids')
+            wizard_data['group_ids'] = group_ids
+            
+        elif current_step == 4:
+            if 'create_github_repo' in request.POST:
+                wizard_data['create_github_repo'] = True
+            else:
+                wizard_data['create_github_repo'] = False
+            if 'setup_project_management' in request.POST:
+                wizard_data['setup_project_management'] = True
+            else:
+                wizard_data['setup_project_management'] = False
+            if 'repo_pattern' in request.POST:
+                wizard_data['repo_pattern'] = request.POST.get('repo_pattern')
+                
+        elif current_step == 5:
+            if 'confirmed' in request.POST:
+                wizard_data['confirmed'] = True
+        
+        # Handle navigation between steps
+        if action == 'next':
+            current_step += 1
+        elif action == 'previous':
+            current_step -= 1
+        elif action == 'finish':
+            # Process the final submission
+            # In a real implementation, this would create the teams
+            # For now, just mark it as completed
+            wizard_data['completed'] = True
+            
+            # Redirect to the results page
+            current_step = 6
+        
+        # Ensure step is within valid range
+        if current_step < 1:
+            current_step = 1
+        elif current_step > 6:
+            current_step = 6
+            
+        # Update session
+        wizard_data['current_step'] = current_step
+        request.session['wizard_data'] = wizard_data
+        request.session.modified = True
+        
+        # For AJAX requests, return JSON
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'status': 'success',
+                'current_step': current_step,
+                'redirect': None
+            })
+    
+    # Context data for the template
+    context = {
+        'progress_labels': [
+            'Course Selection', 'Group Set Selection',
+            'Group Selection', 'Integration Config',
+            'Confirmation', 'Results'
+        ],
+        'current_step': current_step,
+        'back_enabled': current_step > 1,
+        'next_enabled': True,
+        'wizard_data': wizard_data
+    }
+    
+    # Add step-specific data
+    if current_step == 1:
+        context['step_data'] = {
+            'courses': [
+                {'id': 1, 'code': 'CS101', 'name': 'Introduction to Computer Science'},
+                {'id': 2, 'code': 'MATH202', 'name': 'Advanced Calculus'},
+                {'id': 3, 'code': 'ENG105', 'name': 'Academic Writing'},
+            ]
+        }
+    elif current_step == 2:
+        context['step_data'] = {
+            'group_sets': [
+                {'id': 1, 'name': 'Project Teams', 'group_count': 12},
+                {'id': 2, 'name': 'Study Groups', 'group_count': 8},
+                {'id': 3, 'name': 'Lab Partners', 'group_count': 20},
+            ]
+        }
+    elif current_step == 3:
+        # In a real implementation, this would fetch groups from the selected group sets
+        context['step_data'] = {
+            'groups': [
+                {'id': 1, 'name': 'Team 1', 'member_count': 4, 'group_set_id': 1},
+                {'id': 2, 'name': 'Team 2', 'member_count': 4, 'group_set_id': 1},
+                {'id': 3, 'name': 'Team 3', 'member_count': 4, 'group_set_id': 1},
+            ]
+        }
+    
+    # Render the appropriate template
+    return render(request, 'wizard/wizard_main.html', context)

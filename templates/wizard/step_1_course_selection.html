@@ -1,0 +1,42 @@
+<div class="tab-pane show active" id="step1">
+  <h5 class="info-text">Step 1: Course Selection</h5>
+  
+  <div class="row">
+    <div class="col-md-10 ml-auto mr-auto">
+      <div class="form-group">
+        <label for="course_id">Select a Canvas course to sync groups from:</label>
+        <select class="form-control" id="course_id" name="course_id" required>
+          <option value="">Please select a course</option>
+          {% for course in step_data.courses %}
+            <option value="{{ course.id }}">{{ course.code }} - {{ course.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <div class="form-check">
+          <label class="form-check-label">
+            <input class="form-check-input" type="checkbox" name="sync_memberships" value="1" checked>
+            <span class="form-check-sign"></span>
+            Sync group memberships (students)
+          </label>
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <div class="form-check">
+          <label class="form-check-label">
+            <input class="form-check-input" type="checkbox" name="sync_leaders" value="1">
+            <span class="form-check-sign"></span>
+            Sync group leaders as team leaders
+          </label>
+        </div>
+      </div>
+      
+      <div class="alert alert-info">
+        <p><strong>Info:</strong> This wizard will guide you through creating Core Teams from Canvas Groups.
+        You'll be able to select which group sets and individual groups to include.</p>
+      </div>
+    </div>
+  </div>
+</div>
