@@ -1,0 +1,267 @@
+/**
+ * Canvas Sync Progress CSS
+ *
+ * Styles for the synchronization progress indicators and status displays
+ */
+
+/* Progress container styling */
+.progress-container {
+    margin-bottom: 20px;
+    padding: 15px;
+    border-radius: 5px;
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+}
+
+/* Progress bar styling - Override Paper Dashboard defaults */
+.progress {
+    height: 20px !important; /* Override paper-dashboard's 8px height */
+    margin-bottom: 10px;
+    overflow: hidden;
+    background-color: #e9ecef;
+    border-radius: 0.25rem; /* Bootstrap 5 default */
+}
+
+.progress-bar {
+    height: 100%;
+    color: #fff;
+    transition: width 0.5s ease;
+    font-size: 0.75rem; /* Add readable font size for percentage text */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 20px; /* Match the height */
+}
+
+/* Progress bar animation */
+.progress-bar-striped {
+    background-image: linear-gradient(45deg,
+        rgba(255, 255, 255, 0.15) 25%,
+        transparent 25%,
+        transparent 50%,
+        rgba(255, 255, 255, 0.15) 50%,
+        rgba(255, 255, 255, 0.15) 75%,
+        transparent 75%,
+        transparent
+    );
+    background-size: 1rem 1rem;
+}
+
+.progress-bar-animated {
+    animation: progress-bar-stripes 1s linear infinite;
+}
+
+@keyframes progress-bar-stripes {
+    from { background-position: 1rem 0; }
+    to { background-position: 0 0; }
+}
+
+/* For small progress bars in course status */
+.progress-inner.progress-bar-striped {
+    background-image: linear-gradient(45deg,
+        rgba(255, 255, 255, 0.15) 25%,
+        transparent 25%,
+        transparent 50%,
+        rgba(255, 255, 255, 0.15) 50%,
+        rgba(255, 255, 255, 0.15) 75%,
+        transparent 75%,
+        transparent
+    );
+    background-size: 1rem 1rem;
+}
+
+.progress-inner.progress-bar-animated {
+    animation: progress-bar-stripes 1s linear infinite;
+}
+
+/* Override Paper Dashboard color classes */
+.progress-bar.bg-primary {
+    background-color: #0d6efd !important; /* Bootstrap 5 primary */
+}
+
+.progress-bar.bg-success {
+    background-color: #198754 !important; /* Bootstrap 5 success */
+}
+
+.progress-bar.bg-danger {
+    background-color: #dc3545 !important; /* Bootstrap 5 danger */
+}
+
+.progress-bar-primary {
+    background-color: #0d4f91;
+}
+
+.progress-bar-success {
+    background-color: #166534;
+}
+
+.progress-bar-danger {
+    background-color: #991b1b;
+}
+
+/* Progress text indicators */
+.progress-message {
+    font-weight: 500;
+    color: #212529;
+}
+
+.progress-percentage {
+    font-weight: 700;
+    color: #212529;
+}
+
+/* Status text */
+.text-muted {
+    color: #6c757d !important;
+}
+
+/* Course status list */
+.course-status-list {
+    margin-top: 20px;
+    border: 1px solid #e9ecef;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.course-status-item {
+    padding: 10px 15px;
+    border-bottom: 1px solid #e9ecef;
+    display: flex;
+    flex-direction: column;
+}
+
+.course-status-item:last-child {
+    border-bottom: none;
+}
+
+/* Course status header with indicator, name and status */
+.course-status-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+    width: 100%;
+}
+
+/* Status indicator dot */
+.status-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 10px;
+    flex-shrink: 0;
+}
+
+/* Status colors */
+.status-pending {
+    background-color: #4b5563;
+}
+
+.status-progress {
+    background-color: #0d6efd;
+}
+
+.status-success {
+    background-color: #198754;
+}
+
+.status-error {
+    background-color: #dc3545;
+}
+
+/* Course name styling */
+.course-name {
+    flex-grow: 1;
+    margin: 0 10px;
+}
+
+/* Course status badge */
+.course-status {
+    padding: 5px 10px;
+    border-radius: 5px;
+    color: white;
+    font-weight: 500;
+    font-size: 0.875rem;
+}
+
+/* Initially-hidden elements */
+.initially-hidden {
+    display: none;
+}
+
+/* Checkbox list for courses */
+.courses-checkbox-list {
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 0;
+}
+
+.courses-checkbox-list li {
+    padding: 8px 15px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.courses-checkbox-list li:last-child {
+    border-bottom: none;
+}
+
+/* Progress indicator for sync operations */
+#syncProgressIndicator {
+    display: flex;
+    align-items: center;
+    margin-top: 10px;
+    padding: 10px 15px;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+}
+
+/* For inline status indicators */
+.sync-status {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 10px;
+}
+
+.sync-status .spinner-border {
+    margin-right: 5px;
+}
+
+/* Course progress bar */
+.course-progress-bar {
+    height: 4px;
+    background-color: var(--gb-secondary-light, #e9ecef);
+    border-radius: calc(var(--gb-border-radius-sm, 0.2rem) / 2);
+    margin: 8px 0;
+    overflow: hidden;
+    width: 100%;
+}
+
+.progress-inner {
+    height: 100%;
+    width: 0;
+    border-radius: calc(var(--gb-border-radius-sm, 0.2rem) / 2);
+    transition: width var(--gb-transition-normal, 0.3s ease);
+}
+
+/* Status colors for progress inner bars */
+.progress-inner.status-pending {
+    background-color: var(--gb-secondary, #6c757d);
+}
+
+.progress-inner.status-progress {
+    background-color: var(--gb-primary, #0d6efd);
+}
+
+.progress-inner.status-success {
+    background-color: var(--gb-success, #198754);
+}
+
+.progress-inner.status-error {
+    background-color: var(--gb-danger, #dc3545);
+}
+
+/* Course message */
+.course-message {
+    font-size: var(--gb-font-size-xs, 0.75rem);
+    color: var(--gb-text-secondary, #6c757d);
+    margin-bottom: 0;
+}

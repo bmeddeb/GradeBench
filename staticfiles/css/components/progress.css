@@ -1,0 +1,114 @@
+/**
+ * GradeBench Progress Component Styles
+ * Unified progress bar styling with accessibility enhancements
+ */
+
+/* Progress Container */
+.progress-component {
+  background-color: var(--gb-light);
+  border-radius: var(--gb-border-radius-sm);
+  padding: var(--gb-space-md);
+  border: 1px solid var(--gb-border-color);
+  transition: all var(--gb-transition-normal);
+}
+
+/* Progress Header */
+.progress-header {
+  display: flex;
+  flex-direction: column;
+}
+
+.progress-header i {
+  color: var(--gb-primary);
+  font-size: 1.1rem;
+}
+
+.progress-header h6 {
+  font-weight: var(--gb-font-weight-bold);
+  color: var(--gb-dark);
+}
+
+/* Progress Message */
+.progress-message {
+  color: var(--gb-text-muted);
+  font-size: 0.95rem;
+}
+
+/* Progress Bar - Enhanced for accessibility */
+.progress {
+  height: 1rem; /* Override paper-dashboard.css default 8px height */
+  background-color: var(--gb-light-gray);
+  border-radius: var(--gb-border-radius-pill);
+  overflow: hidden;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.progress-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: width 0.3s ease;
+  font-weight: var(--gb-font-weight-bold);
+  font-size: 0.85rem;
+}
+
+/* Progress bar sizes */
+.progress.progress-sm {
+  height: 10px;
+}
+
+.progress.progress-lg {
+  height: 25px;
+}
+
+/* Progress Details */
+.progress-details {
+  font-size: 0.875rem;
+  color: var(--gb-text-muted);
+}
+
+.progress-status {
+  font-style: italic;
+}
+
+.progress-counts {
+  font-weight: var(--gb-font-weight-semibold);
+}
+
+/* State-specific styles */
+.progress-component.is-completed .progress-header i {
+  color: var(--gb-success);
+}
+
+.progress-component.is-error .progress-header i {
+  color: var(--gb-danger);
+}
+
+/* Animation for the completed state */
+@keyframes progress-success-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(var(--gb-success-rgb), 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(var(--gb-success-rgb), 0); }
+  100% { box-shadow: 0 0 0 0 rgba(var(--gb-success-rgb), 0); }
+}
+
+.progress-component.is-completed {
+  animation: progress-success-pulse 2s 1;
+}
+
+/* High contrast mode support */
+@media (forced-colors: active) {
+  .progress-bar {
+    /* Force high contrast when needed */
+    border: 1px solid CanvasText;
+  }
+
+  .progress-component.is-completed .progress-bar {
+    background-color: Highlight !important;
+  }
+
+  .progress-component.is-error .progress-bar {
+    background-color: Mark !important;
+  }
+}

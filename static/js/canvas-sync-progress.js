@@ -40,9 +40,9 @@
         syncPercentage.innerText = '0%';
         syncProgressText.innerText = 'Starting sync...';
         syncProgressStatus.innerText = 'Initializing...';
-        syncProgressBar.classList.remove('bg-success', 'bg-danger');
-        syncProgressBar.classList.add('bg-primary', 'progress-bar-animated');
-        
+        syncProgressBar.classList.remove('bg-success', 'bg-danger', 'progress-bar-striped', 'progress-bar-animated');
+        syncProgressBar.classList.add('bg-primary', 'progress-bar-striped', 'progress-bar-animated');
+
         // Make sure the course status list container is visible if it exists
         if (courseStatusList) {
             courseStatusList.style.display = 'block';
@@ -58,15 +58,20 @@
     function pollSyncProgress(courseId = null, batchId = null) {
         courseIdParam = courseId || '';
         batchIdParam = batchId || '';
-        
+
         // If we have a batchId, poll batch progress instead of regular progress
-        const url = batchId 
+        const url = batchId
             ? `/canvas/sync_batch_progress/?batch_id=${batchIdParam}`
             : `/canvas/sync_progress/?course_id=${courseIdParam}`;
 
         // Count for handling empty responses
         let emptyResponseCount = 0;
         const MAX_EMPTY_RESPONSES = 5;
+
+        // Make sure the progress UI is initialized
+        if (!syncProgressBar) {
+            initSyncProgressUI();
+        }
 
         const pollInterval = setInterval(() => {
             fetch(url)
@@ -87,14 +92,14 @@
                                 current: 0,
                                 total: 1
                             });
-                            
+
                             if (batchId) {
                                 // Clear course status list
                                 if (courseStatusList) {
                                     courseStatusList.innerHTML = '<div class="alert alert-danger">Progress tracking failed. No data received from server.</div>';
                                 }
                             }
-                            
+
                             syncCompleted({
                                 status: 'error',
                                 message: 'Progress tracking failed',
@@ -106,12 +111,13 @@
 
                     // Reset counter when we receive valid data
                     emptyResponseCount = 0;
-                    
+
                     // Update main progress UI
                     updateProgressUI(data);
-                    
+
                     // If this is a batch operation, update the course status list
                     if (batchId && data.course_statuses) {
+                        console.log('Updating course statuses:', data.course_statuses);
                         updateCourseStatusList(data.course_statuses);
                     }
 
@@ -173,14 +179,29 @@
 
         // Set color based on status
         if (data.status === 'error') {
-            syncProgressBar.classList.remove('bg-primary', 'bg-success');
+            syncProgressBar.classList.remove('bg-primary', 'bg-success', 'progress-bar-animated');
             syncProgressBar.classList.add('bg-danger');
+            // Keep the striped pattern for error state
+            if (!syncProgressBar.classList.contains('progress-bar-striped')) {
+                syncProgressBar.classList.add('progress-bar-striped');
+            }
         } else if (data.status === 'completed') {
-            syncProgressBar.classList.remove('bg-primary', 'bg-danger');
+            syncProgressBar.classList.remove('bg-primary', 'bg-danger', 'progress-bar-animated');
             syncProgressBar.classList.add('bg-success');
+            // Keep the striped pattern for completed state
+            if (!syncProgressBar.classList.contains('progress-bar-striped')) {
+                syncProgressBar.classList.add('progress-bar-striped');
+            }
         } else {
             syncProgressBar.classList.remove('bg-success', 'bg-danger');
             syncProgressBar.classList.add('bg-primary');
+            // Ensure both animation classes are present for in-progress state
+            if (!syncProgressBar.classList.contains('progress-bar-striped')) {
+                syncProgressBar.classList.add('progress-bar-striped');
+            }
+            if (!syncProgressBar.classList.contains('progress-bar-animated')) {
+                syncProgressBar.classList.add('progress-bar-animated');
+            }
         }
 
         // Update status text based on current operation
@@ -231,12 +252,14 @@
      * @param {Object} courseStatuses - The course status data from the server
      */
     function updateCourseStatusList(courseStatuses) {
+        console.log('Updating course status list with:', courseStatuses);
+
         if (!courseStatusList) {
             // Create the course status list container if it doesn't exist
             courseStatusList = document.createElement('div');
             courseStatusList.id = 'courseStatusList';
             courseStatusList.className = 'course-status-list mt-4';
-            
+
             // Find where to append it - typically after the main progress bar
             const syncProgress = document.getElementById('syncProgress');
             if (syncProgress && syncProgress.parentNode) {
@@ -246,25 +269,27 @@
                 document.body.appendChild(courseStatusList);
             }
         }
-        
+
         // Clear existing content
         courseStatusList.innerHTML = '';
-        
+
         // Add header
         const header = document.createElement('h6');
         header.className = 'mt-3 mb-2';
         header.textContent = 'Course Status:';
         courseStatusList.appendChild(header);
-        
+
         // Create course status items
         Object.entries(courseStatuses).forEach(([courseId, status]) => {
+            console.log(`Course ${courseId} status:`, status);
+
             const courseItem = document.createElement('div');
             courseItem.className = 'course-status-item';
-            
+
             // Status indicator color
             let statusClass = 'status-pending';
             let statusText = 'Pending';
-            
+
             if (status.status === 'in_progress') {
                 statusClass = 'status-progress';
                 statusText = 'In Progress';
@@ -278,7 +303,28 @@
                 statusClass = 'status-pending';
                 statusText = 'Queued';
             }
-            
+
+            // Add animation classes for in-progress status
+            let animationClasses = '';
+            if (status.status === 'in_progress') {
+                animationClasses = 'progress-bar-striped progress-bar-animated';
+            }
+
+            // Ensure progress value is valid, default to at least 5% for in-progress items
+            // to provide visual feedback even when the server hasn't reported progress yet
+            let progressValue = 0;
+            if (status.status === 'completed' || status.status === 'success') {
+                progressValue = 100;
+            } else if (status.status === 'in_progress') {
+                progressValue = status.progress !== undefined ? Math.max(5, Number(status.progress)) : 5;
+            } else if (status.status === 'error') {
+                progressValue = status.progress !== undefined ? Number(status.progress) : 100;
+            } else {
+                progressValue = status.progress !== undefined ? Number(status.progress) : 0;
+            }
+
+            console.log(`Course ${courseId} progress value:`, progressValue);
+
             courseItem.innerHTML = `
                 <div class="course-status-header">
                     <div class="status-indicator ${statusClass}"></div>
@@ -286,13 +332,16 @@
                     <div class="course-status">${statusText}</div>
                 </div>
                 <div class="course-progress-bar">
-                    <div class="progress-inner ${statusClass}" style="width: ${status.progress}%"></div>
+                    <div class="progress-inner ${statusClass} ${animationClasses}" style="width: ${progressValue}%"></div>
                 </div>
                 <div class="course-message">${status.message || ''}</div>
             `;
-            
+
             courseStatusList.appendChild(courseItem);
         });
+
+        // Make sure the course status list is visible
+        courseStatusList.style.display = 'block';
     }
 
     /**
@@ -351,7 +400,7 @@
         }
 
         // Keep the course status list visible - don't hide it
-        
+
         // Hide progress bar after a delay
         setTimeout(() => {
             const syncProgress = document.getElementById('syncProgress');
@@ -617,7 +666,7 @@
                     // We can't know the batch ID from URL, so we'll have to iterate through
                     // session storage or just display a loading indicator if we detect a sync
                     // is in progress from the session
-                    
+
                     // Since we don't have easy access to session data, let's just avoid
                     // showing duplicate progress bars if one from sync_progress already showed
                 }
@@ -626,7 +675,7 @@
                 console.error('Error checking sync progress:', error);
             });
     }
-    
+
     /**
      * Helper function to disable buttons during sync
      * @param {number|null} courseId - The course ID being synced, if any
