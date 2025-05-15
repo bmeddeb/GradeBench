@@ -48,7 +48,7 @@
                     </div>
                     <small id="syncProgressStatus" class="text-muted"></small>
                 </div>
-                
+
                 <!-- Course status list - initially hidden, will be populated by JavaScript -->
                 <div id="courseStatusList" class="course-status-list" style="display: none;"></div>
 
@@ -112,20 +112,25 @@
 <div class="modal fade" id="syncCoursesModal" tabindex="-1" aria-labelledby="syncCoursesModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="syncCoursesModalLabel">Select Canvas Courses to Sync</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="syncCoursesModalLabel">
+                    <i class="fa fa-refresh me-2"></i>Select Canvas Courses to Sync
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div id="coursesLoading">Loading courses...</div>
                 <div id="coursesList" class="initially-hidden">
                     <div class="mb-3">
-                        <button class="btn btn-link" onclick="selectAllCourses(true)">Select All</button>
-                        <button class="btn btn-link" onclick="selectAllCourses(false)">Deselect All</button>
+                        <button class="btn btn-link btn-sm" onclick="selectAllCourses(true)">Select All</button>
+                        <button class="btn btn-link btn-sm" onclick="selectAllCourses(false)">Deselect All</button>
                     </div>
                     <ul id="coursesCheckboxList" class="courses-checkbox-list list-unstyled"></ul>
                 </div>
-                <div id="coursesError" class="alert alert-danger initially-hidden"></div>
+                <div id="coursesError" class="alert alert-danger initially-hidden" role="alert">
+                    <h5 class="alert-heading"><i class="fa fa-exclamation-triangle me-2"></i>Error</h5>
+                    <p class="mb-0"></p>
+                </div>
             </div>
             <div class="modal-footer">
                 <div id="syncProgressIndicator" class="initially-hidden me-auto">
@@ -134,8 +139,8 @@
                     </div>
                     <span class="ms-2">Syncing courses, please wait...</span>
                 </div>
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" id="syncSelectedBtn">Sync Selected</button>
+                <button type="button" class="btn btn-outline-secondary btn-round" id="closeModalBtn" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary btn-round" id="syncSelectedBtn">Sync Selected</button>
             </div>
         </div>
     </div>
@@ -144,6 +149,23 @@
 <script>
     // Initialize the sync selected button event handler
     document.addEventListener('DOMContentLoaded', function() {
+        // Initialize the modal
+        const syncCoursesModalEl = document.getElementById('syncCoursesModal');
+        let syncCoursesModal = null;
+
+        if (syncCoursesModalEl) {
+            syncCoursesModal = new bootstrap.Modal(syncCoursesModalEl);
+
+            // Add explicit close handler for the close button
+            const closeBtn = document.getElementById('closeModalBtn');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', function() {
+                    syncCoursesModal.hide();
+                });
+            }
+        }
+
+        // Initialize sync button
         const syncSelectedBtn = document.getElementById('syncSelectedBtn');
         if (syncSelectedBtn) {
             syncSelectedBtn.addEventListener('click', function() {
