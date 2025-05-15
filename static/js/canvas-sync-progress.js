@@ -117,7 +117,7 @@
 
                     // If this is a batch operation, update the course status list
                     if (batchId && data.course_statuses) {
-                        console.log('Updating course statuses:', data.course_statuses);
+                        console.log('DEBUGGING - Received course_statuses:', JSON.stringify(data.course_statuses, null, 2));
                         updateCourseStatusList(data.course_statuses);
                     }
 
@@ -252,7 +252,7 @@
      * @param {Object} courseStatuses - The course status data from the server
      */
     function updateCourseStatusList(courseStatuses) {
-        console.log('Updating course status list with:', courseStatuses);
+        console.log('Updating course status list with full data:', JSON.stringify(courseStatuses, null, 2));
 
         if (!courseStatusList) {
             // Create the course status list container if it doesn't exist
@@ -281,7 +281,7 @@
 
         // Create course status items
         Object.entries(courseStatuses).forEach(([courseId, status]) => {
-            console.log(`Course ${courseId} status:`, status);
+            console.log(`DEBUGGING - Course ${courseId} status object:`, JSON.stringify(status, null, 2));
 
             const courseItem = document.createElement('div');
             courseItem.className = 'course-status-item';
@@ -323,12 +323,61 @@
                 progressValue = status.progress !== undefined ? Number(status.progress) : 0;
             }
 
-            console.log(`Course ${courseId} progress value:`, progressValue);
+            // Get a proper display name for the course
+            // Check all possible properties where the name might be stored
+            let courseName = '';
+
+            // Log all properties to help debug
+            console.log('DEBUGGING - Available properties:', Object.keys(status));
+
+            if (typeof status === 'string') {
+                // Handle case where the status might just be a string
+                courseName = status;
+            } else {
+                // Try all possible name properties in order of preference
+                if (status.name && typeof status.name === 'string' && status.name.trim() !== '' && !status.name.startsWith('Course ')) {
+                    // Found a valid name that's not just "Course ID"
+                    courseName = status.name;
+                } else if (status.course_code && status.name) {
+                    // If we have both code and name, make sure they're not the same before combining
+                    const name = status.name;
+                    const code = status.course_code;
+
+                    if (name !== code && !name.includes(code)) {
+                        courseName = `${code}: ${name}`;
+                    } else {
+                        courseName = name;
+                    }
+                } else if (status.course_name && typeof status.course_name === 'string') {
+                    courseName = status.course_name;
+                } else if (status.course_code && typeof status.course_code === 'string') {
+                    courseName = status.course_code;
+                } else if (status.display_name && typeof status.display_name === 'string') {
+                    courseName = status.display_name;
+                } else if (status.title && typeof status.title === 'string') {
+                    courseName = status.title;
+                } else if (status.course && status.course.name) {
+                    // Try to get from a nested course object
+                    const name = status.course.name;
+                    const code = status.course.course_code;
+
+                    if (code && name !== code && !name.includes(code)) {
+                        courseName = `${code}: ${name}`;
+                    } else {
+                        courseName = name;
+                    }
+                } else {
+                    // Last resort fallback to course ID, but make it clear it's an ID
+                    courseName = `Course ID: ${courseId}`;
+                }
+            }
+
+            console.log(`DEBUGGING - Selected course name: "${courseName}" for course ID: ${courseId}`);
 
             courseItem.innerHTML = `
                 <div class="course-status-header">
                     <div class="status-indicator ${statusClass}"></div>
-                    <div class="course-name">${status.name}</div>
+                    <div class="course-name">${courseName}</div>
                     <div class="course-status">${statusText}</div>
                 </div>
                 <div class="course-progress-bar">
