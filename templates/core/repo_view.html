@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load django_bootstrap5 %}
 
 {% block title %}Repository - GradeBench{% endblock %}
 {% block page_title %}Repository Analysis{% endblock %}
@@ -180,8 +181,8 @@
                     </table>
                 </div>
                 <div class="row">
-                    <div class="update ml-auto mr-auto">
-                        <button class="btn btn-primary btn-round">View All Commits</button>
+                    <div class="text-center mt-4">
+                        {% bootstrap_button "View All Commits" button_class="btn-primary btn-round" %}
                     </div>
                 </div>
             </div>

@@ -8,19 +8,24 @@
     <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, shrink-to-fit=no" name="viewport" />
     <title>Login - GradeBench</title>
 
+    {% load django_bootstrap5 %}
+    
     <!-- Fonts and icons -->
     <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700,200" rel="stylesheet" />
     <link href="https://maxcdn.bootstrapcdn.com/font-awesome/latest/css/font-awesome.min.css" rel="stylesheet">
 
     <!-- CSS Files -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    {% bootstrap_css %}
+    <link href="/static/css/variables.css" rel="stylesheet" />
+    <link href="/static/css/components/index.css" rel="stylesheet" />
     <link href="/static/css/paper-dashboard.css" rel="stylesheet" />
+    <link href="/static/css/paper-dashboard-bs5.css" rel="stylesheet" />
 
     <style>
         body, html {
             height: 100%;
             margin: 0;
-            background-color: #f4f3ef;
+            background-color: var(--gb-bg-body);
         }
 
         .login-page {
@@ -47,37 +52,37 @@
             font-size: 42px;
             font-weight: 300;
             margin: 10px 0 30px;
-            color: #333;
+            color: var(--gb-text-primary);
         }
 
         .login-card {
             width: 100%;
             max-width: 450px;
-            border-radius: 12px;
-            box-shadow: 0 15px 30px 0 rgba(0,0,0,.1);
-            background-color: white;
+            border-radius: var(--gb-border-radius-lg);
+            box-shadow: var(--gb-shadow-lg);
+            background-color: var(--gb-bg-card);
             margin: 0 auto;
         }
 
-        .card-header {
+        .login-card .card-header {
             padding: 25px 15px 15px;
-            border-bottom: 1px solid #f1f1f1;
+            border-bottom: 1px solid var(--gb-border-light);
         }
 
-        .card-title {
+        .login-card .card-title {
             font-size: 28px;
             font-weight: 400;
-            color: #333;
+            color: var(--gb-text-primary);
             margin-bottom: 0;
         }
 
-        .card-body {
+        .login-card .card-body {
             padding: 30px;
         }
 
         .welcome-text {
             font-size: 18px;
-            color: #66615b;
+            color: var(--gb-text-secondary);
             margin-bottom: 30px;
         }
 
@@ -110,7 +115,7 @@
         .login-footer {
             text-align: center;
             margin-top: 30px;
-            color: #66615b;
+            color: var(--gb-text-secondary);
             font-size: 14px;
         }
 
@@ -139,18 +144,7 @@
                     <p class="welcome-text">Welcome to GradeBench, a platform for grading code submissions</p>
                 </div>
 
-                {% if messages %}
-                <div class="messages mb-4">
-                    {% for message in messages %}
-                    <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
-                        <button type="button" aria-hidden="true" class="close" data-dismiss="alert" aria-label="Close">
-                            <i class="nc-icon nc-simple-remove"></i>
-                        </button>
-                        <span>{{ message }}</span>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% endif %}
+                {% bootstrap_messages %}
 
                 <a href="{% url 'social:begin' 'github' %}" class="btn btn-github">
                     <i class="fa fa-github"></i> SIGN IN WITH GITHUB
@@ -165,7 +159,6 @@
 
     <!-- Core JS Files -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
+    {% bootstrap_javascript %}
 </body>
 </html>

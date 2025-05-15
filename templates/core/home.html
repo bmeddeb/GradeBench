@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 {% load user_timezone %}
+{% load django_bootstrap5 %}
 
 {% block title %}Dashboard - GradeBench{% endblock %}
 {% block page_title %}Dashboard{% endblock %}
@@ -15,6 +16,7 @@
 {% endblock %}
 
 {% block content %}
+
 <div class="row">
     <div class="col-lg-3 col-md-6 col-sm-6">
         <div class="card card-stats timezone-clock-card">
@@ -123,12 +125,13 @@
 <!-- Calendar row -->
 <div class="row">
     <div class="col-12">
+        {% with title="Calendar" subtitle="Your upcoming events and deadlines" %}
         <div class="card card-calendar">
             <div class="card-header">
                 <div class="row">
                     <div class="col-md-8">
-                        <h4 class="card-title">Calendar</h4>
-                        <p class="card-category">Your upcoming events and deadlines</p>
+                        <h4 class="card-title">{{ title }}</h4>
+                        <p class="card-category">{{ subtitle }}</p>
                     </div>
                     <div class="col-md-4 text-end">
                         <button class="btn btn-sm btn-primary btn-round" data-bs-toggle="modal" data-bs-target="#importIcsModal">
@@ -147,6 +150,7 @@
                 </div>
             </div>
         </div>
+        {% endwith %}
     </div>
 </div>
 
@@ -167,20 +171,23 @@
                     </div>
                     <div class="mb-3">
                         <label for="calendarSource" class="form-label">Calendar Source</label>
-                        <select class="form-control" id="calendarSource" name="source">
+                        <select class="form-select" id="calendarSource" name="source">
                             <option value="canvas">Canvas</option>
                             <option value="github">GitHub</option>
                             <option value="custom">Custom</option>
                         </select>
                     </div>
-                    <div class="alert alert-info">
-                        <p><strong>Tip:</strong> You can export your calendar from Canvas or other platforms as an .ics file, then import it here.</p>
+                    
+                    {% with type="info" %}
+                    <div class="alert alert-{{ type }}">
+                        <p class="mb-0"><strong>Tip:</strong> You can export your calendar from Canvas or other platforms as an .ics file, then import it here.</p>
                     </div>
+                    {% endwith %}
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="submitIcsUpload">Import</button>
+                {% bootstrap_button "Cancel" button_class="btn-secondary" button_type="button" data_bs_dismiss="modal" %}
+                {% bootstrap_button "Import" button_id="submitIcsUpload" button_class="btn-primary" button_type="button" %}
             </div>
         </div>
     </div>
@@ -195,17 +202,25 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p><strong>Title:</strong> <span id="eventTitle"></span></p>
-                <p><strong>Start:</strong> <span id="eventStart"></span></p>
-                <p><strong>End:</strong> <span id="eventEnd"></span></p>
-                <p><strong>Location:</strong> <span id="eventLocation"></span></p>
-                <div id="eventDescriptionContainer">
-                    <p><strong>Description:</strong></p>
-                    <p id="eventDescription"></p>
-                </div>
+                <dl class="row">
+                    <dt class="col-sm-3">Title</dt>
+                    <dd class="col-sm-9" id="eventTitle"></dd>
+                    
+                    <dt class="col-sm-3">Start</dt>
+                    <dd class="col-sm-9" id="eventStart"></dd>
+                    
+                    <dt class="col-sm-3">End</dt>
+                    <dd class="col-sm-9" id="eventEnd"></dd>
+                    
+                    <dt class="col-sm-3">Location</dt>
+                    <dd class="col-sm-9" id="eventLocation"></dd>
+                    
+                    <dt class="col-sm-3" id="eventDescriptionLabel">Description</dt>
+                    <dd class="col-sm-9" id="eventDescription"></dd>
+                </dl>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                {% bootstrap_button "Close" button_class="btn-secondary" button_type="button" data_bs_dismiss="modal" %}
             </div>
         </div>
     </div>
