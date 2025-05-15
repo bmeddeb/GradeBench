@@ -1,5 +1,5 @@
 // Initialize wizard when the DOM is fully loaded
-document.addEventListener('DOMContentLoaded', () => {
+$(document).ready(() => {
   // Ensure wizardContext exists
   if (typeof window.wizardContext === 'undefined') {
     window.wizardContext = {
@@ -12,11 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Start the wizard initialization
-  if (typeof jQuery !== 'undefined') {
-    initializeWizard();
-  } else {
-    initializeWizardWithoutJQuery();
-  }
+  initializeWizard();
 });
 
 // DOM Selectors object to cache and centralize selectors
@@ -65,73 +61,7 @@ const getCookie = (name) => {
   return cookieValue;
 };
 
-// Fallback initialization without jQuery
-function initializeWizardWithoutJQuery() {
-  // Get wizard card
-  const wizardCard = document.querySelector(SELECTORS.card);
-  if (!wizardCard) {
-    return;
-  }
-
-  // Show the wizard card
-  wizardCard.classList.add('active');
-
-  // Add current step information and bootstrap tab initialization
-  const currentStep = window.wizardContext.current_step || 1;
-
-  // Set the active tab
-  const tabLinks = document.querySelectorAll(SELECTORS.navLinks);
-  tabLinks.forEach((link, index) => {
-    if (index === currentStep - 1) {
-      link.classList.add('active');
-      if (typeof bootstrap !== 'undefined') {
-        new bootstrap.Tab(link).show();
-      }
-    } else {
-      link.classList.remove('active');
-    }
-  });
-
-  // Basic initialization of buttons
-  const nextBtn = document.getElementById('next-btn');
-  const prevBtn = document.getElementById('previous-btn');
-  const resetBtn = document.getElementById('reset-btn');
-
-  const appendActionAndSubmit = (action) => {
-    const form = document.getElementById('sync-wizard-form');
-    if (form) {
-      const actionInput = document.createElement('input');
-      actionInput.type = 'hidden';
-      actionInput.name = 'action';
-      actionInput.value = action;
-      form.appendChild(actionInput);
-      form.submit();
-    }
-  };
-
-  if (nextBtn) {
-    nextBtn.addEventListener('click', () => appendActionAndSubmit('next'));
-  }
-
-  if (prevBtn) {
-    prevBtn.addEventListener('click', () => appendActionAndSubmit('previous'));
-  }
-
-  if (resetBtn) {
-    resetBtn.addEventListener('click', () => {
-      if (confirm('Are you sure you want to restart the wizard? All progress will be lost.')) {
-        appendActionAndSubmit('reset');
-      }
-    });
-  }
-}
-
 function initializeWizard() {
-  // Safety check
-  if (typeof $ === 'undefined') {
-    return;
-  }
-
   // Cache jQuery DOM elements
   const $wizardCard = $(SELECTORS.card);
   const $form = $wizardCard.find('form');
@@ -583,7 +513,7 @@ function initializeWizard() {
   const initialIndex = $(SELECTORS.activeNavLink).parent().index();
   if (initialIndex < 0) {
     // Default to first tab if none is active
-    initialIndex = 0;
+    let initialIndex = 0;
     $(SELECTORS.navLinks).first().addClass('active');
   }
   updateProgress(initialIndex);
