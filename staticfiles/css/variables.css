@@ -1,6 +1,16 @@
 /**
  * GradeBench CSS Variables
  * This file contains all the variables used across the application
+ *
+ * Note: For buttons with the btn-round class, we use the Paper Dashboard color palette:
+ * Primary:   #7A9E9F (turquoise)
+ * Secondary: #66615B (gray)
+ * Success:   #7AC29A (green)
+ * Info:      #68B3C8 (light blue)
+ * Warning:   #F3BB45 (yellow)
+ * Danger:    #EB5E28 (orange)
+ * 
+ * For standard Bootstrap elements, we use the color palette defined below.
  */
 
 :root {
@@ -8,26 +18,32 @@
   --gb-primary: #007bff;
   --gb-primary-dark: #0056b3;
   --gb-primary-light: #cce5ff;
+  --gb-primary-rgb: 0, 123, 255;
   
   --gb-secondary: #6c757d;
   --gb-secondary-dark: #5a6268;
   --gb-secondary-light: #e9ecef;
+  --gb-secondary-rgb: 108, 117, 125;
   
   --gb-success: #28a745;
   --gb-success-dark: #1e7e34;
   --gb-success-light: #d4edda;
+  --gb-success-rgb: 40, 167, 69;
   
   --gb-danger: #dc3545;
   --gb-danger-dark: #bd2130;
   --gb-danger-light: #f8d7da;
+  --gb-danger-rgb: 220, 53, 69;
   
   --gb-warning: #ffc107;
   --gb-warning-dark: #d39e00;
   --gb-warning-light: #fff3cd;
+  --gb-warning-rgb: 255, 193, 7;
   
   --gb-info: #17a2b8;
   --gb-info-dark: #117a8b;
   --gb-info-light: #d1ecf1;
+  --gb-info-rgb: 23, 162, 184;
   
   /* Semantic Colors */
   --gb-text-primary: #212529;
