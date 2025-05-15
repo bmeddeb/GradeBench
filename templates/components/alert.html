@@ -1,5 +1,16 @@
 {% comment %}
-Usage: 
+Alert Component
+Parameters:
+- type: String (default: "info") - Bootstrap contextual class (info, success, warning, danger)
+- title: String (optional) - Alert title
+- icon: String (optional) - Font Awesome icon class (without 'fa-' prefix)
+- dismissible: Boolean (default: false) - Whether to show a close button
+- content: String (optional) - HTML content to display (alternative to using block)
+
+Usage with content parameter:
+{% include 'components/alert.html' with type="info" title="Info Title" icon="info-circle" content="<p>Alert content</p>" dismissible=True %}
+
+Usage with block:
 {% include 'components/alert.html' with type="info" title="Info Title" dismissible=True %}
     {% block alert_content %}
         Alert content goes here
@@ -9,10 +20,14 @@ Usage:
 
 <div class="alert alert-{{ type|default:'info' }}{% if dismissible %} alert-dismissible fade show{% endif %}" role="alert">
     {% if title %}
-    <h4 class="alert-heading">{{ title }}</h4>
+    <h4 class="alert-heading">{% if icon %}<i class="fa fa-{{ icon }} me-2"></i>{% endif %}{{ title }}</h4>
     {% endif %}
     
-    {% block alert_content %}{% endblock %}
+    {% if content %}
+        {{ content|safe }}
+    {% else %}
+        {% block alert_content %}{% endblock %}
+    {% endif %}
     
     {% if dismissible %}
     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>

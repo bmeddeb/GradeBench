@@ -1,25 +1,59 @@
 {% comment %}
-Usage: 
+Modal Component - A Bootstrap 5 modal dialog with customizable header, body, and footer.
+
+Parameters:
+- id: String (required) - Unique identifier for the modal
+- title: String (required) - Modal title displayed in the header
+- size: String (optional) - Modal size: 'sm', 'lg', or 'xl'
+- close_text: String (optional) - Text for the close button (default: none)
+- save_text: String (optional) - Text for the primary action button (default: none)
+- save_id: String (optional) - ID for the primary action button
+- fullscreen: Boolean (default: false) - Whether the modal should be fullscreen
+- centered: Boolean (default: false) - Whether to vertically center the modal
+- scrollable: Boolean (default: false) - Whether the modal body should be scrollable
+- backdrop: String (optional) - Controls modal backdrop: 'static' or 'true'
+- keyboard: Boolean (default: true) - Whether Escape key closes the modal
+- content: String (optional) - HTML content for the modal body (alternative to block)
+
+Usage:
 {% include 'components/modal.html' with id="my-modal" title="Modal Title" size="lg" close_text="Close" save_text="Save" save_id="saveBtn" %}
-    {% block modal_body %}
-        <!-- Modal content goes here -->
-    {% endblock %}
-    
-    {% block modal_footer_extra %}
-        <!-- Additional footer content goes here -->
-    {% endblock %}
-{% endinclude %}
+
+JavaScript Integration:
+```javascript
+// Show the modal
+const myModal = new bootstrap.Modal(document.getElementById('my-modal'))
+myModal.show()
+
+// Handle save button click
+document.getElementById('saveBtn').addEventListener('click', function() {
+    // Handle the save action
+    myModal.hide()
+})
+```
 {% endcomment %}
 
-<div class="modal fade" id="{{ id }}" tabindex="-1" aria-labelledby="{{ id }}Label" aria-hidden="true">
-    <div class="modal-dialog {% if size == 'sm' %}modal-sm{% elif size == 'lg' %}modal-lg{% elif size == 'xl' %}modal-xl{% endif %}">
+<div class="modal fade" id="{{ id }}" 
+    tabindex="-1" 
+    aria-labelledby="{{ id }}Label" 
+    aria-hidden="true"
+    {% if backdrop %}data-bs-backdrop="{{ backdrop }}"{% endif %}
+    {% if keyboard == False %}data-bs-keyboard="false"{% endif %}>
+    <div class="modal-dialog 
+        {% if size == 'sm' %}modal-sm{% elif size == 'lg' %}modal-lg{% elif size == 'xl' %}modal-xl{% endif %}
+        {% if centered %}modal-dialog-centered{% endif %}
+        {% if scrollable %}modal-dialog-scrollable{% endif %}
+        {% if fullscreen %}modal-fullscreen{% endif %}">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="{{ id }}Label">{{ title }}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                {% block modal_body %}{% endblock %}
+                {% if content %}
+                    {{ content|safe }}
+                {% else %}
+                    {% block modal_body %}{% endblock %}
+                {% endif %}
             </div>
             <div class="modal-footer">
                 {% block modal_footer_extra %}{% endblock %}

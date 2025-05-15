@@ -1,21 +1,42 @@
 {% comment %}
+Table Component - A Bootstrap 5 table with customizable headers and empty state handling.
+
+Parameters:
+- table_id: String (optional) - Unique identifier for the table
+- table_class: String (optional) - Additional CSS classes for the table
+- headers: List (optional) - List of column headers
+- items: List (required) - Data items to display in the table (empty list shows empty state)
+- responsive: Boolean (default: false) - Whether the table should be responsive
+- hover: Boolean (default: false) - Whether to show hover effect on rows
+- striped: Boolean (default: false) - Whether to show striped rows
+- bordered: Boolean (default: false) - Whether to show table borders
+- small: Boolean (default: false) - Whether to use a more compact table
+- header_class: String (optional) - CSS class for the header row
+- empty_title: String (optional) - Title for empty state
+- empty_message: String (optional) - Message for empty state
+- content: String (optional) - HTML content for table body (alternative to block)
+
 Usage:
-{% include 'components/table.html' with table_id="courses-table" headers=headers responsive=True hover=True %}
-    {% block table_body %}
-        <!-- Table rows go here -->
-    {% endblock %}
-    
-    {% block empty_state %}
-        <!-- What to show when there's no data -->
-    {% endblock %}
-{% endinclude %}
+{% include 'components/table.html' with 
+   table_id="courses-table" 
+   headers=headers 
+   items=courses_list 
+   responsive=True 
+   hover=True 
+%}
 {% endcomment %}
 
 <div {% if responsive %}class="table-responsive"{% endif %}>
     {% if items %}
-        <table class="table{% if hover %} table-hover{% endif %}{% if table_class %} {{ table_class }}{% endif %}" {% if table_id %}id="{{ table_id }}"{% endif %}>
+        <table class="table
+               {% if hover %} table-hover{% endif %}
+               {% if striped %} table-striped{% endif %}
+               {% if bordered %} table-bordered{% endif %}
+               {% if small %} table-sm{% endif %}
+               {% if table_class %} {{ table_class }}{% endif %}" 
+               {% if table_id %}id="{{ table_id }}"{% endif %}>
             {% if headers %}
-                <thead class="text-primary">
+                <thead class="{% if header_class %}{{ header_class }}{% else %}text-primary{% endif %}">
                     <tr>
                         {% for header in headers %}
                             <th>{{ header }}</th>
@@ -24,15 +45,24 @@ Usage:
                 </thead>
             {% endif %}
             <tbody>
-                {% block table_body %}{% endblock %}
+                {% if content %}
+                    {{ content|safe }}
+                {% else %}
+                    {% block table_body %}{% endblock %}
+                {% endif %}
             </tbody>
         </table>
     {% else %}
         <div class="text-center py-5">
-            {% block empty_state %}
-                <h3>No data found</h3>
-                <p>Use the filters above to change your search criteria or add new items.</p>
-            {% endblock %}
+            {% if empty_title or empty_message %}
+                {% if empty_title %}<h3>{{ empty_title }}</h3>{% endif %}
+                {% if empty_message %}<p>{{ empty_message }}</p>{% endif %}
+            {% else %}
+                {% block empty_state %}
+                    <h3>No data found</h3>
+                    <p>Use the filters above to change your search criteria or add new items.</p>
+                {% endblock %}
+            {% endif %}
         </div>
     {% endif %}
 </div>
