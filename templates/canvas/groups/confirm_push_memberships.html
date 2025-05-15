@@ -1,7 +1,10 @@
-{% extends 'base.html' %}
+{% extends 'canvas/base.html' %}
 {% load static %}
+{% load django_bootstrap5 %}
 
 {% block title %}Push Group Memberships - {{ course.name }}{% endblock %}
+{% block page_title %}Push Group Memberships{% endblock %}
+{% block nav_canvas_dashboard %}active{% endblock %}
 
 {% block extra_head %}
 {% load static %}
@@ -30,89 +33,71 @@
 </style>
 {% endblock %}
 
-{% block content %}
-<div class="container mt-4">
-    <div class="row">
-        <div class="col-md-12">
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="{% url 'canvas_dashboard' %}">Canvas Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="{% url 'canvas_course_detail' course_id=course.canvas_id %}">{{ course.name }}</a></li>
-                    <li class="breadcrumb-item"><a href="{% url 'canvas_course_groups' course_id=course.canvas_id %}">Groups</a></li>
-                    <li class="breadcrumb-item active">Push Memberships</li>
-                </ol>
-            </nav>
+{% block canvas_content %}
+    <!-- Progress tracking section (initially hidden) -->
+    <div class="card">
+        <div class="card-header">
+            <h4 class="card-title">Push Group Memberships to Canvas</h4>
+            <p class="card-category">Update student group assignments in Canvas</p>
         </div>
-    </div>
-
-    <div class="row">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0">Push Group Memberships to Canvas</h5>
+        <div class="card-body">
+            <div id="progressContainer" {% if push_in_progress %}style="display: block;"{% endif %}>
+                <div class="alert alert-info" role="alert">
+                    <p><i class="fas fa-sync fa-spin me-2"></i> <strong>In Progress: </strong><span id="progressMessage">Initializing operation...</span></p>
                 </div>
-                <div class="card-body">
-                    <!-- Progress tracking section (initially hidden) -->
-                    <div id="progressContainer" {% if push_in_progress %}style="display: block;"{% endif %}>
-                        <div class="alert alert-info">
-                            <p><i class="fas fa-sync fa-spin me-2"></i> <strong>In Progress: </strong><span id="progressMessage">Initializing operation...</span></p>
-                        </div>
 
-                        <div class="progress">
-                            <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated"
-                                role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"
-                                style="width: 0%">
-                                0%
-                            </div>
-                        </div>
-
-                        <div id="progressDetails" class="mb-3">
-                            <p><strong>Processing groups: </strong><span id="currentCount">0</span> of <span id="totalCount">0</span></p>
-                        </div>
-
-                        <div id="operationComplete" style="display: none;">
-                            <div class="alert alert-success">
-                                <p><i class="fas fa-check-circle me-2"></i> <span id="successMessage">Operation completed successfully!</span></p>
-                            </div>
-                            <div class="d-flex justify-content-end mt-4">
-                                <a href="{% url 'canvas_course_groups' course_id=course_id %}" class="btn btn-primary">Return to Groups</a>
-                            </div>
-                        </div>
-
-                        <div id="operationError" style="display: none;">
-                            <div class="alert alert-danger">
-                                <p><i class="fas fa-exclamation-circle me-2"></i> <span id="errorMessage">An error occurred during the operation.</span></p>
-                            </div>
-                            <div class="d-flex justify-content-end mt-4">
-                                <a href="{% url 'canvas_course_groups' course_id=course_id %}" class="btn btn-secondary me-2">Return to Groups</a>
-                                <button id="retryButton" class="btn btn-primary">Retry</button>
-                            </div>
-                        </div>
+                <div class="progress">
+                    <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated"
+                        role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"
+                        style="width: 0%">
+                        0%
                     </div>
-                    
-                    <!-- Confirmation form (hidden when in progress) -->
-                    <div id="confirmationContainer" {% if push_in_progress %}style="display: none;"{% endif %}>
-                        <div class="alert alert-info">
-                            <p>This action will push all current group memberships from GradeBench to Canvas.</p>
-                            <p>Use this if you notice that some student assignments in Canvas don't match what you see in GradeBench.</p>
-                        </div>
+                </div>
 
-                        <p>You are about to update all group memberships for course <strong>{{ course.name }}</strong> in Canvas.</p>
-                        <p>This will make Canvas reflect exactly what's in the GradeBench database for all groups in this course.</p>
+                <div id="progressDetails" class="mb-3">
+                    <p><strong>Processing groups: </strong><span id="currentCount">0</span> of <span id="totalCount">0</span></p>
+                </div>
 
-                        <form method="post">
-                            {% csrf_token %}
-                            <div class="d-flex justify-content-end mt-4">
-                                <a href="{% url 'canvas_course_groups' course_id=course.canvas_id %}" class="btn btn-secondary me-2">Cancel</a>
-                                <button type="submit" class="btn btn-primary">Push Memberships to Canvas</button>
-                            </div>
-                        </form>
+                <div id="operationComplete" style="display: none;">
+                    <div class="alert alert-success" role="alert">
+                        <p><i class="fas fa-check-circle me-2"></i> <span id="successMessage">Operation completed successfully!</span></p>
+                    </div>
+                    <div class="d-flex justify-content-end mt-4">
+                        <a href="{% url 'canvas_course_groups' course_id=course_id %}" class="btn btn-primary btn-round">Return to Groups</a>
+                    </div>
+                </div>
+
+                <div id="operationError" style="display: none;">
+                    <div class="alert alert-danger" role="alert">
+                        <p><i class="fas fa-exclamation-circle me-2"></i> <span id="errorMessage">An error occurred during the operation.</span></p>
+                    </div>
+                    <div class="d-flex justify-content-end mt-4">
+                        <a href="{% url 'canvas_course_groups' course_id=course_id %}" class="btn btn-secondary btn-round me-2">Return to Groups</a>
+                        <button id="retryButton" class="btn btn-primary btn-round">Retry</button>
                     </div>
                 </div>
             </div>
+            
+            <!-- Confirmation form (hidden when in progress) -->
+            <div id="confirmationContainer" {% if push_in_progress %}style="display: none;"{% endif %}>
+                <div class="alert alert-info" role="alert">
+                    <p>This action will push all current group memberships from GradeBench to Canvas.</p>
+                    <p>Use this if you notice that some student assignments in Canvas don't match what you see in GradeBench.</p>
+                </div>
+
+                <p>You are about to update all group memberships for course <strong>{{ course.name }}</strong> in Canvas.</p>
+                <p>This will make Canvas reflect exactly what's in the GradeBench database for all groups in this course.</p>
+
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-end mt-4">
+                        <a href="{% url 'canvas_course_groups' course_id=course.canvas_id %}" class="btn btn-secondary btn-round me-2">Cancel</a>
+                        {% bootstrap_button "Push Memberships to Canvas" button_type="submit" button_class="btn-primary btn-round" %}
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
-</div>
 {% endblock %}
 
 {% block extra_js %}
