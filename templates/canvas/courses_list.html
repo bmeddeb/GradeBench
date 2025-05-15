@@ -146,7 +146,12 @@
     document.addEventListener('DOMContentLoaded', function() {
         const syncSelectedBtn = document.getElementById('syncSelectedBtn');
         if (syncSelectedBtn) {
-            syncSelectedBtn.addEventListener('click', syncSelectedCourses);
+            syncSelectedBtn.addEventListener('click', function() {
+                // The syncSelectedCourses function is defined in canvas-sync-init.js
+                if (typeof window.syncSelectedCourses === 'function') {
+                    window.syncSelectedCourses();
+                }
+            });
         }
     });
 </script>
@@ -155,4 +160,5 @@
 {% block canvas_js %}
 <script src="{% static 'js/canvas-sync-progress.js' %}"></script>
 <script src="{% static 'js/Sync-modal.js' %}"></script>
+<script src="{% static 'js/canvas-sync-init.js' %}"></script>
 {% endblock %}
