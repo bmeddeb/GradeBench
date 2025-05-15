@@ -8,13 +8,16 @@
         
         <div class="group-sets-container">
           {% for group_set in step_data.group_sets %}
-            <div class="card mb-3">
+            <div class="card card-primary wizard-card mb-3">
               <div class="card-body">
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="checkbox" name="group_set_ids" value="{{ group_set.canvas_id }}" id="group_set_{{ group_set.canvas_id }}" style="width: 20px; height: 20px; margin-right: 10px; visibility: visible !important; opacity: 1 !important;">
-                  <label class="form-check-label" for="group_set_{{ group_set.canvas_id }}">
-                    <strong>{{ group_set.name }}</strong> ({{ group_set.group_count }} groups)
-                  </label>
+                <div class="d-flex align-items-center">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="group_set_ids" value="{{ group_set.canvas_id }}" id="group_set_{{ group_set.canvas_id }}">
+                    <label class="form-check-label" for="group_set_{{ group_set.canvas_id }}">
+                      <h6 class="mb-0"><strong>{{ group_set.name }}</strong></h6>
+                      <small class="text-muted">{{ group_set.group_count }} groups</small>
+                    </label>
+                  </div>
                 </div>
               </div>
             </div>

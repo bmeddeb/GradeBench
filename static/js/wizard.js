@@ -188,13 +188,16 @@ function initializeWizard() {
     // Populate with real data from database
     groupSets.forEach(groupSet => {
       $groupSetsContainer.append(`
-        <div class="card mb-3">
+        <div class="card card-primary wizard-card mb-3">
           <div class="card-body">
-            <div class="form-check form-check-inline">
-              <input class="form-check-input" type="checkbox" name="group_set_ids" value="${groupSet.canvas_id}" id="group_set_${groupSet.canvas_id}" style="width: 20px; height: 20px; margin-right: 10px; visibility: visible !important; opacity: 1 !important;">
-              <label class="form-check-label" for="group_set_${groupSet.canvas_id}">
-                <strong>${groupSet.name}</strong> (${groupSet.group_count} groups)
-              </label>
+            <div class="d-flex align-items-center">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="group_set_ids" value="${groupSet.canvas_id}" id="group_set_${groupSet.canvas_id}">
+                <label class="form-check-label" for="group_set_${groupSet.canvas_id}">
+                  <h6 class="mb-0"><strong>${groupSet.name}</strong></h6>
+                  <small class="text-muted">${groupSet.group_count} groups</small>
+                </label>
+              </div>
             </div>
           </div>
         </div>
@@ -205,7 +208,9 @@ function initializeWizard() {
   // Function to update groups list based on selected group sets
   const updateGroupsList = () => {
     const $groupsContainer = $(SELECTORS.groupsContainer);
+    const $groupSetsContainer = $('#group-sets-container');
     $groupsContainer.empty();
+    $groupSetsContainer.empty();
 
     // Get selected group sets from the form
     const selectedGroupSets = [];
@@ -249,47 +254,89 @@ function initializeWizard() {
 
     let anyGroupsFound = false;
 
-    // Add sections for each group set
+    // Add group set titles and select/deselect controls
     selectedGroupSets.forEach(groupSetId => {
       const categoryData = groupsByCategory[groupSetId];
       const groupSetName = categoryData ? categoryData.name : $(`label[for="group_set_${groupSetId}"]`).text().trim();
       const groupsInSet = categoryData ? categoryData.groups : [];
 
+      // Add the group set header
+      $groupSetsContainer.append(`
+        <div class="group-set-header mb-3" id="group-set-header-${groupSetId}">
+          <h5 class="mb-2">${groupSetName}</h5>
+          <div class="mb-3">
+            <button type="button" class="btn btn-sm btn-outline-primary select-all-groups me-2" data-group-set="${groupSetId}">
+              Select All
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary deselect-all-groups" data-group-set="${groupSetId}">
+              Deselect All
+            </button>
+          </div>
+        </div>
+      `);
+
       if (groupsInSet.length === 0) {
-        $groupsContainer.append(`
-          <li class="list-group-item">
-            <h6>${groupSetName}</h6>
-            <div class="alert alert-warning">No groups found in this group set.</div>
-          </li>
+        $(`#group-set-header-${groupSetId}`).append(`
+          <div class="alert alert-warning">No groups found in this group set.</div>
         `);
       } else {
         anyGroupsFound = true;
 
-        $groupsContainer.append(`
-          <li class="list-group-item">
-            <h6>${groupSetName}</h6>
-            <div class="mb-2">
-              <button type="button" class="btn btn-sm btn-outline-primary select-all-groups" data-group-set="${groupSetId}">
-                Select All
-              </button>
-              <button type="button" class="btn btn-sm btn-outline-secondary deselect-all-groups" data-group-set="${groupSetId}">
-                Deselect All
-              </button>
-            </div>
-            <ul class="list-group" id="group-set-${groupSetId}-groups">
-              ${groupsInSet.map(group => `
-                <li class="list-group-item ps-4">
-                  <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="group_ids" value="${group.canvas_id}" id="group_${group.canvas_id}" data-group-set="${groupSetId}" checked style="width: 20px; height: 20px; margin-right: 10px; visibility: visible !important; opacity: 1 !important;">
+        // Create a row for the card layout
+        const $groupRow = $(`<div class="row" id="group-set-${groupSetId}-groups"></div>`);
+        $groupsContainer.append($groupRow);
+
+        // Add cards for each group
+        groupsInSet.forEach(group => {
+          // Create card for each group
+          const membersCount = group.members_count || 0;
+          let membersList = '';
+          
+          // We'd normally fetch student names from the server, but we'll use placeholder data for now
+          // In a real implementation, this would be fetched from the server based on CanvasGroupMembership and CanvasEnrollment
+          const dummyMembers = [];
+          for (let i = 1; i <= membersCount; i++) {
+            dummyMembers.push(`Student ${i}`);
+          }
+          
+          // Create the members list HTML
+          if (dummyMembers.length > 0) {
+            membersList = `
+              <ul class="list-group list-group-flush">
+                ${dummyMembers.map(member => `
+                  <li class="list-group-item border-0 py-1 px-3">${member}</li>
+                `).join('')}
+              </ul>
+            `;
+          } else {
+            membersList = `
+              <p class="text-muted p-3">No members in this group</p>
+            `;
+          }
+
+          // Add the card to the row
+          $groupRow.append(`
+            <div class="col-md-4 mb-4">
+              <div class="card wizard-card h-100">
+                <div class="card-header">
+                  <h6 class="mb-0">${group.name}</h6>
+                  <small class="text-muted">${membersCount} member${membersCount !== 1 ? 's' : ''}</small>
+                </div>
+                <div class="card-body p-0">
+                  ${membersList}
+                </div>
+                <div class="card-footer">
+                  <div class="form-check text-center">
+                    <input class="form-check-input" type="checkbox" name="group_ids" value="${group.canvas_id}" id="group_${group.canvas_id}" data-group-set="${groupSetId}" checked>
                     <label class="form-check-label" for="group_${group.canvas_id}">
-                      ${group.name} (${group.members_count} members)
+                      Select this group
                     </label>
                   </div>
-                </li>
-              `).join('')}
-            </ul>
-          </li>
-        `);
+                </div>
+              </div>
+            </div>
+          `);
+        });
       }
     });
 
