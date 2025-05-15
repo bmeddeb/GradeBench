@@ -1,0 +1,58 @@
+{% comment %}
+Progress Bar Component
+Parameters:
+- id_prefix: String (required) - Prefix for all HTML IDs
+- show_title: Boolean (default: true) - Whether to show the title section
+- show_details: Boolean (default: true) - Whether to show the details section
+- title: String (default: "Progress") - Title text
+- context_class: String (default: "primary") - Bootstrap contextual class (primary, success, danger, etc.)
+- animated: Boolean (default: true) - Whether to animate the progress bar
+- striped: Boolean (default: true) - Whether to show stripes in the progress bar
+- height: String (default: "20px") - Height of the progress bar
+{% endcomment %}
+
+<div id="{{ id_prefix }}-container" class="progress-component mb-3">
+  {% if show_title|default:True %}
+  <div id="{{ id_prefix }}-header" class="progress-header mb-2">
+    <div class="d-flex align-items-center">
+      <i id="{{ id_prefix }}-icon" class="fa fa-sync-alt me-2 {% if animated|default:True %}fa-spin{% endif %}"></i>
+      <h6 id="{{ id_prefix }}-title" class="mb-0">{{ title|default:"Progress" }}</h6>
+    </div>
+    <p id="{{ id_prefix }}-message" class="progress-message mb-1 mt-1">Initializing...</p>
+  </div>
+  {% endif %}
+
+  <div class="progress" style="height: {{ height|default:'20px' }};">
+    <div id="{{ id_prefix }}-bar" 
+         class="progress-bar bg-{{ context_class|default:'primary' }} 
+                {% if striped|default:True %}progress-bar-striped{% endif %} 
+                {% if animated|default:True %}progress-bar-animated{% endif %}"
+         role="progressbar" 
+         aria-valuenow="0" 
+         aria-valuemin="0" 
+         aria-valuemax="100" 
+         style="width: 0%">
+      <span id="{{ id_prefix }}-percentage">0%</span>
+    </div>
+  </div>
+
+  {% if show_details|default:True %}
+  <div id="{{ id_prefix }}-details" class="progress-details mt-1 d-flex justify-content-between">
+    <span id="{{ id_prefix }}-status" class="progress-status">Waiting to start...</span>
+    <span class="progress-counts">
+      <span id="{{ id_prefix }}-current">0</span> of <span id="{{ id_prefix }}-total">0</span>
+    </span>
+  </div>
+  {% endif %}
+
+  <div id="{{ id_prefix }}-success" class="alert alert-success mt-3" style="display: none;" role="alert">
+    <h5 class="alert-heading"><i class="fa fa-check-circle me-2"></i>Success</h5>
+    <p id="{{ id_prefix }}-success-message" class="mb-0">Operation completed successfully!</p>
+  </div>
+
+  <div id="{{ id_prefix }}-error" class="alert alert-danger mt-3" style="display: none;" role="alert">
+    <h5 class="alert-heading"><i class="fa fa-exclamation-circle me-2"></i>Error</h5>
+    <p id="{{ id_prefix }}-error-message" class="mb-0">An error occurred.</p>
+    <div id="{{ id_prefix }}-error-details" class="small mt-2" style="display: none;"></div>
+  </div>
+</div>

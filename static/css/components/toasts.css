@@ -147,57 +147,84 @@
 
 /* Improved Bootstrap Notify Compatibility */
 .alert[data-notify="container"] {
-  background-color: #0e7490;
-  color: white;
-  border: 2px solid #155e75;
+  background-color: var(--gb-info-light);
+  color: var(--gb-info-dark);
+  border: 1px solid var(--gb-info);
   padding: var(--gb-space-md);
-  border-radius: var(--gb-border-radius-md);
-  box-shadow: var(--gb-shadow-lg);
+  border-radius: var(--gb-border-radius-sm);
+  box-shadow: var(--gb-shadow-md);
 }
 
 .alert[data-notify="container"][data-notify-type="success"] {
-  background-color: #166534;
-  color: white;
-  border-color: #14532d;
+  background-color: var(--gb-success-light);
+  color: var(--gb-success-dark);
+  border-color: var(--gb-success);
 }
 
 .alert[data-notify="container"][data-notify-type="danger"], 
 .alert[data-notify="container"][data-notify-type="error"] {
-  background-color: #991b1b;
-  color: white;
-  border-color: #7f1d1d;
+  background-color: var(--gb-danger-light);
+  color: var(--gb-danger-dark);
+  border-color: var(--gb-danger);
 }
 
 .alert[data-notify="container"][data-notify-type="warning"] {
-  background-color: #92400e;
-  color: white;
-  border-color: #78350f;
+  background-color: var(--gb-warning-light);
+  color: var(--gb-warning-dark);
+  border-color: var(--gb-warning);
 }
 
 .alert[data-notify="container"][data-notify-type="info"] {
-  background-color: #0e7490;
-  color: white;
-  border-color: #155e75;
+  background-color: var(--gb-info-light);
+  color: var(--gb-info-dark);
+  border-color: var(--gb-info);
 }
 
 .alert[data-notify="container"] .close {
-  color: white;
-  opacity: 1;
+  color: inherit;
+  opacity: 0.8;
   text-shadow: none;
   font-weight: var(--gb-font-weight-bold);
-  font-size: 1.5rem;
+  font-size: 1.25rem;
 }
 
+.alert[data-notify="container"] .close:hover {
+  opacity: 1;
+}
+
+/* Format notify elements to match our static alerts */
 .alert[data-notify="container"] [data-notify="icon"] {
   margin-right: var(--gb-space-sm);
+  font-size: 1.25em;
 }
 
 .alert[data-notify="container"] [data-notify="title"] {
   font-weight: var(--gb-font-weight-bold);
   display: block;
   margin-bottom: var(--gb-space-xs);
+  font-size: 1.25rem;
 }
 
 .alert[data-notify="container"] [data-notify="message"] {
   font-size: 1rem;
+  margin-bottom: 0;
+}
+
+/* Make dynamic notifications match static alert style */
+.alert[data-notify="container"] {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Adjust title to look like our alert-heading */
+.alert[data-notify="container"] span[data-notify="title"] {
+  margin-top: 0;
+  margin-bottom: var(--gb-space-sm);
+  display: flex;
+  align-items: center;
+}
+
+/* Style notification icon to match static alerts */
+.alert[data-notify="container"] span[data-notify="icon"] {
+  margin-right: var(--gb-space-sm);
 }
