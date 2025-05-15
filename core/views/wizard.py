@@ -14,8 +14,6 @@ class WizardView(LoginRequiredMixin, View):
             request.session['wizard_data'] = {
                 'current_step': 1,
                 'course_id': None,
-                'sync_memberships': True,
-                'sync_leaders': False,
                 'group_set_ids': [],
                 'group_ids': [],
                 'create_github_repo': False,
@@ -123,8 +121,6 @@ class WizardView(LoginRequiredMixin, View):
             request.session['wizard_data'] = {
                 'current_step': 1,
                 'course_id': None,
-                'sync_memberships': True,
-                'sync_leaders': False,
                 'group_set_ids': [],
                 'group_ids': [],
                 'create_github_repo': False,
@@ -137,8 +133,6 @@ class WizardView(LoginRequiredMixin, View):
         if current_step == 1:
             if 'course_id' in request.POST:
                 wizard_data['course_id'] = request.POST.get('course_id')
-            wizard_data['sync_memberships'] = 'sync_memberships' in request.POST
-            wizard_data['sync_leaders'] = 'sync_leaders' in request.POST
         elif current_step == 2:
             group_set_ids = request.POST.getlist('group_set_ids')
             wizard_data['group_set_ids'] = group_set_ids
@@ -161,8 +155,6 @@ class WizardView(LoginRequiredMixin, View):
             wizard_data = {
                 'current_step': 1,
                 'course_id': None,
-                'sync_memberships': True,
-                'sync_leaders': False,
                 'group_set_ids': [],
                 'group_ids': [],
                 'create_github_repo': False,
@@ -174,8 +166,6 @@ class WizardView(LoginRequiredMixin, View):
         elif action == 'finish':
             if wizard_data.get('confirmed'):
                 group_ids = wizard_data.get('group_ids', [])
-                sync_memberships = wizard_data.get('sync_memberships', True)
-                sync_leaders = wizard_data.get('sync_leaders', False)
                 created_teams = []
                 for group_id in group_ids:
                     try:
@@ -199,8 +189,6 @@ class WizardView(LoginRequiredMixin, View):
                                 canvas_group_set_id=canvas_group.category.canvas_id,
                                 canvas_group_set_name=canvas_group.category.name
                             )
-                            if sync_memberships:
-                                pass
                             created_teams.append({
                                 'id': team.id,
                                 'name': team.name,

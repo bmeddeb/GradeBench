@@ -363,10 +363,6 @@ function initializeWizard() {
       });
     }
 
-    // Get sync options
-    const syncMemberships = $('#sync_memberships').is(':checked') ? 'Yes' : 'No';
-    const syncLeaders = $('#sync_leaders').is(':checked') ? 'Yes' : 'No';
-
     // Get integration options
     const createGithubRepo = $('#create_github_repo').is(':checked') ? 'Yes' : 'No';
     const setupProjectManagement = $('#setup_project_management').is(':checked') ? 'Yes' : 'No';
@@ -375,8 +371,6 @@ function initializeWizard() {
     $('#summary-course').text(courseName);
     $('#summary-group-sets').text(selectedGroupSets.length > 0 ? selectedGroupSets.join(', ') : 'No group sets selected');
     $('#summary-groups').html(groupsSummaryHtml);
-    $('#summary-sync-memberships').text(syncMemberships);
-    $('#summary-sync-leaders').text(syncLeaders);
     $('#summary-github-repos').text(createGithubRepo);
     $('#summary-project-management').text(setupProjectManagement);
 
