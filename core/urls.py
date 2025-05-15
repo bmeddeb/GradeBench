@@ -4,7 +4,6 @@ from django.urls import path, include
 from .views.auth import HomeView, LoginView, ProfileView, UpdateProfileAjaxView, StyleguideView, LogoutView
 from .views.github import DisconnectGithubView, AsyncGithubProfileView
 from .views.calendar import CalendarEventsView, UploadICSView
-from .views.wizard import WizardView
 
 urlpatterns = [
     path("", HomeView.as_view(), name="home"),
@@ -23,6 +22,4 @@ urlpatterns = [
          name="calendar_events"),
     path("api/calendar/upload-ics/", UploadICSView.as_view(), name="upload_ics"),
     path("styleguide/", StyleguideView.as_view(), name="styleguide"),
-    # Canvas Group to Team Sync Wizard
-    path("wizard/", WizardView.as_view(), name="wizard_main"),
 ]
