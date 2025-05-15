@@ -43,7 +43,8 @@
         <div class="card-body">
             <div id="progressContainer" {% if push_in_progress %}style="display: block;"{% endif %}>
                 <div class="alert alert-info" role="alert">
-                    <p><i class="fas fa-sync fa-spin me-2"></i> <strong>In Progress: </strong><span id="progressMessage">Initializing operation...</span></p>
+                    <h5 class="alert-heading"><i class="fas fa-sync fa-spin me-2"></i>In Progress</h5>
+                    <p class="mb-0"><span id="progressMessage">Initializing operation...</span></p>
                 </div>
 
                 <div class="progress">
@@ -60,20 +61,28 @@
 
                 <div id="operationComplete" style="display: none;">
                     <div class="alert alert-success" role="alert">
-                        <p><i class="fas fa-check-circle me-2"></i> <span id="successMessage">Operation completed successfully!</span></p>
+                        <h5 class="alert-heading"><i class="fas fa-check-circle me-2"></i>Success</h5>
+                        <p class="mb-0"><span id="successMessage">Operation completed successfully!</span></p>
                     </div>
                     <div class="d-flex justify-content-end mt-4">
-                        <a href="{% url 'canvas_course_groups' course_id=course_id %}" class="btn btn-primary btn-round">Return to Groups</a>
+                        <a href="{% url 'canvas_course_groups' course_id=course_id %}" class="btn btn-primary btn-round">
+                            <i class="fa fa-arrow-left me-1"></i> Return to Groups
+                        </a>
                     </div>
                 </div>
 
                 <div id="operationError" style="display: none;">
                     <div class="alert alert-danger" role="alert">
-                        <p><i class="fas fa-exclamation-circle me-2"></i> <span id="errorMessage">An error occurred during the operation.</span></p>
+                        <h5 class="alert-heading"><i class="fas fa-exclamation-circle me-2"></i>Error</h5>
+                        <p class="mb-0"><span id="errorMessage">An error occurred during the operation.</span></p>
                     </div>
                     <div class="d-flex justify-content-end mt-4">
-                        <a href="{% url 'canvas_course_groups' course_id=course_id %}" class="btn btn-secondary btn-round me-2">Return to Groups</a>
-                        <button id="retryButton" class="btn btn-primary btn-round">Retry</button>
+                        <a href="{% url 'canvas_course_groups' course_id=course_id %}" class="btn btn-secondary btn-round me-2">
+                            <i class="fa fa-arrow-left me-1"></i> Return to Groups
+                        </a>
+                        <button id="retryButton" class="btn btn-primary btn-round">
+                            <i class="fa fa-sync me-1"></i> Retry
+                        </button>
                     </div>
                 </div>
             </div>
@@ -81,8 +90,9 @@
             <!-- Confirmation form (hidden when in progress) -->
             <div id="confirmationContainer" {% if push_in_progress %}style="display: none;"{% endif %}>
                 <div class="alert alert-info" role="alert">
+                    <h5 class="alert-heading"><i class="fa fa-info-circle me-2"></i>Information</h5>
                     <p>This action will push all current group memberships from GradeBench to Canvas.</p>
-                    <p>Use this if you notice that some student assignments in Canvas don't match what you see in GradeBench.</p>
+                    <p class="mb-0">Use this if you notice that some student assignments in Canvas don't match what you see in GradeBench.</p>
                 </div>
 
                 <p>You are about to update all group memberships for course <strong>{{ course.name }}</strong> in Canvas.</p>

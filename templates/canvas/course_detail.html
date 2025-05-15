@@ -2,6 +2,7 @@
 {% extends 'canvas/base.html' %}
 {% load static %}
 {% load user_timezone %}
+{% load django_bootstrap5 %}
 
 {% block title %}{{ course.name }} | GradeBench Canvas{% endblock %}
 {% block page_title %}{{ course.course_code }}: {{ course.name }}{% endblock %}
@@ -185,7 +186,7 @@
                                 </td>
                                 <td>
                                     <a href="{% url 'canvas_assignment_detail' course_id=course.canvas_id assignment_id=assignment.canvas_id %}" class="btn btn-info btn-round btn-sm">
-                                        <i class="fa fa-eye"></i> View
+                                        <i class="fa fa-eye me-1"></i> View
                                     </a>
                                 </td>
                             </tr>
@@ -258,10 +259,10 @@
 
                 <div class="text-center mt-4">
                     <a href="{{ course.integration.canvas_url }}/courses/{{ course.canvas_id }}" target="_blank" class="btn btn-primary btn-round">
-                        <i class="fa fa-external-link"></i> Open in Canvas
+                        <i class="fa fa-external-link me-1"></i> Open in Canvas
                     </a>
                     <a href="{% url 'canvas_delete_course' course_id=course.canvas_id %}" class="btn btn-danger btn-round mt-2">
-                        <i class="fa fa-trash"></i> Delete Course
+                        <i class="fa fa-trash me-1"></i> Delete Course
                     </a>
                 </div>
             </div>
@@ -333,7 +334,7 @@
                                 <td>
                                     {% if enrollment.role == 'StudentEnrollment' %}
                                     <a href="{% url 'canvas_student_detail' course_id=course.canvas_id user_id=enrollment.user_id %}" class="btn btn-info btn-round btn-sm">
-                                        <i class="fa fa-eye"></i> View
+                                        <i class="fa fa-eye me-1"></i> View
                                     </a>
                                     {% endif %}
                                 </td>
@@ -374,9 +375,11 @@
 <div class="modal fade" id="syncCoursesModal" tabindex="-1" aria-labelledby="syncCoursesModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="syncCoursesModalLabel">Select Canvas Courses to Sync</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="syncCoursesModalLabel">
+          <i class="fa fa-refresh me-2"></i>Select Canvas Courses to Sync
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
         <div id="coursesLoading">Loading courses...</div>
@@ -385,7 +388,10 @@
           <button class="btn btn-link btn-sm" onclick="selectAllCourses(false)">Deselect All</button>
           <ul id="coursesCheckboxList" class="courses-checkbox-list list-unstyled mt-2"></ul>
         </div>
-        <div id="coursesError" class="alert alert-danger initially-hidden"></div>
+        <div id="coursesError" class="alert alert-danger initially-hidden" role="alert">
+          <h5 class="alert-heading"><i class="fa fa-exclamation-triangle me-2"></i>Error</h5>
+          <p class="mb-0"></p>
+        </div>
       </div>
       <div class="modal-footer">
         <div id="syncProgressIndicator" class="initially-hidden me-auto">
@@ -394,8 +400,8 @@
           </div>
           <span class="ms-2">Syncing courses, please wait...</span>
         </div>
-        <button id="syncSelectedBtn" class="btn btn-primary btn-round" onclick="syncSelectedCourses()">Sync Selected</button>
-        <button id="closeModalBtn" class="btn btn-outline-secondary btn-round" data-bs-dismiss="modal">Close</button>
+        {% bootstrap_button "Sync Selected" button_class="btn-primary btn-round" id="syncSelectedBtn" extra_classes="me-2" onclick="syncSelectedCourses()" %}
+        {% bootstrap_button "Close" button_class="btn-outline-secondary btn-round" id="closeModalBtn" extra_attrs="data-bs-dismiss=modal" %}
       </div>
     </div>
   </div>

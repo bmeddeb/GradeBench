@@ -1,5 +1,6 @@
 {% extends 'canvas/base.html' %}
 {% load static %}
+{% load django_bootstrap5 %}
 
 {% block title %}Edit Group: {{ group.name }} | GradeBench Canvas{% endblock %}
 {% block page_title %}Edit Group: {{ group.name }}{% endblock %}
@@ -14,39 +15,38 @@
                     <h4 class="card-title mb-0">Edit Group</h4>
                     <p class="card-category">Modify "{{ group.name }}" in {{ group.category.name }}</p>
                 </div>
-                <a href="{% url 'canvas_course_groups' course_id=course.canvas_id %}" class="btn btn-sm btn-outline-primary">
+                <a href="{% url 'canvas_course_groups' course_id=course.canvas_id %}" class="btn btn-sm btn-outline-primary btn-round">
                     <i class="fa fa-arrow-left"></i> Back to Groups
                 </a>
             </div>
             <div class="card-body">
                 {% if error %}
-                <div class="alert alert-danger">
-                    <p><i class="fa fa-exclamation-triangle"></i> {{ error }}</p>
+                <div class="alert alert-danger" role="alert">
+                    <h4 class="alert-heading">Error</h4>
+                    <p><i class="fa fa-exclamation-triangle me-2"></i> {{ error }}</p>
                 </div>
                 {% endif %}
                 
                 <form method="post" action="{% url 'canvas_edit_group' course_id=course.canvas_id group_id=group.id %}">
                     {% csrf_token %}
                     
-                    <div class="form-group mb-3">
-                        <label for="name">Group Name <span class="text-danger">*</span></label>
-                        <input type="text" id="name" name="name" class="form-control" required value="{{ group.name }}">
-                        <small class="form-text text-muted">Example: "Team Alpha" or "Group 1"</small>
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Group Name <span class="text-danger">*</span></label>
+                        <input type="text" id="name" name="name" class="form-control" placeholder="Enter group name" required value="{{ group.name }}">
+                        <div class="form-text">Example: "Team Alpha" or "Group 1"</div>
                     </div>
                     
-                    <div class="form-group mb-3">
-                        <label for="description">Description</label>
-                        <textarea id="description" name="description" class="form-control" rows="3">{{ group.description }}</textarea>
-                        <small class="form-text text-muted">A brief description of this group (optional).</small>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea id="description" name="description" class="form-control" rows="3" placeholder="Enter group description (optional)">{{ group.description }}</textarea>
+                        <div class="form-text">A brief description of this group (optional).</div>
                     </div>
                     
-                    <div class="form-group d-flex justify-content-end mt-4">
-                        <a href="{% url 'canvas_course_groups' course_id=course.canvas_id %}" class="btn btn-outline-secondary me-2">
+                    <div class="d-flex justify-content-end mt-4">
+                        <a href="{% url 'canvas_course_groups' course_id=course.canvas_id %}" class="btn btn-outline-secondary btn-round me-2">
                             Cancel
                         </a>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fa fa-save"></i> Save Changes
-                        </button>
+                        {% bootstrap_button button_type="submit" content='<i class="fa fa-save me-1"></i> Save Changes' button_class="btn-primary btn-round" %}
                     </div>
                 </form>
             </div>
