@@ -6,7 +6,7 @@ Usage:
 {% load django_bootstrap5 %}
 
 <form method="{{ method|default:'get' }}" {% if form_id %}id="{{ form_id }}"{% endif %} class="filter-form mb-3">
-    <div class="row g-2">
+    <div class="row g-2 align-items-center">
         {% for field in form %}
             <div class="col-md-{% if field.field.widget.input_type == 'checkbox' %}auto{% else %}3{% endif %}">
                 {% if field.field.widget.input_type == 'checkbox' %}
@@ -14,13 +14,13 @@ Usage:
                         {% bootstrap_field field show_label=False %}
                     </div>
                 {% else %}
-                    {% bootstrap_field field show_label=False placeholder=field.label %}
+                    {% bootstrap_field field show_label=False placeholder=field.label show_widget_only=True wrapper_class="" %}
                 {% endif %}
             </div>
         {% endfor %}
         
         <div class="col-md-auto">
-            <div class="d-flex mt-1">
+            <div class="d-flex">
                 {% if submit_text %}
                     {% bootstrap_button submit_text button_type="submit" button_class=submit_class|default:"btn-primary btn-sm" %}
                 {% endif %}

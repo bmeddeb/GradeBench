@@ -144,16 +144,25 @@
 }
 
 /* Form control styling */
-.form-control {
+.form-control,
+.form-select {
     border: 1px solid var(--gb-border-medium);
     border-radius: var(--gb-border-radius-sm);
     padding: var(--gb-input-padding-y) var(--gb-input-padding-x);
+    height: calc(1.5em + 0.75rem + 2px); /* Ensure consistent height */
     transition: border-color var(--gb-transition-fast), box-shadow var(--gb-transition-fast);
 }
 
-.form-control:focus {
+.form-control:focus,
+.form-select:focus {
     border-color: var(--gb-primary);
     box-shadow: 0 0 0 0.25rem rgba(var(--gb-primary-rgb), 0.25);
+}
+
+/* Fix for filter form specifically */
+.filter-form .form-control,
+.filter-form .form-select {
+    height: 38px; /* Force consistent height */
 }
 
 .form-label {
