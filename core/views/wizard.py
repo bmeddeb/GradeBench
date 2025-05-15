@@ -89,12 +89,33 @@ class WizardView(LoginRequiredMixin, View):
                         pass
                 try:
                     for group in CanvasGroup.objects.filter(category__canvas_id__in=int_group_set_ids):
+                        # Get all memberships with student data
+                        members = []
+                        for membership in group.memberships.all():
+                            member_data = {
+                                'user_id': membership.user_id,
+                                'name': membership.name,
+                                'email': membership.email,
+                            }
+                            
+                            # Add student data if available
+                            if membership.student:
+                                member_data.update({
+                                    'student_id': membership.student.id,
+                                    'first_name': membership.student.first_name,
+                                    'last_name': membership.student.last_name,
+                                    'full_name': membership.student.full_name,
+                                })
+                            
+                            members.append(member_data)
+                        
                         groups.append({
                             'canvas_id': group.canvas_id,
                             'name': group.name,
                             'category_id': group.category.canvas_id,
                             'category_name': group.category.name,
-                            'members_count': group.memberships.count()
+                            'members_count': group.memberships.count(),
+                            'members': members
                         })
                 except Exception:
                     pass
@@ -239,12 +260,33 @@ class WizardView(LoginRequiredMixin, View):
                         except (ValueError, TypeError):
                             pass
                     for group in CanvasGroup.objects.filter(category__canvas_id__in=int_group_set_ids):
+                        # Get all memberships with student data
+                        members = []
+                        for membership in group.memberships.all():
+                            member_data = {
+                                'user_id': membership.user_id,
+                                'name': membership.name,
+                                'email': membership.email,
+                            }
+                            
+                            # Add student data if available
+                            if membership.student:
+                                member_data.update({
+                                    'student_id': membership.student.id,
+                                    'first_name': membership.student.first_name,
+                                    'last_name': membership.student.last_name,
+                                    'full_name': membership.student.full_name,
+                                })
+                            
+                            members.append(member_data)
+                        
                         groups.append({
                             'canvas_id': group.canvas_id,
                             'name': group.name,
                             'category_id': group.category.canvas_id,
                             'category_name': group.category.name,
-                            'members_count': group.memberships.count()
+                            'members_count': group.memberships.count(),
+                            'members': members
                         })
                 step_data['groups'] = json.dumps(groups)
             elif current_step == 6:

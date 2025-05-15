@@ -101,6 +101,19 @@ function initializeWizard() {
           window.wizardContext.group_sets = safeParse(window.wizardContext.group_sets);
           window.wizardContext.groups = safeParse(window.wizardContext.groups);
           window.wizardContext.created_teams = safeParse(window.wizardContext.created_teams);
+          
+          // Debug logging for step 3 data parsing
+          if (response.current_step === 3) {
+            console.log('DEBUG: Raw groups data:', response.wizard_data.groups);
+            console.log('DEBUG: Parsed groups data:', window.wizardContext.groups);
+            
+            // Check if members data exists
+            if (window.wizardContext.groups && window.wizardContext.groups.length > 0) {
+              const firstGroup = window.wizardContext.groups[0];
+              console.log('DEBUG: First group data:', firstGroup);
+              console.log('DEBUG: First group members:', firstGroup.members);
+            }
+          }
         }
 
         // Execute success callback
@@ -292,20 +305,18 @@ function initializeWizard() {
           const membersCount = group.members_count || 0;
           let membersList = '';
           
-          // We'd normally fetch student names from the server, but we'll use placeholder data for now
-          // In a real implementation, this would be fetched from the server based on CanvasGroupMembership and CanvasEnrollment
-          const dummyMembers = [];
-          for (let i = 1; i <= membersCount; i++) {
-            dummyMembers.push(`Student ${i}`);
-          }
+          // Use real student data from the server if available
+          const members = group.members || [];
           
           // Create the members list HTML
-          if (dummyMembers.length > 0) {
+          if (members.length > 0) {
             membersList = `
               <ul class="list-group list-group-flush">
-                ${dummyMembers.map(member => `
-                  <li class="list-group-item border-0 py-1 px-3">${member}</li>
-                `).join('')}
+                ${members.map(member => {
+                  // Use full_name if available (from Student model), otherwise use name (from membership)
+                  const displayName = member.full_name || member.name || 'Unknown Student';
+                  return `<li class="list-group-item border-0 py-1 px-3">${displayName}</li>`;
+                }).join('')}
               </ul>
             `;
           } else {
@@ -598,6 +609,14 @@ function initializeWizard() {
     populateGroupSets();
   } else if (window.wizardContext.current_step === 3) {
     updateGroupsList();
+    
+    // Add debug logging for groups data in step 3
+    console.log('DEBUG: Groups data for step 3:', window.wizardContext.groups);
+    const groupsWithMembers = window.wizardContext.groups.filter(g => g.members && g.members.length > 0);
+    console.log('DEBUG: Groups with members:', groupsWithMembers.length);
+    if (groupsWithMembers.length > 0) {
+      console.log('DEBUG: First group members:', groupsWithMembers[0].members);
+    }
   } else if (window.wizardContext.current_step === 5) {
     updateSummary();
   }
