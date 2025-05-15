@@ -109,6 +109,8 @@ class Team(models.Model, AsyncModelMixin):
     description = models.TextField(blank=True, null=True)
     github_organization = models.CharField(
         max_length=100, blank=True, null=True)
+    taiga_project = models.CharField(
+        max_length=100, blank=True, null=True)
     github_team_id = models.CharField(max_length=100, blank=True, null=True)
     taiga_project_id = models.CharField(max_length=100, blank=True, null=True)
     # Canvas integration fields
