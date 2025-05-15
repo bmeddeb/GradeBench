@@ -1,0 +1,42 @@
+<!-- Example of how to use the modal component -->
+
+<!-- Button to trigger the modal -->
+<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exampleModal">
+  Open Example Modal
+</button>
+
+<!-- Include the modal component with parameters -->
+{% include "components/modal.html" with
+   modal_id="exampleModal"
+   modal_size="lg"
+   title="Example Modal Title"
+   icon="cog"
+   header_class="bg-primary text-white"
+   body="<p>This is the modal body content. You can include any HTML here.</p><p>You can also pass in a variable containing HTML content.</p>"
+   primary_btn_text="Save Changes"
+   primary_btn_id="saveChangesBtn"
+   cancel_btn_text="Cancel"
+   show_footer_content=True
+   footer_content="<div class='spinner-border spinner-border-sm text-primary me-2' role='status'><span class='visually-hidden'>Loading...</span></div><span>Processing...</span>"
+%}
+
+<!-- JavaScript to handle the modal -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize the modal
+  const modalElement = document.getElementById('exampleModal');
+  const modal = new bootstrap.Modal(modalElement);
+
+  // Handle the save button click
+  const saveBtn = document.getElementById('saveChangesBtn');
+  if (saveBtn) {
+    saveBtn.addEventListener('click', function() {
+      // Do something when the save button is clicked
+      console.log('Save button clicked');
+
+      // Hide the modal when done
+      modal.hide();
+    });
+  }
+});
+</script>

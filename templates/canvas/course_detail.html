@@ -412,6 +412,22 @@
 <script src="{% static 'js/canvas-sync-progress.js' %}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Make sure Bootstrap modal is properly initialized
+    const syncCoursesModalEl = document.getElementById('syncCoursesModal');
+    let syncCoursesModal = null;
+
+    if (syncCoursesModalEl) {
+        syncCoursesModal = new bootstrap.Modal(syncCoursesModalEl);
+
+        // Add explicit close handler for the close button
+        const closeBtn = document.getElementById('closeModalBtn');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', function() {
+                syncCoursesModal.hide();
+            });
+        }
+    }
+
     // Set up the sync button for the current course
     const syncButton = document.getElementById('syncCourseBtn');
     if (syncButton) {
@@ -435,9 +451,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // Hide the modal
-        const syncModal = bootstrap.Modal.getInstance(document.getElementById('syncCoursesModal'));
-        if (syncModal) {
-            syncModal.hide();
+        if (syncCoursesModal) {
+            syncCoursesModal.hide();
         }
 
         // Start sync with progress tracking

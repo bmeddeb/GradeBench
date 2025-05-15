@@ -32,38 +32,46 @@ document.getElementById('saveBtn').addEventListener('click', function() {
 ```
 {% endcomment %}
 
-<div class="modal fade" id="{{ id }}" 
-    tabindex="-1" 
-    aria-labelledby="{{ id }}Label" 
-    aria-hidden="true"
-    {% if backdrop %}data-bs-backdrop="{{ backdrop }}"{% endif %}
-    {% if keyboard == False %}data-bs-keyboard="false"{% endif %}>
-    <div class="modal-dialog 
-        {% if size == 'sm' %}modal-sm{% elif size == 'lg' %}modal-lg{% elif size == 'xl' %}modal-xl{% endif %}
-        {% if centered %}modal-dialog-centered{% endif %}
-        {% if scrollable %}modal-dialog-scrollable{% endif %}
-        {% if fullscreen %}modal-fullscreen{% endif %}">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="{{ id }}Label">{{ title }}</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                {% if content %}
-                    {{ content|safe }}
-                {% else %}
-                    {% block modal_body %}{% endblock %}
-                {% endif %}
-            </div>
-            <div class="modal-footer">
-                {% block modal_footer_extra %}{% endblock %}
-                {% if close_text %}
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ close_text }}</button>
-                {% endif %}
-                {% if save_text %}
-                <button type="button" class="btn btn-primary" {% if save_id %}id="{{ save_id }}"{% endif %}>{{ save_text }}</button>
-                {% endif %}
-            </div>
-        </div>
+{% load django_bootstrap5 %}
+
+<!-- Reusable Styled Modal Component -->
+<div class="modal fade"
+     id="{{ modal_id }}"
+     tabindex="-1"
+     aria-labelledby="{{ modal_id }}Label"
+     aria-hidden="true"
+     {% if modal_size %}data-bs-size="{{ modal_size }}"{% endif %}>
+  <div class="modal-dialog {% if modal_size == 'lg' %}modal-lg{% elif modal_size == 'sm' %}modal-sm{% elif modal_size == 'xl' %}modal-xl{% endif %}">
+    <div class="modal-content">
+      <!-- Modal Header with background color -->
+      <div class="modal-header {% if header_class %}{{ header_class }}{% else %}bg-primary text-white{% endif %}">
+        <h5 class="modal-title" id="{{ modal_id }}Label">
+          {% if icon %}<i class="fa fa-{{ icon }} me-2"></i>{% endif %}{{ title }}
+        </h5>
+        <button type="button" class="btn-close {% if header_class and header_class contains 'text-white' or header_class == 'bg-primary' %}btn-close-white{% endif %}" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-body">
+        {{ body|safe }}
+      </div>
+
+      <!-- Modal Footer with buttons -->
+      <div class="modal-footer">
+        {% if show_footer_content %}
+          <div class="me-auto">
+            {{ footer_content|safe }}
+          </div>
+        {% endif %}
+
+        {% if primary_btn_text %}
+          {% bootstrap_button primary_btn_text button_class="btn-primary btn-round" id=primary_btn_id extra_classes="me-2" %}
+        {% endif %}
+
+        {% if cancel_btn_text or not hide_cancel %}
+          {% bootstrap_button cancel_btn_text|default:"Close" button_class="btn-outline-secondary btn-round" extra_attrs="data-bs-dismiss=modal" %}
+        {% endif %}
+      </div>
     </div>
+  </div>
 </div>
