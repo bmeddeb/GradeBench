@@ -8,7 +8,7 @@
 
 {% block extra_head %}
 <!-- Add course ID for JavaScript access -->
-<meta name="course-id" content="{{ course.id }}">
+<meta name="course-id" content="{{ course.canvas_id }}">
 {% endblock %}
 
 {% block canvas_content %}
@@ -45,7 +45,8 @@
                 </div>
 
                 {% if not category_data %}
-                <div class="alert alert-info">
+                <div class="alert alert-info" role="alert">
+                    <h4 class="alert-heading">No Group Sets Found</h4>
                     <p><i class="fa fa-info-circle"></i> No group sets found for this course.</p>
                     <p>Group sets need to be synchronized from Canvas first. Click the "Sync Groups" button above to fetch group sets, groups, and memberships from Canvas.</p>
                 </div>
@@ -365,7 +366,7 @@
             // Create a POST request with CSRF token
             const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
-            // Show the delete operation in progress 
+            // Show the delete operation in progress
             const modal = document.getElementById('confirmDeleteModal');
             const modalBody = document.getElementById('confirmDeleteModalBody');
             const confirmButton = document.getElementById('confirmDeleteButton');
@@ -376,7 +377,7 @@
             confirmButton.disabled = true;
             closeButton.disabled = true;
             cancelButton.disabled = true;
-            
+
             // Replace current text with a loading indicator
             const originalText = modalBody.innerHTML;
             modalBody.innerHTML = `
@@ -417,12 +418,12 @@
                 } else {
                     // Restore original modal content
                     modalBody.innerHTML = originalText;
-                    
+
                     // Re-enable buttons
                     confirmButton.disabled = false;
                     closeButton.disabled = false;
                     cancelButton.disabled = false;
-                    
+
                     // Show error message
                     if (typeof $ !== 'undefined' && typeof $.notify === 'function') {
                         $.notify({
@@ -440,15 +441,15 @@
             })
             .catch(error => {
                 console.error('Error deleting group set:', error);
-                
+
                 // Restore original modal content
                 modalBody.innerHTML = originalText;
-                
+
                 // Re-enable buttons
                 confirmButton.disabled = false;
                 closeButton.disabled = false;
                 cancelButton.disabled = false;
-                
+
                 // Show error message
                 if (typeof $ !== 'undefined' && typeof $.notify === 'function') {
                     $.notify({
@@ -491,7 +492,10 @@
                         .catch(error => {
                             console.error('Error:', error);
                             if (container) {
-                                container.innerHTML = `<div class="alert alert-danger">Error loading group data: ${error.message}</div>`;
+                                container.innerHTML = `<div class="alert alert-danger" role="alert">
+                                    <h4 class="alert-heading">Error Loading Data</h4>
+                                    <p><i class="fa fa-exclamation-circle me-2"></i> Error loading group data: ${error.message}</p>
+                                </div>`;
                                 container.style.display = 'block';
                             }
                         })
@@ -511,7 +515,7 @@
 
             // Verify we have all necessary data
             if (!data) {
-                container.innerHTML = '<div class="alert alert-danger">Error: No data received from server</div>';
+                container.innerHTML = '<div class="alert alert-danger" role="alert"><h4 class="alert-heading">Error</h4><p><i class="fa fa-exclamation-circle me-2"></i> No data received from server</p></div>';
                 return;
             }
 
