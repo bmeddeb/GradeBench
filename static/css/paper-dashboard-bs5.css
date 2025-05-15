@@ -1,6 +1,17 @@
 /**
  * Paper Dashboard Bootstrap 5 Theme Bridge
  * This file adapts Paper Dashboard styling to Bootstrap 5
+ *
+ * Paper Dashboard color palette:
+ * Primary:   #7A9E9F (turquoise)
+ * Secondary: #66615B (gray)
+ * Success:   #7AC29A (green)
+ * Info:      #68B3C8 (light blue)
+ * Warning:   #F3BB45 (yellow)
+ * Danger:    #EB5E28 (orange)
+ *
+ * Note: These colors differ from the default Bootstrap 5 palette,
+ * but we maintain them for compatibility with Paper Dashboard.
  */
 
 /* Override Bootstrap 5 variables with Paper Dashboard aesthetic */
@@ -221,6 +232,164 @@
     border-radius: var(--gb-border-radius-sm);
     font-weight: var(--gb-font-weight-semibold);
     transition: all var(--gb-transition-fast);
+}
+
+/* Round buttons - the preferred style in GradeBench */
+.btn-round {
+    border-radius: var(--gb-border-radius-pill);
+    padding-left: var(--gb-space-lg);
+    padding-right: var(--gb-space-lg);
+}
+
+/* Button states and hover effects */
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--gb-shadow-sm);
+}
+
+.btn:active, .btn:focus {
+    transform: translateY(0);
+    box-shadow: none;
+}
+
+/* Button sizes with rounded style */
+.btn-sm.btn-round {
+    padding-left: var(--gb-space-md);
+    padding-right: var(--gb-space-md);
+}
+
+.btn-lg.btn-round {
+    padding-left: var(--gb-space-xl);
+    padding-right: var(--gb-space-xl);
+}
+
+/* Round button variants - Use Paper Dashboard colors */
+.btn-primary.btn-round {
+    background-color: #7A9E9F; /* Paper Dashboard primary */
+    border-color: #7A9E9F;
+    color: white;
+}
+
+.btn-primary.btn-round:hover {
+    background-color: #66898a; /* Darker variant */
+    border-color: #66898a;
+}
+
+.btn-success.btn-round {
+    background-color: #7AC29A; /* Paper Dashboard success */
+    border-color: #7AC29A;
+    color: white;
+}
+
+.btn-success.btn-round:hover {
+    background-color: #66b88b; /* Darker variant */
+    border-color: #66b88b;
+}
+
+.btn-info.btn-round {
+    background-color: #68B3C8; /* Paper Dashboard info */
+    border-color: #68B3C8;
+    color: white;
+}
+
+.btn-info.btn-round:hover {
+    background-color: #51a2bb; /* Darker variant */
+    border-color: #51a2bb;
+}
+
+.btn-warning.btn-round {
+    background-color: #F3BB45; /* Paper Dashboard warning */
+    border-color: #F3BB45;
+    color: white;
+}
+
+.btn-warning.btn-round:hover {
+    background-color: #f1ac26; /* Darker variant */
+    border-color: #f1ac26;
+}
+
+.btn-danger.btn-round {
+    background-color: #EB5E28; /* Paper Dashboard danger */
+    border-color: #EB5E28;
+    color: white;
+}
+
+.btn-danger.btn-round:hover {
+    background-color: #de4816; /* Darker variant */
+    border-color: #de4816;
+}
+
+/* Outline rounded buttons - Paper Dashboard style */
+.btn-outline-primary.btn-round {
+    color: #7A9E9F;
+    border-color: #7A9E9F;
+    background-color: transparent;
+}
+
+.btn-outline-primary.btn-round:hover {
+    background-color: rgba(122, 158, 159, 0.1);
+    color: #7A9E9F;
+    border-color: #7A9E9F;
+}
+
+.btn-outline-secondary.btn-round {
+    color: #66615B;
+    border-color: #66615B;
+    background-color: transparent;
+}
+
+.btn-outline-secondary.btn-round:hover {
+    background-color: rgba(102, 97, 91, 0.1);
+    color: #66615B;
+    border-color: #66615B;
+}
+
+.btn-outline-info.btn-round {
+    color: #68B3C8;
+    border-color: #68B3C8;
+    background-color: transparent;
+}
+
+.btn-outline-info.btn-round:hover {
+    background-color: rgba(104, 179, 200, 0.1);
+    color: #68B3C8;
+    border-color: #68B3C8;
+}
+
+.btn-outline-success.btn-round {
+    color: #7AC29A;
+    border-color: #7AC29A;
+    background-color: transparent;
+}
+
+.btn-outline-success.btn-round:hover {
+    background-color: rgba(122, 194, 154, 0.1);
+    color: #7AC29A;
+    border-color: #7AC29A;
+}
+
+.btn-outline-warning.btn-round {
+    color: #F3BB45;
+    border-color: #F3BB45;
+    background-color: transparent;
+}
+
+.btn-outline-warning.btn-round:hover {
+    background-color: rgba(243, 187, 69, 0.1);
+    color: #F3BB45;
+    border-color: #F3BB45;
+}
+
+.btn-outline-danger.btn-round {
+    color: #EB5E28;
+    border-color: #EB5E28;
+    background-color: transparent;
+}
+
+.btn-outline-danger.btn-round:hover {
+    background-color: rgba(235, 94, 40, 0.1);
+    color: #EB5E28;
+    border-color: #EB5E28;
 }
 
 /* Django Bootstrap 5 specific adjustments */

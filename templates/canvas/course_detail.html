@@ -184,7 +184,7 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <a href="{% url 'canvas_assignment_detail' course_id=course.canvas_id assignment_id=assignment.canvas_id %}" class="btn btn-info btn-xs">
+                                    <a href="{% url 'canvas_assignment_detail' course_id=course.canvas_id assignment_id=assignment.canvas_id %}" class="btn btn-info btn-round btn-sm">
                                         <i class="fa fa-eye"></i> View
                                     </a>
                                 </td>
@@ -257,10 +257,10 @@
                 </div>
 
                 <div class="text-center mt-4">
-                    <a href="{{ course.integration.canvas_url }}/courses/{{ course.canvas_id }}" target="_blank" class="btn btn-primary btn-fill">
+                    <a href="{{ course.integration.canvas_url }}/courses/{{ course.canvas_id }}" target="_blank" class="btn btn-primary btn-round">
                         <i class="fa fa-external-link"></i> Open in Canvas
                     </a>
-                    <a href="{% url 'canvas_delete_course' course_id=course.canvas_id %}" class="btn btn-danger btn-fill mt-2">
+                    <a href="{% url 'canvas_delete_course' course_id=course.canvas_id %}" class="btn btn-danger btn-round mt-2">
                         <i class="fa fa-trash"></i> Delete Course
                     </a>
                 </div>
@@ -332,7 +332,7 @@
                                 </td>
                                 <td>
                                     {% if enrollment.role == 'StudentEnrollment' %}
-                                    <a href="{% url 'canvas_student_detail' course_id=course.canvas_id user_id=enrollment.user_id %}" class="btn btn-info btn-xs">
+                                    <a href="{% url 'canvas_student_detail' course_id=course.canvas_id user_id=enrollment.user_id %}" class="btn btn-info btn-round btn-sm">
                                         <i class="fa fa-eye"></i> View
                                     </a>
                                     {% endif %}
@@ -381,8 +381,8 @@
       <div class="modal-body">
         <div id="coursesLoading">Loading courses...</div>
         <div id="coursesList" class="initially-hidden">
-          <button class="btn btn-link" onclick="selectAllCourses(true)">Select All</button>
-          <button class="btn btn-link" onclick="selectAllCourses(false)">Deselect All</button>
+          <button class="btn btn-link btn-sm" onclick="selectAllCourses(true)">Select All</button>
+          <button class="btn btn-link btn-sm" onclick="selectAllCourses(false)">Deselect All</button>
           <ul id="coursesCheckboxList" class="courses-checkbox-list list-unstyled mt-2"></ul>
         </div>
         <div id="coursesError" class="alert alert-danger initially-hidden"></div>
@@ -394,8 +394,8 @@
           </div>
           <span class="ms-2">Syncing courses, please wait...</span>
         </div>
-        <button id="syncSelectedBtn" class="btn btn-primary" onclick="syncSelectedCourses()">Sync Selected</button>
-        <button id="closeModalBtn" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+        <button id="syncSelectedBtn" class="btn btn-primary btn-round" onclick="syncSelectedCourses()">Sync Selected</button>
+        <button id="closeModalBtn" class="btn btn-outline-secondary btn-round" data-bs-dismiss="modal">Close</button>
       </div>
     </div>
   </div>
