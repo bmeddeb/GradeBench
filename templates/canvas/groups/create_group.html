@@ -1,5 +1,6 @@
 {% extends 'canvas/base.html' %}
 {% load static %}
+{% load django_bootstrap5 %}
 
 {% block title %}Create Group: {{ group_set.name }} | GradeBench Canvas{% endblock %}
 {% block page_title %}Create Group: {{ group_set.name }}{% endblock %}
@@ -14,39 +15,38 @@
                     <h4 class="card-title mb-0">Create Group</h4>
                     <p class="card-category">Add a new group to "{{ group_set.name }}"</p>
                 </div>
-                <a href="{% url 'canvas_course_groups' course_id=course.canvas_id %}" class="btn btn-sm btn-outline-primary">
+                <a href="{% url 'canvas_course_groups' course_id=course.canvas_id %}" class="btn btn-sm btn-outline-primary btn-round">
                     <i class="fa fa-arrow-left"></i> Back to Groups
                 </a>
             </div>
             <div class="card-body">
                 {% if error %}
-                <div class="alert alert-danger">
-                    <p><i class="fa fa-exclamation-triangle"></i> {{ error }}</p>
+                <div class="alert alert-danger" role="alert">
+                    <h4 class="alert-heading">Error</h4>
+                    <p><i class="fa fa-exclamation-triangle me-2"></i> {{ error }}</p>
                 </div>
                 {% endif %}
                 
                 <form method="post" action="{% url 'canvas_create_group' course_id=course.canvas_id group_set_id=group_set.id %}">
                     {% csrf_token %}
                     
-                    <div class="form-group mb-3">
-                        <label for="name">Group Name <span class="text-danger">*</span></label>
-                        <input type="text" id="name" name="name" class="form-control" required>
-                        <small class="form-text text-muted">Example: "Team Alpha" or "Group 1"</small>
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Group Name <span class="text-danger">*</span></label>
+                        <input type="text" id="name" name="name" class="form-control" placeholder="Enter group name" required>
+                        <div class="form-text">Example: "Team Alpha" or "Group 1"</div>
                     </div>
                     
-                    <div class="form-group mb-3">
-                        <label for="description">Description</label>
-                        <textarea id="description" name="description" class="form-control" rows="3"></textarea>
-                        <small class="form-text text-muted">A brief description of this group (optional).</small>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea id="description" name="description" class="form-control" rows="3" placeholder="Enter group description (optional)"></textarea>
+                        <div class="form-text">A brief description of this group (optional).</div>
                     </div>
                     
-                    <div class="form-group d-flex justify-content-end mt-4">
-                        <a href="{% url 'canvas_course_groups' course_id=course.canvas_id %}" class="btn btn-outline-secondary me-2">
+                    <div class="d-flex justify-content-end mt-4">
+                        <a href="{% url 'canvas_course_groups' course_id=course.canvas_id %}" class="btn btn-outline-secondary btn-round me-2">
                             Cancel
                         </a>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fa fa-save"></i> Create Group
-                        </button>
+                        {% bootstrap_button button_type="submit" content='<i class="fa fa-save me-1"></i> Create Group' button_class="btn-primary btn-round" %}
                     </div>
                 </form>
             </div>
@@ -57,17 +57,22 @@
 
 {% block canvas_css %}
 <style>
-    .form-group label {
+    /* Bootstrap 5 compatible form styling */
+    .form-label {
         font-weight: 500;
+        margin-bottom: var(--gb-space-xs);
+        color: var(--gb-text-primary);
     }
     
     .form-text {
-        font-size: 0.85rem;
+        color: var(--gb-text-secondary);
+        font-size: var(--gb-font-size-sm);
+        margin-top: var(--gb-space-xs);
     }
     
     .form-control:focus {
-        border-color: #80bdff;
-        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        border-color: var(--gb-primary);
+        box-shadow: 0 0 0 0.25rem rgba(var(--gb-primary-rgb), 0.25);
     }
 </style>
 {% endblock %}
