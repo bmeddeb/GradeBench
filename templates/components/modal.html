@@ -1,0 +1,35 @@
+{% comment %}
+Usage: 
+{% include 'components/modal.html' with id="my-modal" title="Modal Title" size="lg" close_text="Close" save_text="Save" save_id="saveBtn" %}
+    {% block modal_body %}
+        <!-- Modal content goes here -->
+    {% endblock %}
+    
+    {% block modal_footer_extra %}
+        <!-- Additional footer content goes here -->
+    {% endblock %}
+{% endinclude %}
+{% endcomment %}
+
+<div class="modal fade" id="{{ id }}" tabindex="-1" aria-labelledby="{{ id }}Label" aria-hidden="true">
+    <div class="modal-dialog {% if size == 'sm' %}modal-sm{% elif size == 'lg' %}modal-lg{% elif size == 'xl' %}modal-xl{% endif %}">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="{{ id }}Label">{{ title }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                {% block modal_body %}{% endblock %}
+            </div>
+            <div class="modal-footer">
+                {% block modal_footer_extra %}{% endblock %}
+                {% if close_text %}
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ close_text }}</button>
+                {% endif %}
+                {% if save_text %}
+                <button type="button" class="btn btn-primary" {% if save_id %}id="{{ save_id }}"{% endif %}>{{ save_text }}</button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>

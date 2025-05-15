@@ -312,6 +312,7 @@
 /* Visibility utilities */
 .visible { visibility: visible !important; }
 .invisible { visibility: hidden !important; }
+.initially-hidden { display: none !important; }
 
 /* Z-index utilities */
 .z-n1 { z-index: -1 !important; }

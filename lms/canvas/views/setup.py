@@ -11,6 +11,7 @@ import httpx
 
 from ..models import CanvasIntegration
 from ..decorators import canvas_integration_required
+from ..forms import CanvasSetupForm
 
 logger = logging.getLogger(__name__)
 
@@ -30,29 +31,26 @@ def canvas_setup(request):
     integration = get_integration_for_user(request.user)
     
     if request.method == "POST":
-        api_key = request.POST.get("api_key")
-        canvas_url = request.POST.get(
-            "canvas_url", "https://canvas.instructure.com")
+        # Use our ModelForm
+        form = CanvasSetupForm(request.POST, instance=integration)
         
-        if not api_key:
-            messages.error(request, "API Key is required")
-            return render(request, "canvas/setup.html", {"integration": integration})
-        
-        # Create or update the integration
-        if integration:
-            integration.api_key = api_key
-            integration.canvas_url = canvas_url
-            integration.save()
-        else:
-            integration = CanvasIntegration(
-                user=request.user, api_key=api_key, canvas_url=canvas_url
-            )
-            integration.save()
-        
-        messages.success(request, "Canvas integration set up successfully")
-        return redirect("canvas_dashboard")
+        if form.is_valid():
+            # Create a new integration if there isn't one
+            if not integration:
+                integration = form.save(commit=False)
+                integration.user = request.user
+                integration.save()
+            else:
+                # Otherwise update the existing one
+                form.save()
+            
+            messages.success(request, "Canvas integration set up successfully")
+            return redirect("canvas_dashboard")
+    else:
+        # Initialize the form with existing integration data if available
+        form = CanvasSetupForm(instance=integration)
     
-    return render(request, "canvas/setup.html", {"integration": integration})
+    return render(request, "canvas/setup.html", {"integration": integration, "form": form})
 
 
 @login_required

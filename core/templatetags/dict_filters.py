@@ -42,3 +42,12 @@ def get_taiga_config_value(taiga_config, group_id, field_name):
     if isinstance(group_config, dict):
         return group_config.get(field_name, "")
     return ""
+
+
+@register.filter
+def split(value, delimiter):
+    """
+    Split a string into a list using the delimiter
+    Example usage: {{ "a,b,c"|split:"," }}
+    """
+    return value.split(delimiter)

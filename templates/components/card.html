@@ -1,0 +1,25 @@
+{% comment %}
+Usage: 
+{% include 'components/card.html' with title="Card Title" subtitle="Card Subtitle" %}
+    {% block card_content %}
+        <!-- Card content goes here -->
+    {% endblock %}
+{% endinclude %}
+{% endcomment %}
+
+<div class="card">
+    {% if title or subtitle %}
+    <div class="card-header">
+        {% if title %}<h4 class="card-title">{{ title }}</h4>{% endif %}
+        {% if subtitle %}<p class="card-category">{{ subtitle }}</p>{% endif %}
+    </div>
+    {% endif %}
+    <div class="card-body">
+        {% block card_content %}{% endblock %}
+    </div>
+    {% if footer %}
+    <div class="card-footer">
+        {{ footer|safe }}
+    </div>
+    {% endif %}
+</div>

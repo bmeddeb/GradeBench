@@ -18,6 +18,7 @@ from ..models import (
     CanvasSubmission,
     CanvasRubricCriterion,
 )
+from ..forms import CourseFilterForm
 from ..decorators import canvas_integration_required, canvas_integration_required_json
 from ..utils import get_json_error_response, get_json_success_response
 
@@ -31,13 +32,34 @@ class CourseListView(ListView):
     context_object_name = "course_data"
     
     def get_queryset(self):
-        """Get courses with annotated counts"""
+        """Get courses with annotated counts and apply filters"""
         integration = self.request.canvas_integration
-
-        # Get courses with prefetched related data for more accurate counting
-        courses = CanvasCourse.objects.filter(
+        
+        # Get filter form parameters
+        form = self.get_filter_form()
+        
+        # Start with base queryset
+        queryset = CanvasCourse.objects.filter(
             integration=integration
-        ).prefetch_related('enrollments', 'assignments')
+        )
+        
+        # Apply filters if the form is valid
+        if form.is_valid():
+            # Apply search filter
+            search = form.cleaned_data.get('search')
+            if search:
+                queryset = queryset.filter(
+                    Q(name__icontains=search) | 
+                    Q(course_code__icontains=search)
+                )
+            
+            # Apply status filter
+            status = form.cleaned_data.get('status')
+            if status:
+                queryset = queryset.filter(workflow_state=status)
+        
+        # Prefetch related data for more accurate counting
+        courses = queryset.prefetch_related('enrollments', 'assignments')
 
         # Format the data to match what the template expects with proper counting
         course_data = []
@@ -53,12 +75,19 @@ class CourseListView(ListView):
             })
 
         return course_data
+        
+    def get_filter_form(self):
+        """Get and initialize the filter form"""
+        return CourseFilterForm(self.request.GET or None)
     
     def get_context_data(self, **kwargs):
         """Add integration and quiz count to context"""
         context = super().get_context_data(**kwargs)
         integration = self.request.canvas_integration
         context['integration'] = integration
+        
+        # Add filter form to context
+        context['filter_form'] = self.get_filter_form()
         
         # Count all quizzes across all courses
         try:

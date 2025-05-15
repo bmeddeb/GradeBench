@@ -1,5 +1,7 @@
 {% extends 'canvas/base.html' %}
 {% load static %}
+{% load django_bootstrap5 %}
+{% load dict_filters %}
 
 {% block title %}Canvas Setup | GradeBench{% endblock %}
 {% block page_title %}Canvas API Setup{% endblock %}
@@ -14,64 +16,65 @@
                 <p class="card-category">Set up your Canvas API access token</p>
             </div>
             <div class="card-body">
-                <form method="post">
+                <form method="post" novalidate>
                     {% csrf_token %}
-
-                    <div class="row mb-4">
-                        <div class="col-md-12">
-                            <div class="form-group">
-                                <label>Canvas URL</label>
-                                <input type="url" class="form-control" name="canvas_url"
-                                    placeholder="https://canvas.instructure.com" value="{{ integration.canvas_url|default:'https://canvas.instructure.com' }}">
-                                <small class="form-text text-muted">The URL of your Canvas instance. Default is https://canvas.instructure.com</small>
-                            </div>
+                    
+                    {% if form.non_field_errors %}
+                        {% bootstrap_form_errors form %}
+                    {% endif %}
+                    
+                    {% for field in form %}
+                        {% if field.name != "api_key" %}
+                            {% bootstrap_field field %}
+                        {% endif %}
+                    {% endfor %}
+                    
+                    <div class="mb-3">
+                        <label for="apiKeyInput" class="form-label">{{ form.api_key.label }}</label>
+                        <div class="input-group">
+                            {{ form.api_key }}
+                            <button class="btn btn-outline-secondary" type="button" id="toggleApiKey">
+                                <i class="fa fa-eye"></i>
+                            </button>
                         </div>
-                    </div>
-
-                    <div class="row mb-4">
-                        <div class="col-md-12">
-                            <div class="form-group">
-                                <label>Canvas API Key</label>
-                                <div class="input-group">
-                                    <input type="password" class="form-control" name="api_key" id="apiKeyInput"
-                                        placeholder="Enter your Canvas API key" value="{{ integration.api_key|default:'' }}">
-                                    <button class="btn btn-outline-secondary" type="button" id="toggleApiKey">
-                                        <i class="fa fa-eye"></i>
-                                    </button>
-                                </div>
-                                <small class="form-text text-muted">
-                                    You can generate an API key in your Canvas account settings under "Approved Integrations".
-                                    {% if integration.api_key %}
-                                    <span class="text-info">Current key: •••••••••••••••••{{ integration.api_key|slice:"-4:" }}</span>
-                                    {% endif %}
-                                </small>
-                            </div>
+                        <div class="form-text">
+                            {{ form.api_key.help_text }}
+                            {% if integration.api_key %}
+                            <span class="text-info">Current key: •••••••••••••••••{{ integration.api_key|slice:"-4:" }}</span>
+                            {% endif %}
                         </div>
+                        {% if form.api_key.errors %}
+                            {% for error in form.api_key.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        {% endif %}
                     </div>
 
-                    <div class="row mb-4">
-                        <div class="col-md-12">
-                            <div class="alert alert-info">
-                                <h4>How to Generate a Canvas API Key</h4>
-                                <ol>
-                                    <li>Log in to your Canvas account</li>
-                                    <li>Go to Account &gt; Settings</li>
-                                    <li>Scroll down to "Approved Integrations"</li>
-                                    <li>Click "New Access Token"</li>
-                                    <li>Enter a purpose (e.g., "GradeBench Integration")</li>
-                                    <li>Set an expiration date (or leave blank for no expiration)</li>
-                                    <li>Click "Generate Token"</li>
-                                    <li>Copy the token and paste it here</li>
-                                </ol>
-                                <p class="mb-0">Note: The token will only be displayed once. If you lose it, you'll need to generate a new one.</p>
-                            </div>
+                    <div class="mb-4">
+                        {% with title="How to Generate a Canvas API Key" type="info" %}
+                        <div class="alert alert-{{ type }}" role="alert">
+                            {% if title %}
+                            <h4 class="alert-heading">{{ title }}</h4>
+                            {% endif %}
+                            
+                            <ol>
+                                <li>Log in to your Canvas account</li>
+                                <li>Go to Account &gt; Settings</li>
+                                <li>Scroll down to "Approved Integrations"</li>
+                                <li>Click "New Access Token"</li>
+                                <li>Enter a purpose (e.g., "GradeBench Integration")</li>
+                                <li>Set an expiration date (or leave blank for no expiration)</li>
+                                <li>Click "Generate Token"</li>
+                                <li>Copy the token and paste it here</li>
+                            </ol>
+                            <p class="mb-0">Note: The token will only be displayed once. If you lose it, you'll need to generate a new one.</p>
                         </div>
+                        {% endwith %}
                     </div>
-
-                    <div class="text-center">
-                        <button type="submit" class="btn btn-primary btn-fill">Save Configuration</button>
+                    
+                    <div class="text-center mt-4">
+                        {% bootstrap_button "Save Configuration" button_type="submit" button_class="btn-primary btn-fill" %}
                     </div>
-                    <div class="clearfix"></div>
                 </form>
             </div>
         </div>

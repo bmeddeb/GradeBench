@@ -1,0 +1,36 @@
+{% comment %}
+Usage: 
+{% include 'components/filter_form.html' with form=form form_id="filter-form" method="get" submit_text="Filter" submit_class="btn-primary btn-sm" reset_url=reset_url %}
+{% endcomment %}
+
+{% load django_bootstrap5 %}
+
+<form method="{{ method|default:'get' }}" {% if form_id %}id="{{ form_id }}"{% endif %} class="filter-form mb-3">
+    <div class="row g-2">
+        {% for field in form %}
+            <div class="col-md-{% if field.field.widget.input_type == 'checkbox' %}auto{% else %}3{% endif %}">
+                {% if field.field.widget.input_type == 'checkbox' %}
+                    <div class="form-check mt-2">
+                        {% bootstrap_field field show_label=False %}
+                    </div>
+                {% else %}
+                    {% bootstrap_field field show_label=False placeholder=field.label %}
+                {% endif %}
+            </div>
+        {% endfor %}
+        
+        <div class="col-md-auto">
+            <div class="d-flex mt-1">
+                {% if submit_text %}
+                    {% bootstrap_button submit_text button_type="submit" button_class=submit_class|default:"btn-primary btn-sm" %}
+                {% endif %}
+                
+                {% if reset_url %}
+                    <a href="{{ reset_url }}" class="btn btn-outline-secondary btn-sm ms-2">
+                        Reset
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</form>

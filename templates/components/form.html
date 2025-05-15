@@ -1,0 +1,42 @@
+{% comment %}
+Usage: 
+{% include 'components/form.html' with form=form submit_text="Save" submit_class="btn-primary btn-fill" %}
+    {% block form_content %}
+        <!-- Custom form fields here, will be inserted after the form fields -->
+    {% endblock %}
+{% endinclude %}
+{% endcomment %}
+
+{% load django_bootstrap5 %}
+
+<form method="{{ method|default:'post' }}" {% if form_id %}id="{{ form_id }}"{% endif %} novalidate>
+    {% csrf_token %}
+    
+    {% if form.non_field_errors %}
+        {% bootstrap_form_errors form %}
+    {% endif %}
+    
+    {% if exclude_fields %}
+        {% for field in form %}
+            {% if field.name not in exclude_fields %}
+                {% bootstrap_field field %}
+            {% endif %}
+        {% endfor %}
+    {% else %}
+        {% bootstrap_form form %}
+    {% endif %}
+    
+    {% block form_content %}{% endblock %}
+    
+    {% if submit_text %}
+    <div class="text-center mt-4">
+        {% bootstrap_button submit_text button_type="submit" button_class=submit_class|default:"btn-primary" %}
+        
+        {% if back_url %}
+            <a href="{{ back_url }}" class="btn btn-secondary ms-2">
+                {{ back_text|default:"Cancel" }}
+            </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</form>

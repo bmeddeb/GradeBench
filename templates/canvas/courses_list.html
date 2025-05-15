@@ -1,6 +1,7 @@
 <!-- templates/canvas/courses_list.html -->
 {% extends 'canvas/base.html' %}
 {% load static %}
+{% load dict_filters %}
 
 {% block title %}Canvas Courses | GradeBench{% endblock %}
 {% block page_title %}Canvas Courses{% endblock %}
@@ -32,6 +33,9 @@
                 </div>
             </div>
             <div class="card-body">
+                {% if course_data %}
+                    {% include 'components/filter_form.html' with form=filter_form form_id="course-filter-form" submit_text="Filter" submit_class="btn-primary btn-sm" reset_url=request.path %}
+                {% endif %}
                 <!-- Progress bar for sync operations - initially hidden -->
                 <div id="syncProgress" class="progress-container mb-3" style="display: none;">
                     <div class="d-flex justify-content-between">
@@ -48,58 +52,57 @@
                 <!-- Course status list - initially hidden, will be populated by JavaScript -->
                 <div id="courseStatusList" class="course-status-list" style="display: none;"></div>
 
+                {% with headers="Course Code,Course Name,Students,Assignments,Status,Actions"|split:"," %}
                 <div class="table-responsive">
                     {% if course_data %}
-                    <table class="table table-hover">
-                        <thead class="text-primary">
-                            <tr>
-                                <th>Course Code</th>
-                                <th>Course Name</th>
-                                <th>Students</th>
-                                <th>Assignments</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for item in course_data %}
-                            <tr>
-                                <td>{{ item.course.course_code }}</td>
-                                <td>{{ item.course.name }}</td>
-                                <td>{{ item.enrollment_count }}</td>
-                                <td>{{ item.assignment_count }}</td>
-                                <td>
-                                    <span class="badge {% if item.course.workflow_state == 'available' %}bg-success{% elif item.course.workflow_state == 'unpublished' %}bg-warning{% else %}bg-info{% endif %}">
-                                        {{ item.course.workflow_state|title }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <a href="{% url 'canvas_course_detail' course_id=item.course.canvas_id %}" class="btn btn-info btn-xs">
-                                        <i class="fa fa-eye"></i> View
-                                    </a>
-                                    <a href="#" class="btn btn-default btn-xs sync-course-btn" data-course-id="{{ item.course.canvas_id }}">
-                                        <i class="fa fa-refresh"></i> Sync
-                                    </a>
-                                    <a href="{% url 'canvas_delete_course' course_id=item.course.canvas_id %}" class="btn btn-danger btn-xs">
-                                        <i class="fa fa-trash"></i> Delete
-                                    </a>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                        <table class="table table-hover" id="courses-table">
+                            <thead class="text-primary">
+                                <tr>
+                                    {% for header in headers %}
+                                        <th>{{ header }}</th>
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in course_data %}
+                                <tr>
+                                    <td>{{ item.course.course_code }}</td>
+                                    <td>{{ item.course.name }}</td>
+                                    <td>{{ item.enrollment_count }}</td>
+                                    <td>{{ item.assignment_count }}</td>
+                                    <td>
+                                        <span class="badge {% if item.course.workflow_state == 'available' %}bg-success{% elif item.course.workflow_state == 'unpublished' %}bg-warning{% else %}bg-info{% endif %}">
+                                            {{ item.course.workflow_state|title }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'canvas_course_detail' course_id=item.course.canvas_id %}" class="btn btn-info btn-xs">
+                                            <i class="fa fa-eye"></i> View
+                                        </a>
+                                        <a href="#" class="btn btn-default btn-xs sync-course-btn" data-course-id="{{ item.course.canvas_id }}">
+                                            <i class="fa fa-refresh"></i> Sync
+                                        </a>
+                                        <a href="{% url 'canvas_delete_course' course_id=item.course.canvas_id %}" class="btn btn-danger btn-xs">
+                                            <i class="fa fa-trash"></i> Delete
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     {% else %}
-                    <div class="text-center py-5">
-                        <h3>No courses found</h3>
-                        <p>Click the 'Add Courses from Canvas' button to fetch courses from Canvas.</p>
-                        <p>
-                            <button id="openSyncModal" class="btn btn-primary mt-3" type="button" data-bs-toggle="modal" data-bs-target="#syncCoursesModal">
-                                <i class="fa fa-plus"></i> Add Courses from Canvas
-                            </button>
-                        </p>
-                    </div>
+                        <div class="text-center py-5">
+                            <h3>No courses found</h3>
+                            <p>Click the 'Add Courses from Canvas' button to fetch courses from Canvas.</p>
+                            <p>
+                                <button id="openSyncModal" class="btn btn-primary mt-3" type="button" data-bs-toggle="modal" data-bs-target="#syncCoursesModal">
+                                    <i class="fa fa-plus"></i> Add Courses from Canvas
+                                </button>
+                            </p>
+                        </div>
                     {% endif %}
                 </div>
+                {% endwith %}
             </div>
         </div>
     </div>
@@ -107,34 +110,46 @@
 
 <!-- Modal for selecting Canvas courses to sync -->
 <div class="modal fade" id="syncCoursesModal" tabindex="-1" aria-labelledby="syncCoursesModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="syncCoursesModalLabel">Select Canvas Courses to Sync</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <div id="coursesLoading">Loading courses...</div>
-        <div id="coursesList" class="initially-hidden">
-          <button class="btn btn-link" onclick="selectAllCourses(true)">Select All</button>
-          <button class="btn btn-link" onclick="selectAllCourses(false)">Deselect All</button>
-          <ul id="coursesCheckboxList" class="courses-checkbox-list list-unstyled mt-2"></ul>
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="syncCoursesModalLabel">Select Canvas Courses to Sync</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="coursesLoading">Loading courses...</div>
+                <div id="coursesList" class="initially-hidden">
+                    <div class="mb-3">
+                        <button class="btn btn-link" onclick="selectAllCourses(true)">Select All</button>
+                        <button class="btn btn-link" onclick="selectAllCourses(false)">Deselect All</button>
+                    </div>
+                    <ul id="coursesCheckboxList" class="courses-checkbox-list list-unstyled"></ul>
+                </div>
+                <div id="coursesError" class="alert alert-danger initially-hidden"></div>
+            </div>
+            <div class="modal-footer">
+                <div id="syncProgressIndicator" class="initially-hidden me-auto">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                        <span class="visually-hidden">Syncing courses...</span>
+                    </div>
+                    <span class="ms-2">Syncing courses, please wait...</span>
+                </div>
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="syncSelectedBtn">Sync Selected</button>
+            </div>
         </div>
-        <div id="coursesError" class="alert alert-danger initially-hidden"></div>
-      </div>
-      <div class="modal-footer">
-        <div id="syncProgressIndicator" class="initially-hidden me-auto">
-          <div class="spinner-border spinner-border-sm text-primary" role="status">
-            <span class="visually-hidden">Syncing courses...</span>
-          </div>
-          <span class="ms-2">Syncing courses, please wait...</span>
-        </div>
-        <button id="syncSelectedBtn" class="btn btn-primary" onclick="syncSelectedCourses()">Sync Selected</button>
-        <button id="closeModalBtn" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
-      </div>
     </div>
-  </div>
 </div>
+
+<script>
+    // Initialize the sync selected button event handler
+    document.addEventListener('DOMContentLoaded', function() {
+        const syncSelectedBtn = document.getElementById('syncSelectedBtn');
+        if (syncSelectedBtn) {
+            syncSelectedBtn.addEventListener('click', syncSelectedCourses);
+        }
+    });
+</script>
 {% endblock %}
 
 {% block canvas_js %}

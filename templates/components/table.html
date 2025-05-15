@@ -1,0 +1,38 @@
+{% comment %}
+Usage:
+{% include 'components/table.html' with table_id="courses-table" headers=headers responsive=True hover=True %}
+    {% block table_body %}
+        <!-- Table rows go here -->
+    {% endblock %}
+    
+    {% block empty_state %}
+        <!-- What to show when there's no data -->
+    {% endblock %}
+{% endinclude %}
+{% endcomment %}
+
+<div {% if responsive %}class="table-responsive"{% endif %}>
+    {% if items %}
+        <table class="table{% if hover %} table-hover{% endif %}{% if table_class %} {{ table_class }}{% endif %}" {% if table_id %}id="{{ table_id }}"{% endif %}>
+            {% if headers %}
+                <thead class="text-primary">
+                    <tr>
+                        {% for header in headers %}
+                            <th>{{ header }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+            {% endif %}
+            <tbody>
+                {% block table_body %}{% endblock %}
+            </tbody>
+        </table>
+    {% else %}
+        <div class="text-center py-5">
+            {% block empty_state %}
+                <h3>No data found</h3>
+                <p>Use the filters above to change your search criteria or add new items.</p>
+            {% endblock %}
+        </div>
+    {% endif %}
+</div>
