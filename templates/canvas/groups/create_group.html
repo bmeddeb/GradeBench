@@ -20,11 +20,11 @@
                 </a>
             </div>
             <div class="card-body">
+                <!-- Error alert using alert component -->
                 {% if error %}
-                <div class="alert alert-danger" role="alert">
-                    <h4 class="alert-heading">Error</h4>
-                    <p><i class="fa fa-exclamation-triangle me-2"></i> {{ error }}</p>
-                </div>
+                    {% with error_content='<p><i class="fa fa-exclamation-triangle me-2"></i> '|add:error|add:'</p>' %}
+                        {% include 'components/alert.html' with type="danger" title="Error" icon="exclamation-circle" content=error_content %}
+                    {% endwith %}
                 {% endif %}
                 
                 <form method="post" action="{% url 'canvas_create_group' course_id=course.canvas_id group_set_id=group_set.id %}">

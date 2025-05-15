@@ -22,7 +22,7 @@
 {% endblock %}
 
 {% block canvas_content %}
-    <!-- Progress tracking section -->
+    <!-- Use the card component with direct content -->
     <div class="card">
         <div class="card-header">
             <h4 class="card-title">Push Group Memberships to Canvas</h4>
@@ -50,11 +50,10 @@
             
             <!-- Confirmation form (hidden when in progress) -->
             <div id="confirmationContainer" {% if not push_in_progress %}style="display: block;"{% endif %}>
-                <div class="alert alert-info" role="alert">
-                    <h5 class="alert-heading"><i class="fa fa-info-circle me-2"></i>Information</h5>
-                    <p>This action will push all current group memberships from GradeBench to Canvas.</p>
-                    <p class="mb-0">Use this if you notice that some student assignments in Canvas don't match what you see in GradeBench.</p>
-                </div>
+                <!-- Now use the alert component -->
+                {% with alert_content="<p>This action will push all current group memberships from GradeBench to Canvas.</p><p class='mb-0'>Use this if you notice that some student assignments in Canvas don't match what you see in GradeBench.</p>" %}
+                    {% include "components/alert.html" with type="info" title="Information" icon="info-circle" content=alert_content %}
+                {% endwith %}
 
                 <p>You are about to update all group memberships for course <strong>{{ course.name }}</strong> in Canvas.</p>
                 <p>This will make Canvas reflect exactly what's in the GradeBench database for all groups in this course.</p>
