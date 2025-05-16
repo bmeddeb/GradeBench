@@ -216,10 +216,10 @@
                                                                 <h6 class="card-subtitle mb-2 text-muted">Members ({{ group.memberships.count }}):</h6>
                                                                 <ul class="list-unstyled member-list">
                                                                     {% for membership in group.memberships.all %}
-                                                                        <li class="{% if membership.is_leader %}leader{% endif %}">
-                                                                            <i class="fa {% if membership.is_leader %}fa-star{% else %}fa-user{% endif %} me-1"></i>
-                                                                            {{ membership.student.first_name }} {{ membership.student.last_name }}
-                                                                            {% if membership.is_leader %}<span class="leader-badge">Leader</span>{% endif %}
+                                                                        <li class="{% if forloop.first %}leader{% endif %}">
+                                                                            <i class="fa {% if forloop.first %}fa-star{% else %}fa-user{% endif %} me-1"></i>
+                                                                            {{ membership.name }}
+                                                                            {% if forloop.first %}<span class="leader-badge">Leader</span>{% endif %}
                                                                         </li>
                                                                     {% empty %}
                                                                         <li class="text-muted">No members</li>
@@ -341,34 +341,85 @@
                                 </div>
                             {% elif wizard.steps.current == 'confirmation' %}
                                 <div class="callout-info">
-                                    <p>Review your selections and confirm to create the teams.</p>
+                                    <p>Review the teams that will be created and confirm to proceed.</p>
                                 </div>
 
-                                <!-- Summary of all selections -->
+                                <!-- Summary of teams to be created -->
                                 <div class="card mb-4">
                                     <div class="card-header">
-                                        <h5 class="mb-0">Summary</h5>
+                                        <h5 class="mb-0">Teams Summary</h5>
                                     </div>
-                                    <div class="card-body">
-                                        <p><strong>Selected Course:</strong>
-                                            {% if all_data.course_selection.course %}
-                                                {{ all_data.course_selection.course.name }}
-                                            {% else %}
-                                                Not selected
-                                            {% endif %}
-                                        </p>
-                                        <p><strong>GitHub Integration:</strong>
-                                            {{ all_data.course_selection.use_github|yesno:"Yes,No" }}
-                                        </p>
-                                        <p><strong>Taiga Integration:</strong>
-                                            {{ all_data.course_selection.use_taiga|yesno:"Yes,No" }}
-                                        </p>
-
-                                        <!-- Add more details from other steps -->
+                                    <div class="card-body p-0">
+                                        <div class="table-responsive">
+                                            <table class="table table-striped table-hover mb-0">
+                                                <thead class="bg-light">
+                                                    <tr>
+                                                        <th>Team Name</th>
+                                                        {% if use_github %}
+                                                            <th>GitHub Repository</th>
+                                                        {% endif %}
+                                                        {% if use_taiga %}
+                                                            <th>Taiga Project</th>
+                                                        {% endif %}
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for team in teams_summary %}
+                                                        <tr>
+                                                            <td>{{ team.name }}</td>
+                                                            {% if use_github %}
+                                                                <td>{{ team.github_repo_name|default:"-" }}</td>
+                                                            {% endif %}
+                                                            {% if use_taiga %}
+                                                                <td>{{ team.taiga_project|default:"-" }}</td>
+                                                            {% endif %}
+                                                        </tr>
+                                                    {% empty %}
+                                                        <tr>
+                                                            <td colspan="3" class="text-center">No teams will be created. Please go back and select at least one group.</td>
+                                                        </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     </div>
                                 </div>
 
-                                {% bootstrap_form wizard.form %}
+                                <!-- Course info -->
+                                <div class="card mb-4">
+                                    <div class="card-header">
+                                        <h5 class="mb-0">Course Information</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <p><strong>Course:</strong> {{ course_name }}</p>
+                                        <p><strong>GitHub Integration:</strong> {{ use_github|yesno:"Yes,No" }}</p>
+                                        <p><strong>Taiga Integration:</strong> {{ use_taiga|yesno:"Yes,No" }}</p>
+                                    </div>
+                                </div>
+
+                                <!-- Confirmation checkbox -->
+                                <div class="card mb-4">
+                                    <div class="card-header">
+                                        <h5 class="mb-0">Confirmation</h5>
+                                    </div>
+                                    <div class="card-body p-4">
+                                        <!-- Render confirmation checkbox with bootstrap_field for better control -->
+                                        <div class="d-flex align-items-start">
+                                            {% bootstrap_field wizard.form.confirm show_label=False %}
+                                            <label for="{{ wizard.form.confirm.auto_id }}" class="form-check-label ms-1 mt-1">
+                                                {{ wizard.form.confirm.label }}
+                                            </label>
+                                        </div>
+
+                                        <div class="alert alert-warning mt-4">
+                                            <i class="fa fa-exclamation-circle me-2"></i>
+                                            <strong>Note:</strong> This operation will create {{ teams_summary|length }} team(s) in the database.
+                                            {% if teams_summary|length > 0 %}
+                                                Each team will have associated student records created from Canvas group memberships.
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
                             {% endif %}
                         </div>
 

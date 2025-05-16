@@ -259,5 +259,8 @@ class TeamWizardStep6Form(forms.Form):
     confirm = forms.BooleanField(
         required=True,
         label=_('I confirm all selections and configurations are correct'),
-        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
+        widget=forms.CheckboxInput(attrs={
+            'class': 'form-check-input me-2',
+            'style': 'margin-top: 0.25rem; margin-left: 0; position: relative;'
+        })
     )
