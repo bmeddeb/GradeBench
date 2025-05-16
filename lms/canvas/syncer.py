@@ -121,6 +121,8 @@ class CanvasSyncer:
                                 defaults={
                                     "name": grp.get("name", "")[:100],
                                     "description": description,
+                                    "canvas_group_set_id": cat.get("id"),
+                                    "canvas_group_set_name": cat.get("name", ""),
                                 },
                             )
                             logger.info(

@@ -10,6 +10,9 @@ from lms.canvas.models import (
     CanvasRubric,
     CanvasRubricCriterion,
     CanvasRubricRating,
+    CanvasGroupCategory,
+    CanvasGroup,
+    CanvasGroupMembership,
 )
 from lms.canvas.admin.models import Canvas
 
@@ -31,6 +34,18 @@ class CanvasAdmin(admin.ModelAdmin):
             {
                 "name": "Enrollments",
                 "url": reverse("admin:lms_canvasenrollment_changelist"),
+            },
+            {
+                "name": "Group Categories",
+                "url": reverse("admin:lms_canvasgroupcategory_changelist"),
+            },
+            {
+                "name": "Groups",
+                "url": reverse("admin:lms_canvasgroup_changelist"),
+            },
+            {
+                "name": "Group Memberships",
+                "url": reverse("admin:lms_canvasgroupmembership_changelist"),
             },
             {
                 "name": "Assignments",
@@ -71,9 +86,42 @@ class CanvasAdmin(admin.ModelAdmin):
 
 @admin.register(CanvasCourse)
 class CanvasCourseAdmin(admin.ModelAdmin):
-    list_display = ("name", "course_code", "canvas_id", "created_at")
-    list_filter = ("is_public", "workflow_state")
-    search_fields = ("name", "course_code", "canvas_id")
+    list_display = (
+        "name", 
+        "course_code", 
+        "canvas_id", 
+        "workflow_state",
+        "is_public",
+        "start_at",
+        "end_at",
+        "time_zone",
+        "integration",
+        "created_at"
+    )
+    list_filter = ("is_public", "workflow_state", "time_zone", "start_at", "created_at")
+    search_fields = ("name", "course_code", "canvas_id", "uuid")
+    readonly_fields = ("canvas_id", "uuid", "created_at", "updated_at")
+    date_hierarchy = "start_at"
+    
+    fieldsets = (
+        ("Course Information", {
+            "fields": ("canvas_id", "name", "course_code", "workflow_state")
+        }),
+        ("Schedule", {
+            "fields": ("start_at", "end_at", "time_zone")
+        }),
+        ("Settings", {
+            "fields": ("is_public", "integration")
+        }),
+        ("Content", {
+            "fields": ("syllabus_body",),
+            "classes": ("collapse",)
+        }),
+        ("System Information", {
+            "fields": ("uuid", "created_at", "updated_at"),
+            "classes": ("collapse",)
+        }),
+    )
 
     def get_model_perms(self, request):
         """
@@ -84,9 +132,38 @@ class CanvasCourseAdmin(admin.ModelAdmin):
 
 @admin.register(CanvasEnrollment)
 class CanvasEnrollmentAdmin(admin.ModelAdmin):
-    list_display = ("user_name", "course", "role", "enrollment_state")
-    list_filter = ("role", "enrollment_state", "course")
-    search_fields = ("user_name", "email", "canvas_id")
+    list_display = (
+        "user_name", 
+        "sortable_name",
+        "email", 
+        "course", 
+        "role", 
+        "enrollment_state",
+        "student",
+        "user_id",
+        "last_activity_at",
+        "created_at"
+    )
+    list_filter = ("role", "enrollment_state", "course", "created_at")
+    search_fields = ("user_name", "email", "canvas_id", "user_id", "sortable_name")
+    readonly_fields = ("created_at", "updated_at", "canvas_id", "user_id")
+    date_hierarchy = "created_at"
+    
+    fieldsets = (
+        ("User Information", {
+            "fields": ("canvas_id", "user_id", "user_name", "sortable_name", "short_name", "email")
+        }),
+        ("Enrollment Details", {
+            "fields": ("course", "role", "enrollment_state", "student")
+        }),
+        ("Activity & Grades", {
+            "fields": ("last_activity_at", "grades")
+        }),
+        ("Timestamps", {
+            "fields": ("created_at", "updated_at"),
+            "classes": ("collapse",)
+        }),
+    )
 
     def get_model_perms(self, request):
         """
@@ -152,6 +229,87 @@ class CanvasRubricRatingAdmin(admin.ModelAdmin):
     list_display = ("description", "criterion", "points", "canvas_id")
     list_filter = ("criterion",)
     search_fields = ("description", "canvas_id")
+
+    def get_model_perms(self, request):
+        """
+        Hide this model from the main admin index page
+        """
+        return {}
+
+
+@admin.register(CanvasGroupCategory)
+class CanvasGroupCategoryAdmin(admin.ModelAdmin):
+    list_display = ("name", "course", "canvas_id", "self_signup", "group_limit", "created_at")
+    list_filter = ("course", "self_signup", "auto_leader", "created_at")
+    search_fields = ("name", "canvas_id")
+    readonly_fields = ("canvas_id", "created_at", "last_synced_at")
+    
+    fieldsets = (
+        ("Category Information", {
+            "fields": ("canvas_id", "name", "course")
+        }),
+        ("Settings", {
+            "fields": ("self_signup", "auto_leader", "group_limit")
+        }),
+        ("Timestamps", {
+            "fields": ("created_at", "last_synced_at"),
+            "classes": ("collapse",)
+        }),
+    )
+
+    def get_model_perms(self, request):
+        """
+        Hide this model from the main admin index page
+        """
+        return {}
+
+
+@admin.register(CanvasGroup)
+class CanvasGroupAdmin(admin.ModelAdmin):
+    list_display = ("name", "category", "canvas_id", "core_team", "created_at", "last_synced_at")
+    list_filter = ("category", "created_at", "last_synced_at")
+    search_fields = ("name", "canvas_id", "description")
+    readonly_fields = ("canvas_id", "created_at", "last_synced_at")
+    
+    fieldsets = (
+        ("Group Information", {
+            "fields": ("canvas_id", "name", "description", "category")
+        }),
+        ("Team Link", {
+            "fields": ("core_team",)
+        }),
+        ("Timestamps", {
+            "fields": ("created_at", "last_synced_at"),
+            "classes": ("collapse",)
+        }),
+    )
+
+    def get_model_perms(self, request):
+        """
+        Hide this model from the main admin index page
+        """
+        return {}
+
+
+@admin.register(CanvasGroupMembership)
+class CanvasGroupMembershipAdmin(admin.ModelAdmin):
+    list_display = ("name", "group", "user_id", "student", "email", "added_at")
+    list_filter = ("group", "added_at")
+    search_fields = ("name", "email", "user_id")
+    readonly_fields = ("user_id", "added_at")
+    
+    fieldsets = (
+        ("Member Information", {
+            "fields": ("user_id", "name", "email")
+        }),
+        ("Group Association", {
+            "fields": ("group", "student")
+        }),
+        ("Metadata", {
+            "fields": ("added_at",),
+            "classes": ("collapse",)
+        }),
+    )
 
     def get_model_perms(self, request):
         """
