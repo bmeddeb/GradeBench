@@ -597,3 +597,105 @@
 .callout-warning .group-set-card:hover {
   background-color: #fff;
 }
+
+/* Step 3 - Group Selection Styling */
+.category-heading {
+  color: #7A9E9F;
+  font-weight: 600;
+  border-bottom: 1px solid rgba(122, 158, 159, 0.2);
+  padding-bottom: 0.5rem;
+}
+
+.group-card {
+  transition: all 0.2s ease;
+  border: 1px solid #E3E3E3;
+  cursor: pointer;
+  height: 220px;
+  display: flex;
+  flex-direction: column;
+}
+
+.group-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  border-color: #7A9E9F;
+}
+
+.group-card .card-header {
+  background-color: rgba(122, 158, 159, 0.05);
+  padding: 0.45rem 0.5rem;
+  border-bottom: 1px solid #E3E3E3;
+  min-height: 0;
+  flex-shrink: 0;
+}
+
+.group-card .card-body {
+  padding: 0.75rem;
+  overflow-y: auto;
+  flex-grow: 1;
+}
+
+.group-card .card-footer {
+  padding: 0.5rem;
+  background-color: rgba(0, 0, 0, 0.02);
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+
+.member-list {
+  font-size: 0.8rem;
+  margin: 0;
+  padding: 0;
+}
+
+.member-list li {
+  padding: 0.2rem 0;
+  border-bottom: 1px dashed rgba(0, 0, 0, 0.05);
+}
+
+.member-list li:last-child {
+  border-bottom: none;
+}
+
+.member-list li.leader {
+  font-weight: 600;
+  color: #7A9E9F;
+}
+
+.member-list li i {
+  color: #7A9E9F;
+  font-size: 0.8rem;
+}
+
+.member-list li i.fa-star {
+  color: #F3BB45; /* Paper Dashboard warning/star color */
+}
+
+.leader-badge {
+  font-size: 0.7rem;
+  background-color: rgba(243, 187, 69, 0.1);
+  color: #F3BB45;
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+  margin-left: 0.3rem;
+  font-weight: 600;
+}
+
+.card-subtitle {
+  font-size: 0.8rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Select All/Deselect All buttons for groups */
+.select-all-groups, .deselect-all-groups {
+  font-size: 0.85rem;
+  color: #66615B;
+  text-decoration: none;
+  margin-left: 1rem;
+  cursor: pointer;
+}
+
+.select-all-groups:hover, .deselect-all-groups:hover {
+  color: #7A9E9F;
+  text-decoration: underline;
+}

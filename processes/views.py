@@ -58,6 +58,8 @@ class TeamWizard(SessionWizardView):
             if step1_data:
                 kwargs['course_id'] = step1_data.get(
                     'course').id if step1_data.get('course') else None
+                print(
+                    f"Passing course_id={kwargs['course_id']} to group_set_selection form")
 
         elif step == 'group_selection':
             # Pass selected group categories from step 2 to step 3
@@ -65,6 +67,10 @@ class TeamWizard(SessionWizardView):
             if step2_data:
                 categories = step2_data.get('group_categories', [])
                 kwargs['category_ids'] = [cat.id for cat in categories]
+                print(
+                    f"Passing category_ids={kwargs['category_ids']} to group_selection form")
+            else:
+                print("No data from step 2 - group_set_selection")
 
         return kwargs
 
@@ -88,6 +94,10 @@ class TeamWizard(SessionWizardView):
                 if step_data:
                     all_data[step_name] = step_data
             context['all_data'] = all_data
+
+        # Pass groups_by_category from Step 3 form
+        elif self.steps.current == 'group_selection' and hasattr(form, 'groups_by_category'):
+            context['groups_by_category'] = form.groups_by_category
 
         # Add step titles for display in the template
         context['step_titles'] = {
@@ -137,3 +147,12 @@ class TeamWizard(SessionWizardView):
 
         # Redirect to a success page or list view
         return redirect('processes:process_list')
+
+    def process_step(self, form):
+        """Process the form for the current step."""
+        # Log form data for debugging
+        step_name = self.steps.current
+        print(f"Processing {step_name} form")
+        print(f"Form data: {form.data}")
+        print(f"Form cleaned_data: {form.cleaned_data}")
+        return super().process_step(form)

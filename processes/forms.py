@@ -1,6 +1,6 @@
 from django import forms
 from django.utils.translation import gettext_lazy as _
-from lms.canvas.models import CanvasCourse, CanvasGroupCategory
+from lms.canvas.models import CanvasCourse, CanvasGroupCategory, CanvasGroup
 from django_select2.forms import Select2Widget, Select2MultipleWidget
 
 
@@ -40,12 +40,9 @@ class TeamWizardStep2Form(forms.Form):
     group_categories = forms.ModelMultipleChoiceField(
         queryset=CanvasGroupCategory.objects.none(),  # Will be set dynamically
         label=_('Select Group Categories'),
-        widget=Select2Widget(attrs={
-            'class': 'form-select select2',
-            'data-placeholder': 'Select group categories',
-            'data-theme': 'bootstrap-5',
-            'multiple': 'multiple'
-        })
+        # Use MultipleHiddenInput since we have our own UI
+        widget=forms.MultipleHiddenInput(),
+        required=True
     )
 
     def __init__(self, *args, **kwargs):
@@ -63,11 +60,7 @@ class TeamWizardStep3Form(forms.Form):
     selected_groups = forms.MultipleChoiceField(
         choices=[],  # Will be set dynamically
         label=_('Select Groups to Create Teams'),
-        widget=Select2MultipleWidget(attrs={
-            'class': 'form-select select2',
-            'data-placeholder': 'Select groups',
-            'data-theme': 'bootstrap-5'
-        }),
+        widget=forms.MultipleHiddenInput(),
         required=True
     )
 
@@ -75,11 +68,24 @@ class TeamWizardStep3Form(forms.Form):
         category_ids = kwargs.pop('category_ids', [])
         super().__init__(*args, **kwargs)
 
-        # This is a placeholder - in the actual implementation,
-        # you'd query CanvasGroup objects based on the category_ids
+        from lms.canvas.models import CanvasGroup
+
+        # Get all groups belonging to the selected categories
+        groups = CanvasGroup.objects.filter(
+            category__id__in=category_ids).order_by('name')
+
+        # Set choices for the form field
         self.fields['selected_groups'].choices = [
-            (f'group-{i}', f'Example Group {i}') for i in range(1, 5)
+            (str(group.id), group.name) for group in groups
         ]
+
+        # Store groups by category for the template
+        self.groups_by_category = {}
+        for group in groups:
+            category_name = group.category.name if group.category else 'Uncategorized'
+            if category_name not in self.groups_by_category:
+                self.groups_by_category[category_name] = []
+            self.groups_by_category[category_name].append(group)
 
 
 class TeamWizardStep4Form(forms.Form):

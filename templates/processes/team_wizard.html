@@ -109,6 +109,17 @@
                                             <a href="#" class="deselect-all-btn" id="deselect-all-groups"><i class="fa fa-square-o me-1"></i>Deselect All</a>
                                         </div>
                                     </div>
+
+                                    <!-- Debug information -->
+                                    {% if wizard.form.errors %}
+                                        <div class="alert alert-danger mb-3">
+                                            <p><strong>Form Errors:</strong> {{ wizard.form.errors }}</p>
+                                            <p><strong>Required Fields:</strong> {{ wizard.form.group_categories.field.required }}</p>
+                                            <p><strong>Current Value:</strong> {{ wizard.form.group_categories.value|default:"None" }}</p>
+                                            <p><strong>Post Data:</strong> {{ wizard.form.data|default:"No data" }}</p>
+                                        </div>
+                                    {% endif %}
+
                                     <div class="row">
                                         {% for option in wizard.form.group_categories.field.queryset %}
                                             <div class="col-md-4 mb-3">
@@ -118,14 +129,14 @@
                                                         <button type="button"
                                                                 class="btn btn-sm btn-outline-primary btn-round group-select-btn me-2"
                                                                 data-value="{{ option.id }}"
-                                                                data-name="{{ wizard.form.group_categories.name }}"
+                                                                data-name="group_set_selection-{{ wizard.form.group_categories.name }}"
                                                                 data-selected="{% if option.id|stringformat:"i" in wizard.form.group_categories.value|default:"" %}true{% else %}false{% endif %}">
                                                             <i class="fa {% if option.id|stringformat:"i" in wizard.form.group_categories.value|default:"" %}fa-check{% else %}fa-plus{% endif %}"></i>
                                                         </button>
                                                         <input type="checkbox"
-                                                               name="{{ wizard.form.group_categories.name }}"
+                                                               name="group_set_selection-{{ wizard.form.group_categories.name }}"
                                                                value="{{ option.id }}"
-                                                               id="id_{{ wizard.form.group_categories.name }}_{{ forloop.counter }}"
+                                                               id="id_group_set_selection-{{ wizard.form.group_categories.name }}_{{ forloop.counter }}"
                                                                class="d-none form-check-input"
                                                                {% if option.id|stringformat:"i" in wizard.form.group_categories.value|default:"" %}checked{% endif %}>
                                                     </div>
@@ -171,7 +182,79 @@
                                     <p>Select the groups that you want to convert to Teams.</p>
                                 </div>
 
-                                {% bootstrap_form wizard.form %}
+                                <div class="groups-container mt-4">
+                                    {% for category_name, groups in groups_by_category.items %}
+                                        <div class="category-section mb-4">
+                                            <h6 class="category-heading mb-3">
+                                                {{ category_name }}
+                                                <div class="float-end">
+                                                    <a href="#" class="select-all-cat-btn" data-category="{{ category_name }}"><i class="fa fa-check-square-o me-1"></i>Select All</a>
+                                                    <a href="#" class="deselect-all-cat-btn" data-category="{{ category_name }}"><i class="fa fa-square-o me-1"></i>Deselect All</a>
+                                                </div>
+                                            </h6>
+                                            <div class="row">
+                                                {% for group in groups %}
+                                                    <div class="col-md-4 mb-3">
+                                                        <div class="card group-card h-100">
+                                                            <div class="card-header d-flex justify-content-between align-items-center">
+                                                                <h6 class="mb-0 ms-2">{{ group.name }}</h6>
+                                                                <button type="button"
+                                                                        class="btn btn-sm btn-outline-primary btn-round group-select-btn me-2"
+                                                                        data-value="{{ group.id }}"
+                                                                        data-name="group_selection-{{ wizard.form.selected_groups.name }}"
+                                                                        data-selected="{% if group.id|stringformat:"i" in wizard.form.selected_groups.value|default:"" %}true{% else %}false{% endif %}">
+                                                                    <i class="fa {% if group.id|stringformat:"i" in wizard.form.selected_groups.value|default:"" %}fa-check{% else %}fa-plus{% endif %}"></i>
+                                                                </button>
+                                                                <input type="checkbox"
+                                                                       name="group_selection-{{ wizard.form.selected_groups.name }}"
+                                                                       value="{{ group.id }}"
+                                                                       id="id_group_selection-{{ wizard.form.selected_groups.name }}_{{ forloop.counter }}_{{ forloop.parentloop.counter }}"
+                                                                       class="d-none form-check-input"
+                                                                       {% if group.id|stringformat:"i" in wizard.form.selected_groups.value|default:"" %}checked{% endif %}>
+                                                            </div>
+                                                            <div class="card-body">
+                                                                <h6 class="card-subtitle mb-2 text-muted">Members ({{ group.memberships.count }}):</h6>
+                                                                <ul class="list-unstyled member-list">
+                                                                    {% for membership in group.memberships.all %}
+                                                                        <li class="{% if membership.is_leader %}leader{% endif %}">
+                                                                            <i class="fa {% if membership.is_leader %}fa-star{% else %}fa-user{% endif %} me-1"></i>
+                                                                            {{ membership.student.first_name }} {{ membership.student.last_name }}
+                                                                            {% if membership.is_leader %}<span class="leader-badge">Leader</span>{% endif %}
+                                                                        </li>
+                                                                    {% empty %}
+                                                                        <li class="text-muted">No members</li>
+                                                                    {% endfor %}
+                                                                </ul>
+                                                            </div>
+                                                            <div class="card-footer text-end">
+                                                                <small class="text-muted">{{ group.description|default:"No description" }}</small>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                {% empty %}
+                                                    <div class="col-12">
+                                                        <div class="alert alert-warning">
+                                                            <i class="fa fa-exclamation-triangle me-2"></i>
+                                                            No groups found in this category.
+                                                        </div>
+                                                    </div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    {% empty %}
+                                        <div class="alert alert-warning">
+                                            <i class="fa fa-exclamation-triangle me-2"></i>
+                                            No groups found for the selected categories. Please go back and select different categories.
+                                        </div>
+                                    {% endfor %}
+
+                                    <!-- Error messages -->
+                                    {% if wizard.form.selected_groups.errors %}
+                                        <div class="invalid-feedback d-block mt-3">
+                                            {{ wizard.form.selected_groups.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
                             {% elif wizard.steps.current == 'github_config' %}
                                 <div class="callout-info">
                                     <p>Configure GitHub repository names for the selected groups.</p>
@@ -259,6 +342,7 @@
             // Plus button click handler
             $('.group-select-btn').on('click', function(e) {
                 e.preventDefault();
+                e.stopPropagation(); // Stop event from bubbling up
                 const checkbox = $(this).siblings('input[type="checkbox"]');
                 const isSelected = $(this).attr('data-selected') === 'true';
 
@@ -273,23 +357,95 @@
                 $(this).toggleClass('btn-outline-primary btn-primary');
             });
 
+            // Card click handler for group set selection
+            $('.group-set-card').on('click', function(e) {
+                if (!$(e.target).closest('.group-select-btn').length && !$(e.target).closest('a').length) {
+                    const button = $(this).find('.group-select-btn');
+                    button.trigger('click');
+                }
+            });
+
+            // Card click handler for group selection
+            $('.group-card').on('click', function(e) {
+                if (!$(e.target).closest('.group-select-btn').length && !$(e.target).closest('a').length) {
+                    const button = $(this).find('.group-select-btn');
+                    button.trigger('click');
+                }
+            });
+
             // Select all group categories
             $('#select-all-groups').on('click', function(e) {
                 e.preventDefault();
                 $('.group-set-card input[type="checkbox"]').prop('checked', true);
-                $('.group-select-btn').attr('data-selected', 'true');
-                $('.group-select-btn').removeClass('btn-outline-primary').addClass('btn-primary');
-                $('.group-select-btn i').removeClass('fa-plus').addClass('fa-check');
+                $('.group-set-card .group-select-btn').attr('data-selected', 'true');
+                $('.group-set-card .group-select-btn').removeClass('btn-outline-primary').addClass('btn-primary');
+                $('.group-set-card .group-select-btn i').removeClass('fa-plus').addClass('fa-check');
             });
 
             // Deselect all group categories
             $('#deselect-all-groups').on('click', function(e) {
                 e.preventDefault();
                 $('.group-set-card input[type="checkbox"]').prop('checked', false);
-                $('.group-select-btn').attr('data-selected', 'false');
-                $('.group-select-btn').removeClass('btn-primary').addClass('btn-outline-primary');
-                $('.group-select-btn i').removeClass('fa-check').addClass('fa-plus');
+                $('.group-set-card .group-select-btn').attr('data-selected', 'false');
+                $('.group-set-card .group-select-btn').removeClass('btn-primary').addClass('btn-outline-primary');
+                $('.group-set-card .group-select-btn i').removeClass('fa-check').addClass('fa-plus');
             });
+
+            // Select all groups in a category
+            $('.select-all-cat-btn').on('click', function(e) {
+                e.preventDefault();
+                const category = $(this).data('category');
+                const categorySection = $(this).closest('.category-section');
+
+                categorySection.find('input[type="checkbox"]').prop('checked', true);
+                categorySection.find('.group-select-btn').attr('data-selected', 'true');
+                categorySection.find('.group-select-btn').removeClass('btn-outline-primary').addClass('btn-primary');
+                categorySection.find('.group-select-btn i').removeClass('fa-plus').addClass('fa-check');
+            });
+
+            // Deselect all groups in a category
+            $('.deselect-all-cat-btn').on('click', function(e) {
+                e.preventDefault();
+                const category = $(this).data('category');
+                const categorySection = $(this).closest('.category-section');
+
+                categorySection.find('input[type="checkbox"]').prop('checked', false);
+                categorySection.find('.group-select-btn').attr('data-selected', 'false');
+                categorySection.find('.group-select-btn').removeClass('btn-primary').addClass('btn-outline-primary');
+                categorySection.find('.group-select-btn i').removeClass('fa-check').addClass('fa-plus');
+            });
+
+            // Ensure form has at least one selection before submission
+            $('form').on('submit', function(e) {
+                const step = '{{ wizard.steps.current }}';
+
+                if (step === 'group_set_selection') {
+                    const checkedBoxes = $('.group-set-card input[type="checkbox"]:checked').length;
+                    if (checkedBoxes === 0) {
+                        e.preventDefault();
+                        alert('Please select at least one group category.');
+                        return false;
+                    }
+                }
+
+                if (step === 'group_selection') {
+                    const checkedBoxes = $('.group-card input[type="checkbox"]:checked').length;
+                    if (checkedBoxes === 0) {
+                        e.preventDefault();
+                        alert('Please select at least one group to convert to a team.');
+                        return false;
+                    }
+                }
+            });
+
+            // Debug help - log form data on submit
+            console.log('Current step: {{ wizard.steps.current }}');
+            {% if wizard.steps.current == 'group_set_selection' %}
+            console.log('Group categories initial value: {{ wizard.form.group_categories.value|default:"None" }}');
+            {% endif %}
+            {% if wizard.steps.current == 'group_selection' %}
+            console.log('Selected groups initial value: {{ wizard.form.selected_groups.value|default:"None" }}');
+            {% endif %}
         });
     </script>
 {% endblock %}
