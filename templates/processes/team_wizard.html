@@ -96,6 +96,55 @@
                                         </div>
                                     </div>
                                 </div>
+                            {% elif wizard.steps.current == 'team_selection' %}
+                                <div class="callout-info">
+                                    <p>Select the teams you want to update with GitHub and/or Taiga integration information.</p>
+                                </div>
+
+                                <div class="team-selection-container">
+                                    <div class="mb-3">
+                                        <button type="button" class="btn btn-sm btn-primary" id="select-all">Select All</button>
+                                        <button type="button" class="btn btn-sm btn-secondary" id="deselect-all">Deselect All</button>
+                                    </div>
+
+                                    <div class="row g-3">
+                                        {% for team in teams_list %}
+                                        <div class="col-md-6 col-lg-4">
+                                            <div class="card team-card">
+                                                <div class="card-body">
+                                                    <div class="form-check">
+                                                        <input type="checkbox" 
+                                                               class="form-check-input team-checkbox" 
+                                                               name="team_selection-teams" 
+                                                               value="{{ team.id }}" 
+                                                               id="team_{{ team.id }}">
+                                                        <label class="form-check-label" for="team_{{ team.id }}">
+                                                            <h6 class="mb-1">{{ team.name }}</h6>
+                                                            {% if team.description %}
+                                                                <small class="text-muted">{{ team.description|truncatewords:10 }}</small>
+                                                            {% endif %}
+                                                            <div class="mt-2">
+                                                                {% if team.github_repo_name %}
+                                                                    <span class="badge bg-secondary"><i class="fa fa-github"></i> {{ team.github_repo_name }}</span>
+                                                                {% endif %}
+                                                                {% if team.taiga_project %}
+                                                                    <span class="badge bg-info"><i class="fa fa-tasks"></i> {{ team.taiga_project }}</span>
+                                                                {% endif %}
+                                                            </div>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% empty %}
+                                        <div class="col-12">
+                                            <div class="alert alert-warning">
+                                                <i class="fa fa-warning"></i> No teams found for the selected course.
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
                             {% elif wizard.steps.current == 'group_set_selection' %}
                                 <div class="callout-info">
                                     <p>Select one or more group categories from the course.</p>
@@ -424,19 +473,25 @@
                         </div>
 
                         <div class="d-flex justify-content-between mt-4">
-                            {% if wizard.steps.prev %}
-                                <button name="wizard_goto_step" type="submit" value="{{ wizard.steps.prev }}" class="btn btn-outline-primary btn-round">
-                                    <i class="fa fa-arrow-left"></i> Previous
+                            <div>
+                                {% if wizard.steps.prev %}
+                                    <button name="wizard_goto_step" type="submit" value="{{ wizard.steps.prev }}" class="btn btn-outline-primary btn-round">
+                                        <i class="fa fa-arrow-left"></i> Previous
+                                    </button>
+                                {% else %}
+                                    <a href="{% url 'processes:process_list' %}" class="btn btn-danger btn-round">
+                                        <i class="fa fa-times"></i> Cancel
+                                    </a>
+                                {% endif %}
+                                
+                                <button type="button" id="reset-wizard" class="btn btn-warning btn-round ms-2" data-bs-toggle="modal" data-bs-target="#resetWizardModal">
+                                    <i class="fa fa-refresh"></i> Reset
                                 </button>
-                            {% else %}
-                                <a href="{% url 'processes:process_list' %}" class="btn btn-danger btn-round">
-                                    <i class="fa fa-times"></i> Cancel
-                                </a>
-                            {% endif %}
+                            </div>
 
                             <button type="submit" class="btn {% if wizard.steps.current == wizard.steps.last %}btn-primary{% else %}btn-outline-primary{% endif %} btn-round">
                                 {% if wizard.steps.current == wizard.steps.last %}
-                                    <i class="fa fa-check"></i> Create Teams
+                                    <i class="fa fa-check"></i> Update Teams
                                 {% else %}
                                     Next <i class="fa fa-arrow-right"></i>
                                 {% endif %}
@@ -444,6 +499,27 @@
                         </div>
                     </form>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reset Wizard Modal -->
+<div class="modal fade" id="resetWizardModal" tabindex="-1" aria-labelledby="resetWizardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="resetWizardModalLabel">Reset Wizard</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to reset the wizard? This will clear all your current selections and start from the beginning.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <a href="{% url 'processes:team_wizard' %}?reset=1" class="btn btn-warning">
+                    <i class="fa fa-refresh"></i> Reset Wizard
+                </a>
             </div>
         </div>
     </div>
@@ -579,9 +655,27 @@
                 categorySection.find('.group-select-btn i').removeClass('fa-check').addClass('fa-plus');
             });
 
+            // Team selection handlers
+            $('#select-all').on('click', function() {
+                $('.team-checkbox').prop('checked', true);
+            });
+
+            $('#deselect-all').on('click', function() {
+                $('.team-checkbox').prop('checked', false);
+            });
+
             // Ensure form has at least one selection before submission
             $('form').on('submit', function(e) {
                 const step = '{{ wizard.steps.current }}';
+
+                if (step === 'team_selection') {
+                    const checkedBoxes = $('.team-checkbox:checked').length;
+                    if (checkedBoxes === 0) {
+                        e.preventDefault();
+                        alert('Please select at least one team.');
+                        return false;
+                    }
+                }
 
                 if (step === 'group_set_selection') {
                     const checkedBoxes = $('.group-set-card input[type="checkbox"]:checked').length;
@@ -612,4 +706,48 @@
             {% endif %}
         });
     </script>
+    
+    <style>
+        /* Team card selected state */
+        .team-card {
+            transition: border-color 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .team-card:has(.team-checkbox:checked) {
+            border-color: var(--bs-primary);
+            background-color: var(--bs-light);
+        }
+
+        .team-checkbox {
+            cursor: pointer;
+        }
+        
+        /* Button styles */
+        .btn-round {
+            border-radius: 30px;
+            padding: 8px 20px;
+            font-weight: 500;
+            text-transform: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .btn-round i {
+            font-size: 14px;
+        }
+        
+        /* Reset button specific style */
+        #reset-wizard {
+            background-color: #f0ad4e;
+            border-color: #f0ad4e;
+            color: white;
+        }
+        
+        #reset-wizard:hover {
+            background-color: #ec971f;
+            border-color: #ec971f;
+        }
+    </style>
 {% endblock %}

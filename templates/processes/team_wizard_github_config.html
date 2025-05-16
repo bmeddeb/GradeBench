@@ -1,0 +1,126 @@
+{% extends "processes/team_wizard.html" %}
+{% load django_bootstrap5 %}
+{% load dict_filters %}
+
+{% block wizard_content %}
+    <div class="callout-info">
+        <p>Configure GitHub settings for each selected team. The organization is pre-filled with the team leader's username (first letter of firstname + lastname).</p>
+    </div>
+
+    <div class="github-config-container">
+        {% for field in form %}
+            {% if field.name|slice:":19" == "github_organization" %}
+                {% with team_id=field.name|slice:"19:" %}
+                {% with repo_field_name="github_repo_name_"|add:team_id %}
+                {% with team_name=field.label|slice:"26:" %}
+                <div class="card mb-3">
+                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                        <span><i class="fa fa-github"></i> GitHub Configuration - {{ team_name }}</span>
+                        <button type="button" class="btn btn-sm btn-outline-secondary reset-github-btn" data-team-id="{{ team_id }}">
+                            <i class="fa fa-undo"></i> Reset to Defaults
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ field.id_for_label }}">Organization</label>
+                                    {{ field }}
+                                    {% if field.help_text %}
+                                        <small class="form-text text-muted">{{ field.help_text|safe }}</small>
+                                    {% endif %}
+                                    {% if field.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ field.errors }}
+                                        </div>
+                                    {% endif %}
+                                    <input type="hidden" class="default-org-value" data-team-id="{{ team_id }}" value="{{ form|get_initial_value:field.name|default:'' }}">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                {% for repo_field in form %}
+                                    {% if repo_field.name == repo_field_name %}
+                                        <div class="mb-3">
+                                            <label for="{{ repo_field.id_for_label }}">Repository Name</label>
+                                            {{ repo_field }}
+                                            {% if repo_field.help_text %}
+                                                <small class="form-text text-muted">{{ repo_field.help_text|safe }}</small>
+                                            {% endif %}
+                                            {% if repo_field.errors %}
+                                                <div class="invalid-feedback d-block">
+                                                    {{ repo_field.errors }}
+                                                </div>
+                                            {% endif %}
+                                            <input type="hidden" class="default-repo-value" data-team-id="{{ team_id }}" value="{{ repo_field.initial|default:'' }}">
+                                        </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endwith %}
+                {% endwith %}
+                {% endwith %}
+            {% endif %}
+        {% endfor %}
+    </div>
+
+    <style>
+    .card {
+        border: 1px solid #e3e6f0;
+        box-shadow: 0 0.15rem 0.35rem rgba(58,59,69,.15);
+    }
+    .card-header {
+        font-weight: 600;
+        padding: 0.75rem 1.25rem;
+    }
+    .reset-github-btn {
+        font-size: 0.875rem;
+    }
+    .github-config-container .card {
+        transition: all 0.2s ease;
+    }
+    .github-config-container .card:hover {
+        box-shadow: 0 0.25rem 0.5rem rgba(58,59,69,.20);
+    }
+    .form-control {
+        border-radius: 0.35rem;
+    }
+    </style>
+{% endblock %}
+
+{% block extra_js %}
+    {{ block.super }}
+    <script>
+    $(document).ready(function() {
+        // Reset GitHub fields to defaults
+        $('.reset-github-btn').on('click', function() {
+            const teamId = $(this).data('team-id');
+            const cardBody = $(this).closest('.card').find('.card-body');
+            
+            // Get organization field and its default
+            const orgField = cardBody.find(`#id_github_organization_${teamId}`);
+            const defaultOrg = cardBody.find('.default-org-value[data-team-id="' + teamId + '"]').val();
+            
+            // Get repository field and its default
+            const repoField = cardBody.find(`#id_github_repo_name_${teamId}`);
+            const defaultRepo = cardBody.find('.default-repo-value[data-team-id="' + teamId + '"]').val();
+            
+            // Reset the values
+            if (orgField.length && defaultOrg) {
+                orgField.val(defaultOrg);
+            }
+            if (repoField.length && defaultRepo) {
+                repoField.val(defaultRepo);
+            }
+            
+            // Show a brief notification
+            $(this).html('<i class="fa fa-check"></i> Reset!');
+            setTimeout(() => {
+                $(this).html('<i class="fa fa-undo"></i> Reset to Defaults');
+            }, 1500);
+        });
+    });
+    </script>
+{% endblock %}

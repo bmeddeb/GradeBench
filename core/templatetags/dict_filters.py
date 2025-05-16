@@ -51,3 +51,10 @@ def split(value, delimiter):
     Example usage: {{ "a,b,c"|split:"," }}
     """
     return value.split(delimiter)
+    
+@register.filter
+def get_initial_value(form, field_name):
+    """Get the initial value for a form field"""
+    if hasattr(form, 'initial') and field_name in form.initial:
+        return form.initial[field_name]
+    return None

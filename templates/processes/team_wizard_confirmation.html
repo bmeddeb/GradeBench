@@ -1,0 +1,88 @@
+{% extends "processes/team_wizard.html" %}
+{% load django_bootstrap5 %}
+
+{% block wizard_content %}
+    <div class="callout-primary mb-4">
+        <h5>Review and Confirm</h5>
+        <p>Please review the teams to be updated and their integration settings.</p>
+    </div>
+
+    <div class="summary-container">
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h6 class="mb-0">Course: {{ course_name }}</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>GitHub Integration:</strong> 
+                        {% if use_github %}
+                            <span class="badge bg-success">Enabled</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Disabled</span>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Taiga Integration:</strong> 
+                        {% if use_taiga %}
+                            <span class="badge bg-success">Enabled</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Disabled</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h5 class="mb-3">Teams to Update ({{ teams_summary|length }})</h5>
+        
+        <div class="row g-3">
+            {% for team in teams_summary %}
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <strong>{{ team.name }}</strong>
+                    </div>
+                    <div class="card-body">
+                        {% if team.description %}
+                            <p class="text-muted small">{{ team.description }}</p>
+                        {% endif %}
+                        
+                        <div class="integration-details">
+                            {% if use_github %}
+                            <div class="mb-2">
+                                <i class="fa fa-github"></i> <strong>GitHub:</strong><br>
+                                Organization: {{ team.github_organization|default:"Not Set" }}<br>
+                                Repository: {{ team.github_repo_name|default:"Not Set" }}
+                            </div>
+                            {% endif %}
+                            
+                            {% if use_taiga %}
+                            <div>
+                                <i class="fa fa-tasks"></i> <strong>Taiga:</strong><br>
+                                Project: {{ team.taiga_project|default:"Not Set" }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="mt-4">
+        {% bootstrap_field form.confirm %}
+    </div>
+
+    <style>
+    .summary-container {
+        max-height: 600px;
+        overflow-y: auto;
+    }
+    
+    .integration-details {
+        font-size: 0.9rem;
+    }
+    </style>
+{% endblock %}

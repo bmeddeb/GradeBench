@@ -1,0 +1,47 @@
+{% extends "processes/team_wizard.html" %}
+{% load django_bootstrap5 %}
+
+{% block wizard_content %}
+    <div class="callout-info">
+        <p>Configure Taiga project names for each selected team.</p>
+    </div>
+
+    <div class="taiga-config-container">
+        <div class="row g-4">
+            {% for field in form %}
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <i class="fa fa-tasks"></i> {{ field.label }}
+                        </div>
+                        <div class="card-body">
+                            {{ field }}
+                            {% if field.help_text %}
+                                <small class="form-text text-muted">{{ field.help_text }}</small>
+                            {% endif %}
+                            {% if field.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ field.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script>
+    $(document).ready(function() {
+        // Add Bootstrap form-control class to all inputs
+        $('input[type="text"]').addClass('form-control');
+    });
+    </script>
+
+    <style>
+    .card {
+        border: 1px solid #e3e6f0;
+        box-shadow: 0 0.15rem 0.35rem rgba(58,59,69,.15);
+    }
+    </style>
+{% endblock %}
