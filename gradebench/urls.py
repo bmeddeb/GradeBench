@@ -28,6 +28,8 @@ urlpatterns = [
     path("social-auth/", include("social_django.urls", namespace="social")),
     path("logout/", core_views.LogoutView.as_view(), name="logout"),
     path("canvas/", include("lms.canvas.urls")),
+    path("processes/", include("processes.urls")),
+    path("select2/", include("django_select2.urls")),
 ]
 
 # Serve media files during development

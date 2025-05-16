@@ -3,7 +3,7 @@
 ## 1. Introduction
 
 **Purpose**  
-Guide instructors through creating “Team” records in your system by selecting Canvas groups and (optionally) provisioning GitHub repositories and Taiga projects, with manual review at each stage.
+Guide instructors through creating “Team” records in GradeBench by selecting Canvas groups and (optionally) provisioning GitHub repositories and Taiga projects, with manual review at each stage.
 
 **Scope**  
 Covers the end‑to‑end wizard UI, the data models involved, field mappings, validation rules, and persistence logic.
@@ -20,7 +20,7 @@ Covers the end‑to‑end wizard UI, the data models involved, field mappings, v
 
 ## 3. Wizard Workflow
 
-### 3.1 Step 1 – Course Selection
+### 3.1 Step 1 – Course Selection
 
 1. **UI**  
    - Dropdown or list of `CanvasCourse` entries.  
@@ -32,7 +32,7 @@ Covers the end‑to‑end wizard UI, the data models involved, field mappings, v
    - Selected `course_id`  
    - Boolean flags `use_github`, `use_taiga`  
 
-### 3.2 Step 2 – Group Set Selection
+### 3.2 Step 2 – Group Set Selection
 
 1. **UI**  
    - List of `CanvasGroupCategory` for the chosen course.
@@ -40,7 +40,7 @@ Covers the end‑to‑end wizard UI, the data models involved, field mappings, v
 2. **Data**  
    - One or more selected `group_category_id` values.
 
-### 3.3 Step 3 – Group Selection
+### 3.3 Step 3– Group Selection
 
 1. **UI**  
    - For each selected category, render cards for `CanvasGroup`:  
@@ -51,9 +51,9 @@ Covers the end‑to‑end wizard UI, the data models involved, field mappings, v
 2. **Data**  
    - Array of selected `group_id` values  
 
-### 3.4 Step 4 – GitHub Configuration (conditional)
+### 3.4 Step 4 – GitHub Configuration (conditional)
 
-_Only if “Associate GitHub repo” was toggled on in Step 1._
+_Only if “Associate GitHub repo” was toggled on in Step 1._
 
 1. **UI**  
    - For each chosen group:  
@@ -64,17 +64,17 @@ _Only if “Associate GitHub repo” was toggled on in Step 1._
 2. **Data**  
    - `github_repo_name[group_id]`  
 
-### 3.5 Step 5 – Taiga Configuration (conditional)
+### 3.5 Step 5 – Taiga Configuration (conditional)
 
-_Only if “Associate Taiga project” was toggled on in Step 1._
+_Only if “Associate Taiga project” was toggled on in Step 1._
 
 1. **UI**  
-   - Same pattern as Step 4, but for `taiga_project_name[group_id]`
+   - Same pattern as Step 4, but for `taiga_project_name[group_id]`
 
 2. **Data**  
    - `taiga_project_name[group_id]`  
 
-### 3.6 Step 6 – Confirmation & Persistence
+### 3.6 Step 6 – Confirmation & Persistence
 
 1. **UI**  
    - Table or cards summarizing for each group:  
@@ -141,3 +141,30 @@ _Only if “Associate Taiga project” was toggled on in Step 1._
    - Back/Next buttons with proper enabling/disabling  
    - Responsive design
 
+## Additional Processes & URL Patterns
+
+Group all auxiliary wizards and batch‑process flows under a dedicated URL namespace, e.g. `/processes/`.  
+
+Example `processes/urls.py`:
+
+```python
+# processes/urls.py
+from django.urls import path
+from .views import TeamWizard, IdentityReconcileWizard, GitHubBatchCreateView
+
+app_name = "processes"
+urlpatterns = [
+    path('teams/', TeamWizard.as_view(), name='teams'),
+    path('identity-reconcile/', IdentityReconcileWizard.as_view(), name='identity_reconcile'),
+    path('github-batch/', GitHubBatchCreateView.as_view(), name='github_batch_create'),
+    # other flows...
+]
+```
+
+Then users access:
+
+- `/processes/teams/`
+- `/processes/identity-reconcile/`
+- `/processes/github-batch/`
+
+This keeps all one‑off wizards and batch processes organized and discoverable.

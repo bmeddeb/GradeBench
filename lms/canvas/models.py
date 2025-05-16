@@ -322,14 +322,14 @@ class CanvasGroupMembership(models.Model, AsyncModelMixin):
 
 class CanvasQuiz(models.Model):
     """Canvas Quiz Information"""
-    
+
     QUIZ_TYPES = (
         ("assignment", "Assignment"),
         ("practice_quiz", "Practice Quiz"),
         ("graded_survey", "Graded Survey"),
         ("survey", "Survey"),
     )
-    
+
     canvas_id = models.PositiveIntegerField(unique=True)
     course = models.ForeignKey(
         CanvasCourse, on_delete=models.CASCADE, related_name="quizzes"
@@ -340,13 +340,14 @@ class CanvasQuiz(models.Model):
         max_length=20, choices=QUIZ_TYPES, default="assignment"
     )
     assignment = models.OneToOneField(
-        CanvasAssignment, 
-        on_delete=models.CASCADE, 
+        CanvasAssignment,
+        on_delete=models.CASCADE,
         related_name="quiz",
         null=True,
         blank=True
     )
-    time_limit = models.PositiveIntegerField(null=True, blank=True)  # in minutes
+    time_limit = models.PositiveIntegerField(
+        null=True, blank=True)  # in minutes
     shuffle_answers = models.BooleanField(default=False)
     one_question_at_a_time = models.BooleanField(default=False)
     show_correct_answers = models.BooleanField(default=True)
@@ -359,10 +360,10 @@ class CanvasQuiz(models.Model):
     published = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
         ordering = ["-created_at"]
         verbose_name_plural = "Canvas Quizzes"
-    
+
     def __str__(self):
         return f"{self.title} ({self.course})"
