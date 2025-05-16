@@ -57,11 +57,13 @@ INSTALLED_APPS = [
     # Third-party apps
     "social_django",
     'django_bootstrap5',
+    'formtools',
     # Project apps - domain-based structure
     "core",
     "git_providers",
     "project_mgmt",
     "lms",
+    "processes",
 ]
 
 # Jazzmin settings
@@ -83,6 +85,7 @@ JAZZMIN_SETTINGS = {
         "git_providers.github": "fab fa-github",
         "lms.canvas": "fas fa-graduation-cap",
         "project_mgmt.taiga": "fas fa-tasks",
+        "processes": "fas fa-cogs",
         "core": "fas fa-cogs",
     },
     # Order apps and models on the side menu
@@ -91,6 +94,7 @@ JAZZMIN_SETTINGS = {
         "git_providers",
         "lms",
         "project_mgmt",
+        "processes",
         "social_django",
         "core",
     ],
@@ -359,7 +363,7 @@ BOOTSTRAP5 = {
     'server_side_validation': True,
 
     # Renderers (only set these if you have studied the source and understand the inner workings).
-    'formset_renderers':{
+    'formset_renderers': {
         'default': 'django_bootstrap5.renderers.FormsetRenderer',
     },
     'form_renderers': {

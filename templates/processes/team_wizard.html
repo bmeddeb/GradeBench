@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+{% load django_bootstrap5 %}
+{% load processes_tags %}
+
+{% block title %}
+    {% if step_titles %}{{ step_titles|get:wizard.steps.current }} - {% endif %}Canvas Team Wizard
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .step-indicator {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background-color: #e9ecef;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-weight: bold;
+        margin: 0 auto;
+    }
+
+    .step-indicator.active {
+        background-color: #0d6efd;
+        color: white;
+    }
+
+    .step-indicator.completed {
+        background-color: #198754;
+        color: white;
+    }
+
+    .step-connector {
+        flex-grow: 1;
+        height: 2px;
+        background-color: #dee2e6;
+        position: relative;
+        margin: 0 8px;
+    }
+
+    .step-indicator-wrapper {
+        flex: 0 0 auto;
+        text-align: center;
+        width: 80px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-10 offset-lg-1">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Canvas Teams Wizard</h4>
+                </div>
+                <div class="card-body">
+                    <!-- Progress bar -->
+                    <div class="progress mb-4" style="height: 20px;">
+                        <div class="progress-bar" role="progressbar"
+                             style="width: {% widthratio wizard.steps.step1 wizard.steps.count 100 %}%;"
+                             aria-valuenow="{{ wizard.steps.step1 }}"
+                             aria-valuemin="0"
+                             aria-valuemax="{{ wizard.steps.count }}">
+                            Step {{ wizard.steps.step1 }} of {{ wizard.steps.count }}
+                        </div>
+                    </div>
+
+                    <!-- Step indicators -->
+                    <div class="d-flex justify-content-between mb-4">
+                        {% for step_id, step_title in step_titles.items %}
+                            <div class="text-center step-indicator-wrapper">
+                                <div class="step-indicator {% if wizard.steps.index == forloop.counter0 %}active{% elif forloop.counter0 < wizard.steps.index %}completed{% endif %}">
+                                    {{ forloop.counter }}
+                                </div>
+                                <div class="step-title small mt-2">{{ step_title }}</div>
+                            </div>
+                            {% if not forloop.last %}
+                                <div class="step-connector align-self-center"></div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+
+                    <!-- Current step title -->
+                    <h5 class="mb-4">{{ step_titles|get:wizard.steps.current }}</h5>
+
+                    <!-- Form -->
+                    <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        {{ wizard.management_form }}
+
+                        <div class="mb-4">
+                            {% if wizard.steps.current == 'course_selection' %}
+                                <div class="card mb-4">
+                                    <div class="card-body">
+                                        <p class="mb-0">Select a Canvas course and choose whether to associate GitHub repositories and/or Taiga projects with the teams.</p>
+                                    </div>
+                                </div>
+                            {% elif wizard.steps.current == 'group_set_selection' %}
+                                <div class="card mb-4">
+                                    <div class="card-body">
+                                        <p class="mb-0">Select one or more group categories from the course.</p>
+                                    </div>
+                                </div>
+                            {% elif wizard.steps.current == 'group_selection' %}
+                                <div class="card mb-4">
+                                    <div class="card-body">
+                                        <p class="mb-0">Select the groups that you want to convert to Teams.</p>
+                                    </div>
+                                </div>
+                            {% elif wizard.steps.current == 'github_config' %}
+                                <div class="card mb-4">
+                                    <div class="card-body">
+                                        <p class="mb-0">Configure GitHub repository names for the selected groups.</p>
+                                    </div>
+                                </div>
+                            {% elif wizard.steps.current == 'taiga_config' %}
+                                <div class="card mb-4">
+                                    <div class="card-body">
+                                        <p class="mb-0">Configure Taiga project names for the selected groups.</p>
+                                    </div>
+                                </div>
+                            {% elif wizard.steps.current == 'confirmation' %}
+                                <div class="card mb-4">
+                                    <div class="card-body">
+                                        <p class="mb-0">Review your selections and confirm to create the teams.</p>
+                                    </div>
+                                </div>
+
+                                <!-- Summary of all selections -->
+                                <div class="card mb-4">
+                                    <div class="card-header">
+                                        <h5 class="mb-0">Summary</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <p><strong>Selected Course:</strong>
+                                            {% if all_data.course_selection.course %}
+                                                {{ all_data.course_selection.course.name }}
+                                            {% else %}
+                                                Not selected
+                                            {% endif %}
+                                        </p>
+                                        <p><strong>GitHub Integration:</strong>
+                                            {{ all_data.course_selection.use_github|yesno:"Yes,No" }}
+                                        </p>
+                                        <p><strong>Taiga Integration:</strong>
+                                            {{ all_data.course_selection.use_taiga|yesno:"Yes,No" }}
+                                        </p>
+
+                                        <!-- Add more details from other steps -->
+                                    </div>
+                                </div>
+                            {% endif %}
+
+                            {% bootstrap_form wizard.form %}
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            {% if wizard.steps.prev %}
+                                <button name="wizard_goto_step" type="submit" value="{{ wizard.steps.prev }}" class="btn btn-secondary">
+                                    <i class="fas fa-arrow-left"></i> Previous
+                                </button>
+                            {% else %}
+                                <a href="{% url 'processes:process_list' %}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-times"></i> Cancel
+                                </a>
+                            {% endif %}
+
+                            <button type="submit" class="btn btn-primary">
+                                {% if wizard.steps.current == wizard.steps.last %}
+                                    <i class="fas fa-check"></i> Create Teams
+                                {% else %}
+                                    Next <i class="fas fa-arrow-right"></i>
+                                {% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
