@@ -23,20 +23,20 @@
     --bs-info: var(--gb-info);
     --bs-warning: var(--gb-warning);
     --bs-danger: var(--gb-danger);
-    
+
     /* Typography */
     --bs-body-font-family: var(--gb-font-family-base);
     --bs-body-font-size: var(--gb-font-size-md);
     --bs-body-font-weight: var(--gb-font-weight-normal);
     --bs-body-line-height: var(--gb-line-height-normal);
-    
+
     /* Border radius */
     --bs-border-radius: var(--gb-border-radius-sm);
     --bs-border-radius-sm: calc(var(--gb-border-radius-sm) * 0.8);
     --bs-border-radius-lg: var(--gb-border-radius-md);
     --bs-border-radius-xl: var(--gb-border-radius-lg);
     --bs-border-radius-2xl: var(--gb-border-radius-pill);
-    
+
     /* Form element settings */
     --bs-input-bg: var(--gb-background-card);
     --bs-input-color: var(--gb-text-primary);
@@ -166,8 +166,8 @@
 
 .form-control:focus,
 .form-select:focus {
-    border-color: var(--gb-primary);
-    box-shadow: 0 0 0 0.25rem rgba(var(--gb-primary-rgb), 0.25);
+    border-color: #7A9E9F !important;
+    box-shadow: 0 0 0 0.25rem rgba(122, 158, 159, 0.25) !important;
 }
 
 /* Fix for filter form specifically */
@@ -401,4 +401,104 @@
 .valid-feedback {
     font-size: var(--gb-font-size-sm);
     color: var(--gb-success);
+}
+
+/* Django Select2 with Paper Dashboard theme */
+.select2-container--bootstrap-5 .select2-selection {
+    border-color: var(--gb-border-medium);
+    border-radius: var(--gb-border-radius-sm);
+}
+
+.select2-container--bootstrap-5.select2-container--focus .select2-selection,
+.select2-container--bootstrap-5.select2-container--open .select2-selection {
+    border-color: #7A9E9F !important;
+    box-shadow: 0 0 0 0.25rem rgba(122, 158, 159, 0.25) !important;
+}
+
+.select2-container--bootstrap-5 .select2-dropdown {
+    border-color: #7A9E9F;
+    border-radius: var(--gb-border-radius-sm);
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.select2-container--bootstrap-5 .select2-dropdown .select2-search .select2-search__field {
+    border-radius: var(--gb-border-radius-sm);
+    border-color: var(--gb-border-medium);
+}
+
+.select2-container--bootstrap-5 .select2-dropdown .select2-search .select2-search__field:focus {
+    border-color: #7A9E9F;
+    box-shadow: 0 0 0 0.125rem rgba(122, 158, 159, 0.25);
+}
+
+.select2-container--bootstrap-5 .select2-results__option--selected {
+    background-color: rgba(122, 158, 159, 0.1);
+    color: #7A9E9F;
+}
+
+.select2-container--bootstrap-5 .select2-results__option--highlighted.select2-results__option--selected {
+    background-color: #7A9E9F;
+    color: white;
+}
+
+.select2-container--bootstrap-5 .select2-results__option--highlighted {
+    background-color: rgba(122, 158, 159, 0.1);
+    color: #333;
+}
+
+.select2-container--bootstrap-5 .select2-results__option {
+    padding: 0.5rem 0.75rem;
+}
+
+/* Select2 multi-select with badges/pills Paper Dashboard style */
+.select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__rendered .select2-selection__choice {
+    background-color: #7A9E9F;
+    border-color: #7A9E9F;
+    color: white;
+    border-radius: var(--gb-border-radius-pill);
+    padding: 0.2rem 0.5rem;
+}
+
+.select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__rendered .select2-selection__choice .select2-selection__choice__remove {
+    color: rgba(255, 255, 255, 0.8);
+    float: right;
+    margin-left: 0.375rem;
+}
+
+.select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__rendered .select2-selection__choice .select2-selection__choice__remove:hover {
+    color: white;
+}
+
+/* Clear button styling */
+.select2-container--bootstrap-5 .select2-selection--single .select2-selection__clear {
+    color: #66615B;
+    background-color: transparent;
+    border: none;
+    float: right;
+    margin-right: 1rem;
+    line-height: 1.5;
+    font-weight: bold;
+}
+
+.select2-container--bootstrap-5 .select2-selection--single .select2-selection__clear:hover {
+    color: #EB5E28;
+}
+
+/* Make sure placeholder has proper styling */
+.select2-container--bootstrap-5 .select2-selection--single .select2-selection__placeholder {
+    color: var(--gb-text-secondary);
+}
+
+/* Dropdown arrow */
+.select2-container--bootstrap-5 .select2-selection--single .select2-selection__arrow b {
+    border-color: #7A9E9F transparent transparent transparent;
+}
+
+.select2-container--bootstrap-5.select2-container--open .select2-selection--single .select2-selection__arrow b {
+    border-color: transparent transparent #7A9E9F transparent;
+}
+
+/* Ensure the dropdown is above other elements */
+.select2-container--bootstrap-5 .select2-dropdown {
+    z-index: 1060;
 }

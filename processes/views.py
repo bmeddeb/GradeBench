@@ -94,9 +94,19 @@ class TeamWizard(SessionWizardView):
             'course_selection': 'Course Selection',
             'group_set_selection': 'Group Set Selection',
             'group_selection': 'Group Selection',
-            'github_config': 'GitHub Configuration',
-            'taiga_config': 'Taiga Configuration',
+            'github_config': 'GitHub Config',
+            'taiga_config': 'Taiga Config',
             'confirmation': 'Confirmation',
+        }
+
+        # Add more compact step titles for the progress indicators
+        context['step_short_titles'] = {
+            'course_selection': 'Course',
+            'group_set_selection': 'Group Sets',
+            'group_selection': 'Groups',
+            'github_config': 'GitHub',
+            'taiga_config': 'Taiga',
+            'confirmation': 'Confirm',
         }
 
         return context

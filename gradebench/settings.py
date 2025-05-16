@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     # Third-party apps
     "social_django",
+    'django_select2',
     'django_bootstrap5',
     'formtools',
     # Project apps - domain-based structure

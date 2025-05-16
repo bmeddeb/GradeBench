@@ -1,5 +1,5 @@
 /**
- * GradeBench Wizard Custom Styles
+ * GradeBench Wizard Custom Styles - Paper Dashboard Theme
  */
 
 /* Card hover effect */
@@ -12,11 +12,64 @@
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
+/* Info callout styling - Paper Dashboard blue */
+.callout-info {
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+  border: 1px solid #68B3C8; /* Paper Dashboard info */
+  border-left-width: 5px;
+  border-radius: 0.25rem;
+  background-color: rgba(104, 179, 200, 0.1); /* Light info background */
+  color: #51a2bb; /* Darker info */
+}
+
+.callout-info p {
+  margin-bottom: 0;
+}
+
+/* Warning callout styling - Paper Dashboard yellow */
+.callout-warning {
+  padding: 1.5rem;
+  margin-bottom: 1.25rem;
+  border: 1px solid #F3BB45; /* Paper Dashboard warning */
+  border-left-width: 5px;
+  border-radius: 0.5rem;
+  background-color: rgba(243, 187, 69, 0.1); /* Light warning background */
+  color: #f1ac26; /* Darker warning */
+}
+
+.callout-warning p {
+  margin-bottom: 0;
+}
+
+.callout-warning .form-label {
+  font-weight: 500;
+  color: #66615B;
+}
+
+.callout-warning p.fw-bold {
+  color: #F1AC26; /* Darker Paper Dashboard warning color */
+  font-weight: 600 !important;
+}
+
+/* Ensure the select dropdown has proper spacing */
+.callout-warning .select2-container {
+  margin-bottom: 0.5rem;
+}
+
+/* Step title */
+.step-title-heading {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  color: #7A9E9F; /* Paper Dashboard primary */
+  font-weight: 500;
+}
+
 /* Group set selection */
 .group-sets-container .card {
   cursor: pointer;
   transition: all 0.2s ease;
-  border-left: 3px solid var(--gb-primary);
+  border-left: 3px solid #7A9E9F; /* Paper Dashboard primary */
 }
 
 .group-sets-container .card:hover {
@@ -53,8 +106,8 @@
 }
 
 .form-check-input:checked {
-  background-color: var(--gb-primary);
-  border-color: var(--gb-primary);
+  background-color: #7A9E9F; /* Paper Dashboard primary */
+  border-color: #7A9E9F;
 }
 
 /* Group list */
@@ -63,7 +116,7 @@
 }
 
 #groups-container .list-group-item:hover {
-  background-color: var(--gb-secondary-light);
+  background-color: rgba(122, 158, 159, 0.1); /* Light primary */
 }
 
 /* Step navigation */
@@ -100,7 +153,7 @@
 }
 
 .group-set-header h5 {
-  color: var(--gb-primary);
+  color: #7A9E9F; /* Paper Dashboard primary */
   font-weight: 600;
 }
 
@@ -120,7 +173,7 @@
 }
 
 #groups-container .card-header {
-  background-color: var(--gb-primary-light);
+  background-color: rgba(122, 158, 159, 0.1); /* Light primary */
   border-bottom: 1px solid #e3e3e3;
   padding: 0.75rem 1rem;
 }
@@ -128,7 +181,7 @@
 #groups-container .card-header h6 {
   margin-bottom: 0.25rem;
   font-weight: 600;
-  color: var(--gb-primary-dark);
+  color: #66898a; /* Darker primary */
 }
 
 #groups-container .card-body {
@@ -161,6 +214,286 @@
 
 /* Empty state styling */
 .text-muted {
-  color: #6c757d;
+  color: #66615B; /* Paper Dashboard secondary */
   font-size: 0.9rem;
+}
+
+/* Paper Dashboard step indicator styles */
+.step-indicator {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #F8F9FA;
+  border: 2px solid #E3E3E3;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: bold;
+  margin: 0 auto;
+  color: #66615B; /* Paper Dashboard secondary */
+  transition: all 0.3s ease;
+}
+
+.step-indicator.active {
+  background-color: #7A9E9F; /* Paper Dashboard primary */
+  border-color: #7A9E9F;
+  color: white;
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.14), 0 7px 10px -5px rgba(122, 158, 159, 0.4);
+}
+
+.step-indicator.completed {
+  background-color: #7AC29A; /* Paper Dashboard success */
+  border-color: #7AC29A;
+  color: white;
+}
+
+.step-connector {
+  flex-grow: 1;
+  height: 2px;
+  background-color: #E3E3E3;
+  position: relative;
+  margin: 0 8px;
+}
+
+.step-indicator-wrapper {
+  flex: 0 0 auto;
+  text-align: center;
+  width: 100px;
+}
+
+.step-title {
+  font-size: 0.75rem;
+  line-height: 1.2;
+  display: block;
+  white-space: normal;
+  overflow: hidden;
+  color: #66615B; /* Paper Dashboard secondary */
+  margin-top: 8px;
+}
+
+/* Bootstrap switches in callout */
+.callout-warning .form-switch {
+  padding-left: 2.5em;
+  margin-bottom: 0.5rem;
+}
+
+.callout-warning .form-check-input[type="checkbox"] {
+  height: 1.5em !important;
+  width: 3em !important;
+  cursor: pointer;
+}
+
+.callout-warning .form-check-label {
+  font-weight: 500;
+  cursor: pointer;
+  padding-left: 0.5rem;
+  display: flex;
+  align-items: center;
+}
+
+.callout-warning .form-check-label i {
+  font-size: 1.5em;
+  margin-right: 0.8rem;
+  width: 24px;
+  text-align: center;
+}
+
+/* GitHub icon specific styling */
+.callout-warning .form-check-label i.fa-github {
+  color: #24292e; /* GitHub color */
+}
+
+/* Taiga icon specific styling */
+.callout-warning .form-check-label i.fa-tasks {
+  color: #5c6bc0; /* Indigo color for Taiga */
+}
+
+/* Paper Dashboard progress bar */
+.progress {
+  height: 6px !important;
+  margin-bottom: 20px;
+  overflow: hidden;
+  background-color: #DDDDDD;
+  border-radius: 3px;
+  box-shadow: none;
+}
+
+.progress-bar {
+  background-color: #7A9E9F; /* Paper Dashboard primary */
+  box-shadow: none;
+  transition: width 0.6s ease;
+}
+
+/* Paper Dashboard buttons */
+.btn-next, .btn-previous {
+  border-radius: 30px !important;
+  font-weight: 400;
+  padding: 10px 20px;
+}
+
+.btn-next {
+  background-color: #7A9E9F; /* Paper Dashboard primary */
+  border-color: #7A9E9F;
+}
+
+.btn-next:hover {
+  background-color: #66898a; /* Darker primary */
+  border-color: #66898a;
+}
+
+.btn-previous {
+  background-color: transparent;
+  border: 1px solid #66615B; /* Paper Dashboard secondary */
+  color: #66615B;
+}
+
+.btn-previous:hover {
+  background-color: rgba(102, 97, 91, 0.1); /* Light secondary */
+}
+
+/* Form control and select overrides for Paper Dashboard primary color */
+.form-control:focus,
+.form-select:focus {
+  border-color: #7A9E9F !important;
+  box-shadow: 0 0 0 0.25rem rgba(122, 158, 159, 0.25) !important;
+}
+
+.form-select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%237A9E9F' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e") !important;
+}
+
+.form-select:focus {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%237A9E9F' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e") !important;
+}
+
+/* Make selected item in dropdown use Paper Dashboard color */
+.form-select option:checked,
+.form-select option:hover,
+.form-select option:focus {
+  background-color: #7A9E9F !important;
+  color: white !important;
+}
+
+/* Style for checkbox when checked */
+.form-check-input:checked {
+  background-color: #7A9E9F !important;
+  border-color: #7A9E9F !important;
+}
+
+/* Hover/focus state */
+.dropdown-item:hover,
+.dropdown-item:focus {
+  background-color: #f0f0f0;     /* your hover bg */
+  color: #333;                  /* your hover text */
+}
+
+/* Active (clicked/selected) state */
+.dropdown-item.active,
+.dropdown-item:active {
+  background-color: #ff5722 !important;  /* your active bg */
+  color: #fff !important;                /* your active text */
+}
+
+/* Select2 width control - make dropdown full width */
+.select2-container {
+  width: 100% !important;
+}
+
+/* Make switches appear stacked to the right of other form elements */
+.callout-warning .form-check-label i {
+  vertical-align: middle;
+  width: 20px;
+  text-align: center;
+  margin-right: 5px;
+}
+
+/* Group Set Selection cards */
+.group-set-card {
+  transition: all 0.2s ease;
+  border: 1px solid #E3E3E3;
+  cursor: pointer;
+}
+
+.group-set-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  border-color: #7A9E9F;
+}
+
+.group-set-card .card-header {
+  background-color: rgba(122, 158, 159, 0.05);
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #E3E3E3;
+}
+
+.group-set-card .form-check-label {
+  font-weight: 500;
+  color: #66615B;
+  cursor: pointer;
+}
+
+.group-set-card .form-check-input {
+  cursor: pointer;
+}
+
+.group-set-card .form-check-input:checked ~ .form-check-label {
+  color: #7A9E9F;
+}
+
+.group-set-card .card-body {
+  padding: 1rem;
+}
+
+.group-set-card .text-muted {
+  color: #9A9A9A !important;
+  font-size: 0.9rem;
+}
+
+/* Select/Deselect all buttons */
+.select-all-btn, .deselect-all-btn {
+  font-size: 0.85rem;
+  color: #66615B;
+  text-decoration: none;
+  margin-left: 1rem;
+  cursor: pointer;
+}
+
+.select-all-btn:hover, .deselect-all-btn:hover {
+  color: #7A9E9F;
+  text-decoration: underline;
+}
+
+/* Alert warning style - Paper Dashboard */
+.alert-warning {
+  background-color: rgba(243, 187, 69, 0.1);
+  border-color: transparent;
+  color: #f1ac26;
+}
+
+/* Group listing inside category cards */
+.group-list {
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.group-list li {
+  padding: 0.25rem 0;
+  border-bottom: 1px dashed rgba(0, 0, 0, 0.05);
+}
+
+.group-list li:last-child {
+  border-bottom: none;
+}
+
+.group-list li i {
+  color: #7A9E9F;
+  font-size: 0.9rem;
+}
+
+/* Make group set cards scrollable if too many groups */
+.group-set-card .card-body {
+  max-height: 250px;
+  overflow-y: auto;
 }

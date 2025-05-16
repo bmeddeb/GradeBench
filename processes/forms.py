@@ -1,6 +1,7 @@
 from django import forms
 from django.utils.translation import gettext_lazy as _
 from lms.canvas.models import CanvasCourse, CanvasGroupCategory
+from django_select2.forms import Select2Widget, Select2MultipleWidget
 
 
 class TeamWizardStep1Form(forms.Form):
@@ -8,19 +9,29 @@ class TeamWizardStep1Form(forms.Form):
     course = forms.ModelChoiceField(
         queryset=CanvasCourse.objects.all(),
         label=_('Select Canvas Course'),
-        widget=forms.Select(attrs={'class': 'form-select'})
+        widget=Select2Widget(attrs={
+            'class': 'form-select select2',
+            'data-placeholder': 'Select a Canvas course',
+            'data-theme': 'bootstrap-5'
+        })
     )
     use_github = forms.BooleanField(
         required=False,
-        label=_('Associate GitHub repositories'),
-        initial=False,
-        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
+        label=_('GitHub'),
+        initial=True,
+        widget=forms.CheckboxInput(attrs={
+            'class': 'form-check-input',
+            'role': 'switch'
+        })
     )
     use_taiga = forms.BooleanField(
         required=False,
-        label=_('Associate Taiga projects'),
-        initial=False,
-        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
+        label=_('Taiga'),
+        initial=True,
+        widget=forms.CheckboxInput(attrs={
+            'class': 'form-check-input',
+            'role': 'switch'
+        })
     )
 
 
@@ -29,8 +40,12 @@ class TeamWizardStep2Form(forms.Form):
     group_categories = forms.ModelMultipleChoiceField(
         queryset=CanvasGroupCategory.objects.none(),  # Will be set dynamically
         label=_('Select Group Categories'),
-        widget=forms.CheckboxSelectMultiple(
-            attrs={'class': 'form-check-input'})
+        widget=Select2Widget(attrs={
+            'class': 'form-select select2',
+            'data-placeholder': 'Select group categories',
+            'data-theme': 'bootstrap-5',
+            'multiple': 'multiple'
+        })
     )
 
     def __init__(self, *args, **kwargs):
@@ -39,7 +54,7 @@ class TeamWizardStep2Form(forms.Form):
 
         if course_id:
             self.fields['group_categories'].queryset = CanvasGroupCategory.objects.filter(
-                canvas_course_id=course_id
+                course_id=course_id
             )
 
 
@@ -48,8 +63,11 @@ class TeamWizardStep3Form(forms.Form):
     selected_groups = forms.MultipleChoiceField(
         choices=[],  # Will be set dynamically
         label=_('Select Groups to Create Teams'),
-        widget=forms.CheckboxSelectMultiple(
-            attrs={'class': 'form-check-input'}),
+        widget=Select2MultipleWidget(attrs={
+            'class': 'form-select select2',
+            'data-placeholder': 'Select groups',
+            'data-theme': 'bootstrap-5'
+        }),
         required=True
     )
 
