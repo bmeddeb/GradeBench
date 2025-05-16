@@ -10,6 +10,8 @@ def get(dictionary, key):
 
     Usage: {{ my_dict|get:key_variable }}
     """
+    if dictionary is None:
+        return None
     return dictionary.get(key)
 
 
