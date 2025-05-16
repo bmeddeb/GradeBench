@@ -72,6 +72,22 @@ class TeamWizard(SessionWizardView):
             else:
                 print("No data from step 2 - group_set_selection")
 
+        elif step == 'github_config' or step == 'taiga_config':
+            # Pass selected groups and course to GitHub or Taiga configuration form
+            step1_data = self.get_cleaned_data_for_step('course_selection')
+            step3_data = self.get_cleaned_data_for_step('group_selection')
+
+            if step1_data and step3_data:
+                course = step1_data.get('course')
+                selected_group_ids = step3_data.get('selected_groups', [])
+
+                kwargs['course'] = course
+                kwargs['selected_group_ids'] = selected_group_ids
+                print(
+                    f"Passing course={course} and {len(selected_group_ids)} selected groups to {step} form")
+            else:
+                print(f"Missing data for {step} form")
+
         return kwargs
 
     def get_template_names(self):

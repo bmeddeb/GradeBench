@@ -257,16 +257,88 @@
                                 </div>
                             {% elif wizard.steps.current == 'github_config' %}
                                 <div class="callout-info">
-                                    <p>Configure GitHub repository names for the selected groups.</p>
+                                    <p>Configure GitHub repository names for the selected groups. Repository names are pre-filled based on course code and group name.</p>
+                                    <p>Names should only contain letters, numbers, hyphens, and underscores. Edit if needed, or use the suggested defaults.</p>
                                 </div>
 
-                                {% bootstrap_form wizard.form %}
+                                <!-- Custom repo name configuration UI -->
+                                <div class="github-repo-config mt-4">
+                                    {% for field in wizard.form %}
+                                        <div class="card mb-3">
+                                            <div class="card-header">
+                                                <h6 class="mb-0">{{ field.label }}</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="row">
+                                                    <div class="col-md-9">
+                                                        {% if field.help_text %}
+                                                            {% with default_value=field.help_text|slice:"9:" %}
+                                                                {{ field }}
+                                                                <div class="form-text text-muted small">{{ field.help_text }}</div>
+                                                                <input type="hidden" class="default-name-storage" value="{{ default_value }}">
+                                                            {% endwith %}
+                                                        {% else %}
+                                                            {{ field }}
+                                                        {% endif %}
+                                                        {% if field.errors %}
+                                                            <div class="invalid-feedback d-block">
+                                                                {{ field.errors }}
+                                                            </div>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="col-md-3 d-flex align-items-center">
+                                                        <button type="button" class="btn btn-sm btn-outline-secondary reset-repo-btn"
+                                                                data-field-id="{{ field.id_for_label }}">
+                                                            <i class="fa fa-undo me-1"></i> Reset to Default
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
                             {% elif wizard.steps.current == 'taiga_config' %}
                                 <div class="callout-info">
-                                    <p>Configure Taiga project names for the selected groups.</p>
+                                    <p>Configure Taiga project names for the selected groups. Project names are pre-filled based on course code and group name.</p>
+                                    <p>Names should only contain letters, numbers, hyphens, and underscores. Edit if needed, or use the suggested defaults.</p>
                                 </div>
 
-                                {% bootstrap_form wizard.form %}
+                                <!-- Custom project name configuration UI -->
+                                <div class="taiga-project-config mt-4">
+                                    {% for field in wizard.form %}
+                                        <div class="card mb-3">
+                                            <div class="card-header">
+                                                <h6 class="mb-0">{{ field.label }}</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="row">
+                                                    <div class="col-md-9">
+                                                        {% if field.help_text %}
+                                                            {% with default_value=field.help_text|slice:"9:" %}
+                                                                {{ field }}
+                                                                <div class="form-text text-muted small">{{ field.help_text }}</div>
+                                                                <input type="hidden" class="default-name-storage" value="{{ default_value }}">
+                                                            {% endwith %}
+                                                        {% else %}
+                                                            {{ field }}
+                                                        {% endif %}
+                                                        {% if field.errors %}
+                                                            <div class="invalid-feedback d-block">
+                                                                {{ field.errors }}
+                                                            </div>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="col-md-3 d-flex align-items-center">
+                                                        <button type="button" class="btn btn-sm btn-outline-secondary reset-project-btn"
+                                                                data-field-id="{{ field.id_for_label }}">
+                                                            <i class="fa fa-undo me-1"></i> Reset to Default
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
                             {% elif wizard.steps.current == 'confirmation' %}
                                 <div class="callout-info">
                                     <p>Review your selections and confirm to create the teams.</p>
@@ -337,6 +409,47 @@
                 theme: 'bootstrap-5',
                 width: '100%',
                 dropdownParent: $('.card-body')
+            });
+
+            // Initialize tooltips
+            $('[data-toggle="tooltip"]').tooltip();
+
+            // Reset GitHub repo name to default
+            $('.reset-repo-btn').on('click', function() {
+                const fieldId = $(this).data('field-id');
+                console.log('Reset repo button clicked for:', fieldId);
+
+                // Get the field element
+                const fieldContainer = $(this).closest('.card-body');
+                const fieldElement = fieldContainer.find(`#${fieldId}`);
+                const defaultElement = fieldContainer.find('.default-name-storage');
+
+                if (defaultElement.length > 0) {
+                    const defaultValue = defaultElement.val();
+                    console.log('Found default value:', defaultValue);
+                    fieldElement.val(defaultValue);
+                } else {
+                    console.log('Default value element not found');
+                }
+            });
+
+            // Reset Taiga project name to default
+            $('.reset-project-btn').on('click', function() {
+                const fieldId = $(this).data('field-id');
+                console.log('Reset project button clicked for:', fieldId);
+
+                // Get the field element
+                const fieldContainer = $(this).closest('.card-body');
+                const fieldElement = fieldContainer.find(`#${fieldId}`);
+                const defaultElement = fieldContainer.find('.default-name-storage');
+
+                if (defaultElement.length > 0) {
+                    const defaultValue = defaultElement.val();
+                    console.log('Found default value:', defaultValue);
+                    fieldElement.val(defaultValue);
+                } else {
+                    console.log('Default value element not found');
+                }
             });
 
             // Plus button click handler
