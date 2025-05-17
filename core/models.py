@@ -166,6 +166,12 @@ class Student(models.Model, AsyncModelMixin):
     team = models.ForeignKey(
         Team, on_delete=models.SET_NULL, blank=True, null=True, related_name="students"
     )
+    
+    # Avatar (supports both file upload and URL)
+    avatar = models.ImageField(
+        upload_to="student_avatars/", blank=True, null=True
+    )
+    avatar_url = models.URLField(max_length=500, blank=True, null=True)
 
     # Platform identifiers - these fields store the basic identifiers
     # that can be used to look up the full platform-specific profiles
@@ -188,6 +194,13 @@ class Student(models.Model, AsyncModelMixin):
     @property
     def full_name(self):
         return f"{self.first_name} {self.last_name}"
+    
+    @property
+    def get_avatar_url(self):
+        """Get avatar URL, prioritizing uploaded image over URL field"""
+        if self.avatar:
+            return self.avatar.url
+        return self.avatar_url
 
     @property
     def display_name(self):
