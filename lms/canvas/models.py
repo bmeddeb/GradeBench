@@ -4,6 +4,15 @@ from encrypted_model_fields.fields import EncryptedCharField
 from core.async_utils import AsyncModelMixin
 from core.mixins import TimestampedModel, SyncableModel
 from django.utils import timezone
+from .querysets import (
+    CanvasCourseManager,
+    CanvasEnrollmentManager,
+    CanvasAssignmentManager,
+    CanvasSubmissionManager,
+    CanvasGroupCategoryManager,
+    CanvasGroupManager,
+    CanvasQuizManager,
+)
 
 
 class CanvasIntegration(SyncableModel):
@@ -44,6 +53,8 @@ class CanvasCourse(TimestampedModel):
     time_zone = models.CharField(max_length=100, blank=True, null=True)
     uuid = models.CharField(max_length=255, blank=True, null=True)
 
+    objects = CanvasCourseManager()
+
     class Meta:
         ordering = ["-created_at"]
 
@@ -70,6 +81,8 @@ class CanvasEnrollment(TimestampedModel):
         ("completed", "Completed"),
         ("inactive", "Inactive"),
     )
+
+    objects = CanvasEnrollmentManager()
 
     canvas_id = models.PositiveIntegerField(unique=True, default=0)
     course = models.ForeignKey(
@@ -107,6 +120,8 @@ class CanvasEnrollment(TimestampedModel):
 
 class CanvasAssignment(TimestampedModel):
     """Canvas Assignment Information"""
+
+    objects = CanvasAssignmentManager()
 
     GRADING_TYPES = (
         ("points", "Points"),
@@ -149,6 +164,8 @@ class CanvasAssignment(TimestampedModel):
 
 class CanvasSubmission(TimestampedModel):
     """Canvas Assignment Submission"""
+
+    objects = CanvasSubmissionManager()
 
     SUBMISSION_STATES = (
         ("submitted", "Submitted"),
@@ -236,6 +253,8 @@ class CanvasRubricRating(models.Model):
 class CanvasGroupCategory(SyncableModel, AsyncModelMixin):
     """Represents a Canvas Group Category/Group Set"""
 
+    objects = CanvasGroupCategoryManager()
+
     canvas_id = models.PositiveIntegerField(unique=True)
     course = models.ForeignKey(
         CanvasCourse, on_delete=models.CASCADE, related_name="group_categories"
@@ -256,6 +275,8 @@ class CanvasGroupCategory(SyncableModel, AsyncModelMixin):
 
 class CanvasGroup(SyncableModel, AsyncModelMixin):
     """Represents a Canvas Group within a Group Category"""
+
+    objects = CanvasGroupManager()
 
     canvas_id = models.PositiveIntegerField(unique=True)
     category = models.ForeignKey(
@@ -309,6 +330,8 @@ class CanvasGroupMembership(models.Model, AsyncModelMixin):
 
 class CanvasQuiz(TimestampedModel):
     """Canvas Quiz Information"""
+
+    objects = CanvasQuizManager()
 
     QUIZ_TYPES = (
         ("assignment", "Assignment"),
