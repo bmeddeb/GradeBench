@@ -231,16 +231,17 @@ async def sync_course_groups(
                 status="counting_groups",
                 message="Counting groups to sync..."
             )
-        
+
         # Get all categories to count total groups
         categories = await client.get_group_categories(course_id)
         total_groups = 0
         for cat in categories:
             groups = await client.get_groups(cat["id"])
             total_groups += len(groups)
-        
-        logger.info(f"Found {total_groups} total groups across {len(categories)} categories")
-        
+
+        logger.info(
+            f"Found {total_groups} total groups across {len(categories)} categories")
+
         # Handle case where there are no groups
         if total_groups == 0:
             if user_id:
@@ -258,10 +259,10 @@ async def sync_course_groups(
                 "group_ids": [],
                 "success": True,
             }
-        
+
         # We'll add 2 extra steps: one for syncing memberships, one for completion
         total_steps = total_groups + 2
-        
+
         # Update progress with actual total
         if user_id:
             await SyncProgress.async_update(
@@ -289,7 +290,7 @@ async def sync_course_groups(
                 status="syncing_memberships",
                 message="Syncing group memberships..."
             )
-        
+
         await syncer.sync_group_memberships(course, user_id, total_steps)
 
         # Final update - this is the last step
@@ -305,7 +306,7 @@ async def sync_course_groups(
 
         # Force an update to the course's updated_at timestamp
         await course.asave()
-        
+
         # Mark as truly complete
         if user_id:
             await SyncProgress.async_update(
@@ -1015,8 +1016,8 @@ async def push_all_group_memberships_async(integration, course_id, user_id=None,
 
     # Process groups sequentially to avoid issues with mixing sync/async code
     for idx, group in enumerate(groups):
-        # Process each group
-        await process_group_memberships(integration, group, stats, user_id, total_groups, idx)
+        # Process each group, passing course_id for proper progress scoping
+        await process_group_memberships(integration, group, stats, user_id, total_groups, idx, course_id)
 
         # Update progress every few groups to avoid too many DB operations
         if user_id and (idx % 3 == 0 or idx == total_groups - 1):
@@ -1058,7 +1059,7 @@ async def push_all_group_memberships_async(integration, course_id, user_id=None,
     return stats
 
 
-async def process_group_memberships(integration, group, stats, user_id, total_groups, current_index):
+async def process_group_memberships(integration, group, stats, user_id, total_groups, current_index, course_id):
     """
     Process memberships for a single group asynchronously.
     Helper function for push_all_group_memberships_async.
@@ -1070,6 +1071,7 @@ async def process_group_memberships(integration, group, stats, user_id, total_gr
         user_id: Optional user ID for progress tracking
         total_groups: Total number of groups being processed
         current_index: Current index of this group in the overall process
+        course_id: Canvas course ID
 
     Returns:
         None, but updates the stats dictionary in place
@@ -1089,7 +1091,7 @@ async def process_group_memberships(integration, group, stats, user_id, total_gr
             if user_id:
                 await SyncProgress.async_update(
                     user_id,
-                    None,  # No course_id for individual group updates
+                    course_id,
                     current=current_index,
                     total=total_groups,
                     status="pushing_memberships",
@@ -1099,9 +1101,11 @@ async def process_group_memberships(integration, group, stats, user_id, total_gr
             # Push to Canvas using the safer Canvas Client
             await push_group_memberships_async(integration, group.canvas_id, user_ids)
             stats["groups_updated"] += 1
-            logger.info(f"Successfully pushed {len(user_ids)} memberships for group {group.name}")
+            logger.info(
+                f"Successfully pushed {len(user_ids)} memberships for group {group.name}")
 
     except Exception as e:
-        logger.error(f"Error pushing memberships for group {group.name}: {str(e)}")
+        logger.error(
+            f"Error pushing memberships for group {group.name}: {str(e)}")
         logger.exception("Full stack trace:")
         stats["errors"] += 1
