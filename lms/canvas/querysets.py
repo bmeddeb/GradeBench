@@ -1,9 +1,11 @@
 """
 Canvas model QuerySets and Managers for efficient database queries.
+Supports both sync and async operations.
 """
 from django.db import models
 from django.utils import timezone
 from datetime import timedelta
+from asgiref.sync import sync_to_async
 
 
 # CanvasCourse QuerySet and Manager

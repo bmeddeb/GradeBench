@@ -239,10 +239,10 @@ class CanvasRubricRatingAdmin(admin.ModelAdmin):
 
 @admin.register(CanvasGroupCategory)
 class CanvasGroupCategoryAdmin(admin.ModelAdmin):
-    list_display = ("name", "course", "canvas_id", "self_signup", "group_limit", "created_at")
-    list_filter = ("course", "self_signup", "auto_leader", "created_at")
+    list_display = ("name", "course", "canvas_id", "self_signup", "group_limit", "canvas_created_at")
+    list_filter = ("course", "self_signup", "auto_leader", "canvas_created_at")
     search_fields = ("name", "canvas_id")
-    readonly_fields = ("canvas_id", "created_at", "last_synced_at")
+    readonly_fields = ("canvas_id", "canvas_created_at", "last_synced_at")
     
     fieldsets = (
         ("Category Information", {
@@ -252,7 +252,7 @@ class CanvasGroupCategoryAdmin(admin.ModelAdmin):
             "fields": ("self_signup", "auto_leader", "group_limit")
         }),
         ("Timestamps", {
-            "fields": ("created_at", "last_synced_at"),
+            "fields": ("canvas_created_at", "last_synced_at"),
             "classes": ("collapse",)
         }),
     )
@@ -266,10 +266,10 @@ class CanvasGroupCategoryAdmin(admin.ModelAdmin):
 
 @admin.register(CanvasGroup)
 class CanvasGroupAdmin(admin.ModelAdmin):
-    list_display = ("name", "category", "canvas_id", "core_team", "created_at", "last_synced_at")
-    list_filter = ("category", "created_at", "last_synced_at")
+    list_display = ("name", "category", "canvas_id", "core_team", "canvas_created_at", "last_synced_at")
+    list_filter = ("category", "canvas_created_at", "last_synced_at")
     search_fields = ("name", "canvas_id", "description")
-    readonly_fields = ("canvas_id", "created_at", "last_synced_at")
+    readonly_fields = ("canvas_id", "canvas_created_at", "last_synced_at")
     
     fieldsets = (
         ("Group Information", {
@@ -279,7 +279,7 @@ class CanvasGroupAdmin(admin.ModelAdmin):
             "fields": ("core_team",)
         }),
         ("Timestamps", {
-            "fields": ("created_at", "last_synced_at"),
+            "fields": ("canvas_created_at", "last_synced_at"),
             "classes": ("collapse",)
         }),
     )
@@ -293,10 +293,10 @@ class CanvasGroupAdmin(admin.ModelAdmin):
 
 @admin.register(CanvasGroupMembership)
 class CanvasGroupMembershipAdmin(admin.ModelAdmin):
-    list_display = ("name", "group", "user_id", "student", "email", "added_at")
-    list_filter = ("group", "added_at")
+    list_display = ("name", "group", "user_id", "student", "email", "created_at")
+    list_filter = ("group", "created_at")
     search_fields = ("name", "email", "user_id")
-    readonly_fields = ("user_id", "added_at")
+    readonly_fields = ("user_id", "created_at")
     
     fieldsets = (
         ("Member Information", {
@@ -306,7 +306,7 @@ class CanvasGroupMembershipAdmin(admin.ModelAdmin):
             "fields": ("group", "student")
         }),
         ("Metadata", {
-            "fields": ("added_at",),
+            "fields": ("created_at",),
             "classes": ("collapse",)
         }),
     )

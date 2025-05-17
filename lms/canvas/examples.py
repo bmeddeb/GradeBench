@@ -1,6 +1,7 @@
 """
 Examples of using Canvas model QuerySets and Managers to avoid N+1 queries.
 """
+from lms.canvas.models import CanvasCourse, CanvasAssignment, CanvasEnrollment, CanvasSubmission, CanvasGroupCategory
 
 # Example 1: Fetch active courses with their enrollments
 active_courses = (

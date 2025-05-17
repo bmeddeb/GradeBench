@@ -32,7 +32,7 @@ class CanvasIntegration(SyncableModel):
         return f"Canvas integration for {self.user.username}"
 
 
-class CanvasCourse(TimestampedModel):
+class CanvasCourse(TimestampedModel, AsyncModelMixin):
     """Canvas Course Information"""
 
     integration = models.ForeignKey(
@@ -62,7 +62,7 @@ class CanvasCourse(TimestampedModel):
         return f"{self.course_code}: {self.name}"
 
 
-class CanvasEnrollment(TimestampedModel):
+class CanvasEnrollment(TimestampedModel, AsyncModelMixin):
     """Canvas Enrollment (Student or Teacher in a Course)"""
 
     ENROLLMENT_TYPES = (
@@ -118,7 +118,7 @@ class CanvasEnrollment(TimestampedModel):
         return f"{self.user_name} in {self.course}"
 
 
-class CanvasAssignment(TimestampedModel):
+class CanvasAssignment(TimestampedModel, AsyncModelMixin):
     """Canvas Assignment Information"""
 
     objects = CanvasAssignmentManager()
@@ -162,7 +162,7 @@ class CanvasAssignment(TimestampedModel):
         return f"{self.name} ({self.course})"
 
 
-class CanvasSubmission(TimestampedModel):
+class CanvasSubmission(TimestampedModel, AsyncModelMixin):
     """Canvas Assignment Submission"""
 
     objects = CanvasSubmissionManager()
@@ -202,7 +202,7 @@ class CanvasSubmission(TimestampedModel):
         return f"Submission by {self.enrollment.user_name} for {self.assignment.name}"
 
 
-class CanvasRubric(TimestampedModel):
+class CanvasRubric(TimestampedModel, AsyncModelMixin):
     """Canvas Rubric for Assessment"""
 
     canvas_id = models.CharField(max_length=255, unique=True)
@@ -213,7 +213,7 @@ class CanvasRubric(TimestampedModel):
         return self.title
 
 
-class CanvasRubricCriterion(models.Model):
+class CanvasRubricCriterion(models.Model, AsyncModelMixin):
     """Individual criteria within a rubric"""
 
     rubric = models.ForeignKey(
@@ -232,7 +232,7 @@ class CanvasRubricCriterion(models.Model):
         return f"{self.description} ({self.points} pts)"
 
 
-class CanvasRubricRating(models.Model):
+class CanvasRubricRating(models.Model, AsyncModelMixin):
     """Rating levels for a rubric criterion"""
 
     criterion = models.ForeignKey(
@@ -263,7 +263,7 @@ class CanvasGroupCategory(SyncableModel, AsyncModelMixin):
     self_signup = models.CharField(max_length=50, null=True, blank=True)
     auto_leader = models.CharField(max_length=50, null=True, blank=True)
     group_limit = models.IntegerField(null=True, blank=True)
-    created_at = models.DateTimeField(null=True, blank=True)
+    canvas_created_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         verbose_name_plural = "Canvas Group Categories"
@@ -284,7 +284,7 @@ class CanvasGroup(SyncableModel, AsyncModelMixin):
     )
     name = models.CharField(max_length=255)
     description = models.TextField(null=True, blank=True)
-    created_at = models.DateTimeField(null=True, blank=True)
+    canvas_created_at = models.DateTimeField(null=True, blank=True)
 
     # Optional link to a Team in the core app
     core_team = models.OneToOneField(
@@ -302,7 +302,7 @@ class CanvasGroup(SyncableModel, AsyncModelMixin):
         return f"{self.name} (Category: {self.category.name})"
 
 
-class CanvasGroupMembership(models.Model, AsyncModelMixin):
+class CanvasGroupMembership(TimestampedModel, AsyncModelMixin):
     """Represents a student's membership in a Canvas Group"""
 
     group = models.ForeignKey(
@@ -318,7 +318,6 @@ class CanvasGroupMembership(models.Model, AsyncModelMixin):
     )
     name = models.CharField(max_length=255)
     email = models.EmailField(null=True, blank=True)
-    added_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         unique_together = ("group", "user_id")
@@ -328,7 +327,7 @@ class CanvasGroupMembership(models.Model, AsyncModelMixin):
         return f"{self.name} in {self.group.name}"
 
 
-class CanvasQuiz(TimestampedModel):
+class CanvasQuiz(TimestampedModel, AsyncModelMixin):
     """Canvas Quiz Information"""
 
     objects = CanvasQuizManager()
