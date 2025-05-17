@@ -80,9 +80,9 @@
                     <h3>No assignments found</h3>
                     <p>No assignments have been created in any Canvas courses yet.</p>
                     <p>
-                        <a href="{% url 'canvas_courses_list' %}" class="btn btn-primary btn-fill mt-3">
+                        <button id="openSyncModal" class="btn btn-primary btn-round mt-3" type="button" data-bs-toggle="modal" data-bs-target="#syncCoursesModal">
                             <i class="fa fa-plus"></i> Add Courses from Canvas
-                        </a>
+                        </button>
                     </p>
                 </div>
                 {% endif %}
@@ -90,4 +90,47 @@
         </div>
     </div>
 </div>
+
+<!-- Modal for selecting Canvas courses to sync -->
+<div class="modal fade" id="syncCoursesModal" tabindex="-1" aria-labelledby="syncCoursesModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="syncCoursesModalLabel">
+          <i class="fa fa-refresh me-2"></i>Select Canvas Courses to Sync
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div id="coursesLoading">Loading courses...</div>
+        <div id="coursesList" class="initially-hidden">
+          <button class="btn btn-link btn-sm" onclick="selectAllCourses(true)">Select All</button>
+          <button class="btn btn-link btn-sm" onclick="selectAllCourses(false)">Deselect All</button>
+          <ul id="coursesCheckboxList" class="courses-checkbox-list list-unstyled mt-2"></ul>
+        </div>
+        <div id="coursesError" class="alert alert-danger initially-hidden" role="alert">
+          <h5 class="alert-heading"><i class="fa fa-exclamation-triangle me-2"></i>Error</h5>
+          <p class="mb-0"></p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <div id="syncProgressIndicator" class="initially-hidden me-auto">
+          <div class="spinner-border spinner-border-sm text-primary" role="status">
+            <span class="visually-hidden">Syncing courses...</span>
+          </div>
+          <span class="ms-2">Syncing courses, please wait...</span>
+        </div>
+        <button id="syncSelectedBtn" class="btn btn-primary btn-round" onclick="syncSelectedCourses()">Sync Selected</button>
+        <button id="syncAllBtn" class="btn btn-secondary btn-round" onclick="syncAllCourses()">Sync All</button>
+        <button id="closeModalBtn" class="btn btn-outline-secondary btn-round" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block canvas_js %}
+<script src="{% static 'js/canvas-sync-progress.js' %}"></script>
+<script src="{% static 'js/Sync-modal.js' %}"></script>
+<script src="{% static 'js/canvas-sync-init.js' %}"></script>
 {% endblock %}

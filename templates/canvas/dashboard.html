@@ -264,9 +264,11 @@
 <div class="modal fade" id="syncCoursesModal" tabindex="-1" aria-labelledby="syncCoursesModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="syncCoursesModalLabel">Select Canvas Courses to Sync</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="syncCoursesModalLabel">
+          <i class="fa fa-refresh me-2"></i>Select Canvas Courses to Sync
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
         <div id="coursesLoading">Loading courses...</div>
@@ -275,7 +277,10 @@
           <button class="btn btn-link btn-sm" onclick="selectAllCourses(false)">Deselect All</button>
           <ul id="coursesCheckboxList" class="courses-checkbox-list list-unstyled mt-2"></ul>
         </div>
-        <div id="coursesError" class="alert alert-danger initially-hidden"></div>
+        <div id="coursesError" class="alert alert-danger initially-hidden" role="alert">
+          <h5 class="alert-heading"><i class="fa fa-exclamation-triangle me-2"></i>Error</h5>
+          <p class="mb-0"></p>
+        </div>
       </div>
       <div class="modal-footer">
         <div id="syncProgressIndicator" class="initially-hidden me-auto">
@@ -316,6 +321,7 @@
 
 <script src="{% static 'js/canvas-sync-progress.js' %}"></script>
 <script src="{% static 'js/Sync-modal.js' %}"></script>
+<script src="{% static 'js/canvas-sync-init.js' %}"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const syncIconContainer = document.querySelector('.sync-icon-container');
