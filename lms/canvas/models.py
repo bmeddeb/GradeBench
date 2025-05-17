@@ -2,29 +2,28 @@ from django.db import models
 from django.contrib.auth.models import User
 from encrypted_model_fields.fields import EncryptedCharField
 from core.async_utils import AsyncModelMixin
+from core.mixins import TimestampedModel, SyncableModel
 from django.utils import timezone
 
 
-class CanvasIntegration(models.Model):
+class CanvasIntegration(SyncableModel):
     """Configuration for Canvas API integration"""
 
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="canvas_integrations"
     )
     canvas_url = models.URLField(default="https://canvas.instructure.com")
-    api_key = EncryptedCharField(max_length=255)  # Encrypts the key
+    api_key = EncryptedCharField(max_length=255, help_text="Encrypted Canvas API key for authentication")  # Encrypts the key
     refresh_token = EncryptedCharField(
-        max_length=255, blank=True, null=True
+        max_length=255, blank=True, null=True,
+        help_text="Encrypted Canvas OAuth2 refresh token"
     )  # Also encrypt refresh token
-    last_sync = models.DateTimeField(blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"Canvas integration for {self.user.username}"
 
 
-class CanvasCourse(models.Model):
+class CanvasCourse(TimestampedModel):
     """Canvas Course Information"""
 
     integration = models.ForeignKey(
@@ -39,8 +38,6 @@ class CanvasCourse(models.Model):
     course_code = models.CharField(max_length=255)
     start_at = models.DateTimeField(null=True, blank=True)
     end_at = models.DateTimeField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
     is_public = models.BooleanField(default=False)
     syllabus_body = models.TextField(blank=True, null=True)
     workflow_state = models.CharField(max_length=50, default="unpublished")
@@ -54,7 +51,7 @@ class CanvasCourse(models.Model):
         return f"{self.course_code}: {self.name}"
 
 
-class CanvasEnrollment(models.Model):
+class CanvasEnrollment(TimestampedModel):
     """Canvas Enrollment (Student or Teacher in a Course)"""
 
     ENROLLMENT_TYPES = (
@@ -90,8 +87,6 @@ class CanvasEnrollment(models.Model):
         max_length=20, choices=ENROLLMENT_STATES, default="active"
     )
     last_activity_at = models.DateTimeField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
     grades = models.JSONField(default=dict, blank=True)
     # Link to student in the core app
     student = models.ForeignKey(
@@ -110,7 +105,7 @@ class CanvasEnrollment(models.Model):
         return f"{self.user_name} in {self.course}"
 
 
-class CanvasAssignment(models.Model):
+class CanvasAssignment(TimestampedModel):
     """Canvas Assignment Information"""
 
     GRADING_TYPES = (
@@ -137,8 +132,6 @@ class CanvasAssignment(models.Model):
         max_length=20, choices=GRADING_TYPES, default="points"
     )
     published = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
     submission_types = models.JSONField(default=list, blank=True)
     has_submitted_submissions = models.BooleanField(default=False)
     muted = models.BooleanField(default=False)
@@ -154,7 +147,7 @@ class CanvasAssignment(models.Model):
         return f"{self.name} ({self.course})"
 
 
-class CanvasSubmission(models.Model):
+class CanvasSubmission(TimestampedModel):
     """Canvas Assignment Submission"""
 
     SUBMISSION_STATES = (
@@ -183,8 +176,6 @@ class CanvasSubmission(models.Model):
     submission_type = models.CharField(max_length=50, blank=True, null=True)
     url = models.URLField(blank=True, null=True)
     body = models.TextField(blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["-submitted_at"]
@@ -194,14 +185,12 @@ class CanvasSubmission(models.Model):
         return f"Submission by {self.enrollment.user_name} for {self.assignment.name}"
 
 
-class CanvasRubric(models.Model):
+class CanvasRubric(TimestampedModel):
     """Canvas Rubric for Assessment"""
 
     canvas_id = models.CharField(max_length=255, unique=True)
     title = models.CharField(max_length=255)
     points_possible = models.FloatField(default=0.0)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.title
@@ -244,7 +233,7 @@ class CanvasRubricRating(models.Model):
         return f"{self.description} ({self.points} pts)"
 
 
-class CanvasGroupCategory(models.Model, AsyncModelMixin):
+class CanvasGroupCategory(SyncableModel, AsyncModelMixin):
     """Represents a Canvas Group Category/Group Set"""
 
     canvas_id = models.PositiveIntegerField(unique=True)
@@ -256,7 +245,6 @@ class CanvasGroupCategory(models.Model, AsyncModelMixin):
     auto_leader = models.CharField(max_length=50, null=True, blank=True)
     group_limit = models.IntegerField(null=True, blank=True)
     created_at = models.DateTimeField(null=True, blank=True)
-    last_synced_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name_plural = "Canvas Group Categories"
@@ -266,7 +254,7 @@ class CanvasGroupCategory(models.Model, AsyncModelMixin):
         return f"{self.name} (Course: {self.course.name})"
 
 
-class CanvasGroup(models.Model, AsyncModelMixin):
+class CanvasGroup(SyncableModel, AsyncModelMixin):
     """Represents a Canvas Group within a Group Category"""
 
     canvas_id = models.PositiveIntegerField(unique=True)
@@ -276,7 +264,6 @@ class CanvasGroup(models.Model, AsyncModelMixin):
     name = models.CharField(max_length=255)
     description = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(null=True, blank=True)
-    last_synced_at = models.DateTimeField(auto_now=True)
 
     # Optional link to a Team in the core app
     core_team = models.OneToOneField(
@@ -320,7 +307,7 @@ class CanvasGroupMembership(models.Model, AsyncModelMixin):
         return f"{self.name} in {self.group.name}"
 
 
-class CanvasQuiz(models.Model):
+class CanvasQuiz(TimestampedModel):
     """Canvas Quiz Information"""
 
     QUIZ_TYPES = (
@@ -358,8 +345,6 @@ class CanvasQuiz(models.Model):
     points_possible = models.FloatField(default=0.0)
     scoring_policy = models.CharField(max_length=50, null=True, blank=True)
     published = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["-created_at"]

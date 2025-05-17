@@ -5,13 +5,14 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils import timezone
 from core.async_utils import AsyncModelMixin
+from core.mixins import TimestampedModel, SyncableModel
 from encrypted_model_fields.fields import EncryptedCharField
 from icalendar import Calendar, Event as ICalEvent
 from datetime import datetime
 import pytz
 
 
-class UserProfile(models.Model, AsyncModelMixin):
+class UserProfile(TimestampedModel, AsyncModelMixin):
     """
     Base user profile with common fields for all users (instructors/professors/TAs)
     """
@@ -19,15 +20,13 @@ class UserProfile(models.Model, AsyncModelMixin):
     user = models.OneToOneField(
         User, on_delete=models.CASCADE, related_name="profile")
     github_username = models.CharField(max_length=100, blank=True, null=True)
-    github_access_token = EncryptedCharField(max_length=255, blank=True, null=True)
+    github_access_token = EncryptedCharField(max_length=255, blank=True, null=True, help_text="Encrypted GitHub personal access token for API authentication")
     github_avatar_url = models.URLField(max_length=500, blank=True, null=True)
     profile_picture = models.ImageField(
         upload_to="profile_pictures/", blank=True, null=True
     )
     phone_number = models.CharField(max_length=20, blank=True, null=True)
     bio = models.TextField(blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
     timezone = models.CharField(max_length=63, default="UTC")
 
     def __str__(self):
@@ -40,19 +39,17 @@ class UserProfile(models.Model, AsyncModelMixin):
         return hasattr(self, "ta_profile")
 
 
-class GitHubToken(models.Model, AsyncModelMixin):
+class GitHubToken(TimestampedModel, AsyncModelMixin):
     """
     Model to store multiple GitHub tokens for professors and TAs
     """
 
     name = models.CharField(max_length=100)
-    token = EncryptedCharField()
+    token = EncryptedCharField(help_text="Encrypted GitHub API token")
     scope = models.CharField(max_length=255, blank=True, null=True)
     last_used = models.DateTimeField(blank=True, null=True)
     rate_limit_remaining = models.IntegerField(default=5000)
     rate_limit_reset = models.DateTimeField(blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"{self.name} - {self.scope}"
@@ -64,7 +61,7 @@ class GitHubToken(models.Model, AsyncModelMixin):
         return False
 
 
-class StaffProfile(models.Model, AsyncModelMixin):
+class StaffProfile(TimestampedModel, AsyncModelMixin):
     """
     Base model for Professor and TA profiles with shared fields
     """
@@ -72,9 +69,9 @@ class StaffProfile(models.Model, AsyncModelMixin):
     user_profile = models.OneToOneField(UserProfile, on_delete=models.CASCADE)
     github_tokens = models.ManyToManyField(GitHubToken, blank=True)
     lms_access_token = EncryptedCharField(
-        max_length=255, blank=True, null=True)
+        max_length=255, blank=True, null=True, help_text="Encrypted Learning Management System (LMS) API access token")
     lms_refresh_token = EncryptedCharField(
-        max_length=255, blank=True, null=True)
+        max_length=255, blank=True, null=True, help_text="Encrypted LMS API refresh token for obtaining new access tokens")
     lms_token_expires = models.DateTimeField(blank=True, null=True)
 
     class Meta:
@@ -101,19 +98,119 @@ class TAProfile(StaffProfile):
         return f"TA: {self.user_profile.user.get_full_name()}"
 
 
-class Team(models.Model, AsyncModelMixin):
-    """Student team model"""
+class TeamQuerySet(models.QuerySet):
+    """
+    Custom QuerySet for Team to provide common filtering methods
+    and avoid repetitive .filter() calls.
+    """
+    def filter_by_canvas_course(self, course):
+        """
+        Return teams associated with a specific Canvas course.
+        `course` can be a CanvasCourse instance or its primary key.
+        """
+        return self.filter(canvas_course=course)
 
-    name = models.CharField(max_length=100)
-    description = models.TextField(blank=True, null=True)
+    def filter_by_canvas_group(self, group_id):
+        """
+        Return teams with the specified Canvas group ID.
+        """
+        return self.filter(canvas_group_id=group_id)
+
+    def filter_by_group_set(self, group_set_id):
+        """
+        Return teams belonging to the specified Canvas group set/category.
+        """
+        return self.filter(canvas_group_set_id=group_set_id)
+
+    def filter_by_github_org(self, organization):
+        """
+        Return teams under a given GitHub organization.
+        Case-insensitive match on github_organization.
+        """
+        return self.filter(github_organization__iexact=organization)
+
+    def filter_by_taiga_project_name(self, project_name):
+        """
+        Return teams linked to a Taiga project by its name.
+        Case-insensitive match on taiga_project.
+        """
+        return self.filter(taiga_project__iexact=project_name)
+
+
+class TeamManager(models.Manager):
+    """
+    Custom Manager for Team that uses TeamQuerySet
+    and exposes filtering methods directly on objects.
+    """
+    def get_queryset(self):
+        return TeamQuerySet(self.model, using=self._db)
+
+    def filter_by_canvas_course(self, course):
+        return self.get_queryset().filter_by_canvas_course(course)
+
+    def filter_by_canvas_group(self, group_id):
+        return self.get_queryset().filter_by_canvas_group(group_id)
+
+    def filter_by_group_set(self, group_set_id):
+        return self.get_queryset().filter_by_group_set(group_set_id)
+
+    def filter_by_github_org(self, organization):
+        return self.get_queryset().filter_by_github_org(organization)
+
+    def filter_by_taiga_project_name(self, project_name):
+        return self.get_queryset().filter_by_taiga_project_name(project_name)
+
+
+class Team(SyncableModel, AsyncModelMixin):
+    """
+    Student team model linking to GitHub, Taiga, and Canvas entities.
+    """
+    # Core fields
+    name = models.CharField(
+        max_length=100,
+        help_text="Human-readable team name."
+    )
+    description = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Optional detailed description of the team."
+    )
+
+    # GitHub integration
     github_organization = models.CharField(
-        max_length=100, blank=True, null=True)
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="GitHub organization name for this team."
+    )
     github_repo_name = models.CharField(
-        max_length=100, blank=True, null=True)
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="GitHub repository name under the organization."
+    )
+    github_team_id = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="GitHub API team ID (numeric string)."
+    )
+
+    # Taiga integration
     taiga_project = models.CharField(
-        max_length=100, blank=True, null=True)
-    github_team_id = models.CharField(max_length=100, blank=True, null=True)
-    taiga_project_id = models.CharField(max_length=100, blank=True, null=True)
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="Taiga project slug or name."
+    )
+    taiga_project_id = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="Taiga API project ID (numeric string)."
+    )
+
+
     # Canvas integration fields
     canvas_course = models.ForeignKey(
         "lms.CanvasCourse",
@@ -123,28 +220,40 @@ class Team(models.Model, AsyncModelMixin):
         blank=True,
     )
     canvas_group_id = models.PositiveIntegerField(
-        null=True, blank=True, db_index=True, help_text="Canvas /api/v1/groups/:id"
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Canvas group ID (from /api/v1/groups/:id)."
     )
     canvas_group_set_id = models.PositiveIntegerField(
-        null=True, blank=True, db_index=True, help_text="Canvas group category/set ID"
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Canvas group set (category) ID."
     )
     canvas_group_set_name = models.CharField(
-        max_length=255, blank=True, null=True, help_text="Canvas group category/set name"
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Canvas group set (category) name."
     )
-    last_synced_at = models.DateTimeField(
-        null=True, blank=True, help_text="When this team was last synced with Canvas"
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+
+    # Sync metadata fields are inherited from SyncableModel
+
+    # Attach the custom manager
+    objects = TeamManager()
 
     class Meta:
         indexes = [
             models.Index(fields=["canvas_course", "canvas_group_id"]),
             models.Index(fields=["canvas_group_set_id"]),
         ]
+        verbose_name = "Team"
+        verbose_name_plural = "Teams"
 
     def __str__(self):
         return self.name
+
 
 class StudentQuerySet(models.QuerySet):
     """
@@ -244,7 +353,7 @@ class StudentManager(models.Manager):
 
 
 # Central Student model
-class Student(models.Model, AsyncModelMixin):
+class Student(TimestampedModel, AsyncModelMixin):
     """
     Central student entity that links identities across platforms.
     This is NOT tied to the Django user system - students don't log in.
@@ -275,8 +384,6 @@ class Student(models.Model, AsyncModelMixin):
     canvas_user_id = models.CharField(max_length=100, blank=True, null=True)
 
     # Metadata
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
     created_by = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
@@ -342,7 +449,7 @@ class Student(models.Model, AsyncModelMixin):
         return cls.objects.with_all_identities()
 
 
-class CalendarEvent(models.Model, AsyncModelMixin):
+class CalendarEvent(TimestampedModel, AsyncModelMixin):
     """
     Calendar event model that can be imported from iCalendar (.ics) files
     and displayed in a calendar view on the dashboard.
@@ -363,9 +470,7 @@ class CalendarEvent(models.Model, AsyncModelMixin):
     # Stored as iCalendar RRULE string
     rrule = models.TextField(blank=True, null=True)
 
-    # Metadata
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    # Metadata - inherits created_at and updated_at from TimestampedModel
     last_modified = models.DateTimeField(null=True, blank=True)  # From .ics
 
     # Calendar source
