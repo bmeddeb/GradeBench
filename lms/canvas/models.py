@@ -132,7 +132,7 @@ class CanvasAssignment(TimestampedModel, AsyncModelMixin):
         ("not_graded", "Not Graded"),
     )
 
-    canvas_id = models.PositiveIntegerField(unique=True, default=0)
+    canvas_id = models.PositiveIntegerField(unique=True)
     course = models.ForeignKey(
         CanvasCourse, on_delete=models.CASCADE, related_name="assignments"
     )
