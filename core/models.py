@@ -19,8 +19,7 @@ class UserProfile(models.Model, AsyncModelMixin):
     user = models.OneToOneField(
         User, on_delete=models.CASCADE, related_name="profile")
     github_username = models.CharField(max_length=100, blank=True, null=True)
-    github_access_token = EncryptedCharField(
-        max_length=255, blank=True, null=True)
+    github_access_token = EncryptedCharField(max_length=255, blank=True, null=True)
     github_avatar_url = models.URLField(max_length=500, blank=True, null=True)
     profile_picture = models.ImageField(
         upload_to="profile_pictures/", blank=True, null=True
@@ -147,6 +146,102 @@ class Team(models.Model, AsyncModelMixin):
     def __str__(self):
         return self.name
 
+class StudentQuerySet(models.QuerySet):
+    """
+    Custom QuerySet for Student to eagerly load related identity data
+    and avoid N+1 queries.
+    and now we can do:
+    # Synchronous
+    students = Student.objects.with_all_identities()
+
+    # Async (Django 5.3+)
+    students = await Student.objects.with_all_identities().aall()
+
+    """
+
+    def with_all_identities(self):
+        """
+        Eagerly load related fields to prevent N+1 queries when accessing
+        team, creator, GitHub and Taiga profiles, and Canvas enrollments.
+        """
+        return (
+            self
+            .select_related(
+                "team",  # Student.team
+                "created_by",  # Student.created_by
+                "github_collaborator",  # OneToOne GitHub profile
+                "taiga_member"  # OneToOne Taiga profile
+            )
+            .prefetch_related(
+                "canvas_enrollments"  # Student.canvas_enrollments
+            )
+        )
+
+    def filter_by_team(self, team):
+        """
+        Filter students by their Team.
+
+        `team` can be a Team instance or its primary key.
+        """
+        return self.filter(team=team)
+
+    def filter_by_canvas_course(self, course):
+        """
+        Filter students enrolled in a given Canvas course.
+
+        `course` can be a CanvasCourse instance or its primary key.
+        Uses the reverse relationship on CanvasEnrollment.
+        """
+        return (
+            self
+            .filter(canvas_enrollments__course=course)
+            .distinct()
+        )
+
+    def filter_by_github_username(self, username):
+        """
+        Filter students by GitHub username (case-insensitive).
+        """
+        return self.filter(github_collaborator__username__iexact=username)
+
+    def filter_by_taiga_project(self, project):
+        """
+        Filter students who are members of a specific Taiga project.
+
+        `project` can be a Project instance or its primary key.
+        Uses the reverse relationship on Member.
+        """
+        return (
+            self
+            .filter(taiga_member__project=project)
+            .distinct()
+        )
+
+
+class StudentManager(models.Manager):
+    """
+    Custom Manager for Student that uses StudentQuerySet
+    and exposes identity-prefetching and filtering methods.
+    """
+
+    def get_queryset(self):
+        return StudentQuerySet(self.model, using=self._db)
+
+    def with_all_identities(self):
+        return self.get_queryset().with_all_identities()
+
+    def filter_by_team(self, team):
+        return self.get_queryset().filter_by_team(team)
+
+    def filter_by_canvas_course(self, course):
+        return self.get_queryset().filter_by_canvas_course(course)
+
+    def filter_by_github_username(self, username):
+        return self.get_queryset().filter_by_github_username(username)
+
+    def filter_by_taiga_project(self, project):
+        return self.get_queryset().filter_by_taiga_project(project)
+
 
 # Central Student model
 class Student(models.Model, AsyncModelMixin):
@@ -238,28 +333,13 @@ class Student(models.Model, AsyncModelMixin):
             return f"{self.full_name} ({self.student_id})"
         return self.full_name
 
-    def get_platform_identities(self):
-        """Get a dictionary of all platform identities for this student"""
-        return {
-            "github": self.github_profile,
-            "taiga": self.taiga_member,
-            "canvas_enrollments": list(self.canvas_enrollments),
-        }
-
-    async def async_get_platform_identities(self):
-        """Async version of get_platform_identities"""
-        from asgiref.sync import sync_to_async
-
-        # Get identities with async calls
-        github_profile = await sync_to_async(lambda: self.github_profile)()
-        taiga_member = await sync_to_async(lambda: self.taiga_member)()
-        canvas_enrollments = await sync_to_async(list)(self.canvas_enrollments)
-
-        return {
-            "github": github_profile,
-            "taiga": taiga_member,
-            "canvas_enrollments": canvas_enrollments,
-        }
+    @classmethod
+    def fetch_with_identities(cls):
+        """
+        Returns students with all platform identities preloaded
+        to avoid additional database queries when accessing them.
+        """
+        return cls.objects.with_all_identities()
 
 
 class CalendarEvent(models.Model, AsyncModelMixin):

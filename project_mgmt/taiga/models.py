@@ -15,21 +15,45 @@ class Project(models.Model):  # Taiga Project
 
 
 class Member(models.Model, AsyncModelMixin):  # Taiga Member
-    # Relationship to Student model
+    """
+    Taiga Member
+    Links a Student to their membership in a Taiga project.
+    """
+    # One-to-one relationship ensures each Student has a single Taiga Member record
     student = models.OneToOneField(
-        Student, on_delete=models.CASCADE, related_name="taiga_member"
+        Student,
+        on_delete=models.CASCADE,
+        related_name="taiga_member",
+        help_text="The Student associated with this Taiga member."
     )
 
     project = models.ForeignKey(
-        Project, on_delete=models.CASCADE, related_name="members"
+        Project,
+        on_delete=models.CASCADE,
+        related_name="members",
+        help_text="The Taiga project this member belongs to."
     )
-    role_name = models.CharField(max_length=100)
-    color = models.CharField(max_length=7)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    role_name = models.CharField(
+        max_length=100,
+        help_text="Role of the member in the project (e.g., Developer, Manager)."
+    )
+    color = models.CharField(
+        max_length=7,
+        help_text="Hex color code associated with this role (e.g., '#ff0000')."
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text="Timestamp when this Member record was created."
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        help_text="Timestamp when this Member record was last updated."
+    )
 
     class Meta:
         unique_together = ("student", "project")
+        verbose_name = "Taiga Member"
+        verbose_name_plural = "Taiga Members"
 
     def __str__(self):
         return f"{self.student.full_name} as {self.role_name}"

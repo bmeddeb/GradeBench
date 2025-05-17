@@ -5,19 +5,42 @@ from django.utils import timezone
 
 
 class Collaborator(models.Model, AsyncModelMixin):
-    # Relationship to Student model
+    """
+    GitHub Collaborator
+    Links a Student to their GitHub collaborator profile.
+    """
+    # One-to-one relationship ensures each Student has at most one GitHub Collaborator record
     student = models.OneToOneField(
-        Student, on_delete=models.CASCADE, related_name="github_collaborator"
+        Student,
+        on_delete=models.CASCADE,
+        related_name="github_collaborator",
+        help_text="The Student associated with this GitHub collaborator."
     )
 
-    github_id = models.IntegerField(unique=True)
-    username = models.CharField(max_length=255)
-    email = models.EmailField(blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    github_id = models.IntegerField(
+        unique=True,
+        help_text="Numeric GitHub user ID, guaranteed unique."
+    )
+    username = models.CharField(
+        max_length=255,
+        help_text="GitHub login username."
+    )
+    email = models.EmailField(
+        blank=True,
+        help_text="Public email address from GitHub profile (may be blank)."
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text="Timestamp when this Collaborator record was created."
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        help_text="Timestamp when this Collaborator record was last updated."
+    )
 
     def __str__(self):
         return self.username
+
 
 
 class Repository(models.Model):
