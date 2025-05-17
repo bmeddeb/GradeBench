@@ -499,12 +499,12 @@ def canvas_sync_course_groups(request, course_id):
     user_id = request.user.id
 
     # Initialize progress tracking before starting the thread
-    SyncProgress.start_sync(user_id, course_id, total_steps=5)
+    SyncProgress.start_sync(user_id, course_id, total_steps=1)
     SyncProgress.update(
         user_id,
         course_id,
-        current=1,
-        total=5,
+        current=0,
+        total=1,
         status="starting",
         message="Starting group sync..."
     )

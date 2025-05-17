@@ -28,27 +28,20 @@ class CanvasSyncer:
     def __init__(self, client: Client):
         self.client = client
 
-    async def sync_canvas_groups(self, course: CanvasCourse, user_id=None) -> List[int]:
+    async def sync_canvas_groups(self, course: CanvasCourse, user_id=None, total_steps=None) -> List[int]:
         """
         Sync Canvas groups for a course to Teams
 
         Args:
             course: CanvasCourse to sync groups for
             user_id: Optional user ID for progress tracking
+            total_steps: Total number of steps including groups + extra steps (for progress tracking)
 
         Returns:
             List of Canvas group IDs that were synced
         """
         from .progress import SyncProgress
         import traceback
-
-        if user_id:
-            await SyncProgress.async_update(
-                user_id,
-                course.canvas_id,
-                status="fetching_groups",
-                message="Fetching group categories from Canvas...",
-            )
 
         try:
             # 1. Fetch group categories
@@ -62,6 +55,7 @@ class CanvasSyncer:
 
             # Track all Canvas group IDs to handle cleanup later
             current_group_ids = []
+            groups_processed = 0
 
             # 2. Upsert Teams for each Canvas group
             for cat in categories:
@@ -73,30 +67,27 @@ class CanvasSyncer:
                     category = await self.client._save_group_category(cat, course)
                     logger.info(f"Saved category {category.name} (ID: {category.id})")
 
-                    if user_id:
-                        await SyncProgress.async_update(
-                            user_id,
-                            course.canvas_id,
-                            status="fetching_groups",
-                            message=f"Fetching groups in category: {cat.get('name', 'Unnamed Category')}",
-                        )
-
                     # Get groups in this category
                     groups = await self.client.get_groups(cat["id"])
                     logger.info(
                         f"Found {len(groups)} groups in category {category.name}"
                     )
 
-                    if user_id and groups:
-                        await SyncProgress.async_update(
-                            user_id,
-                            course.canvas_id,
-                            status="saving_groups",
-                            message=f"Saving {len(groups)} groups to database...",
-                        )
-
                     # Process each group
                     for grp in groups:
+                        groups_processed += 1
+                        
+                        # Update progress for each individual group
+                        if user_id and total_steps:
+                            await SyncProgress.async_update(
+                                user_id,
+                                course.canvas_id,
+                                current=groups_processed,
+                                total=total_steps,
+                                status="syncing_group",
+                                message=f"Syncing group {groups_processed}: {grp.get('name', 'Unnamed')}",
+                            )
+                        
                         logger.info(
                             f"Processing group: {grp.get('name')} (ID: {grp.get('id')})"
                         )
@@ -170,13 +161,14 @@ class CanvasSyncer:
             # Return empty list to indicate no groups were synced
             return []
 
-    async def sync_group_memberships(self, course: CanvasCourse, user_id=None):
+    async def sync_group_memberships(self, course: CanvasCourse, user_id=None, total_steps=None):
         """
         Sync group memberships to Student.team assignments
 
         Args:
             course: CanvasCourse to sync group memberships for
             user_id: Optional user ID for progress tracking
+            total_steps: Total number of steps (for progress tracking)
         """
         from .progress import SyncProgress
 
@@ -188,25 +180,11 @@ class CanvasSyncer:
         ):
             teams.append(team)
 
-        if user_id:
-            await SyncProgress.async_update(
-                user_id,
-                course.canvas_id,
-                status="syncing_members",
-                message=f"Syncing memberships for {len(teams)} teams...",
-            )
+        # Progress update is now handled in the main sync_course_groups function
 
         for i, team in enumerate(teams):
             if not team.canvas_group_id:
                 continue  # Skip manually created teams
-
-            if user_id and i > 0 and i % 5 == 0:
-                await SyncProgress.async_update(
-                    user_id,
-                    course.canvas_id,
-                    status="syncing_members",
-                    message=f"Syncing team {i+1} of {len(teams)}: {team.name}",
-                )
 
             try:
                 # Find the associated Canvas group

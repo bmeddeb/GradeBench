@@ -9,6 +9,48 @@
 {% block extra_head %}
 <!-- Add course ID for JavaScript access -->
 <meta name="course-id" content="{{ course.canvas_id }}">
+<style>
+/* Override Paper Dashboard's progress bar styles for groups sync */
+#syncProgress .progress {
+    background-color: #e9ecef !important; /* Light gray background */
+    height: 20px !important; /* Make it taller */
+    border: 1px solid #dee2e6; /* Add border for visibility */
+}
+
+#syncProgress .progress-bar-primary {
+    background-color: #0d6efd !important; /* Bootstrap 5 primary blue */
+}
+
+#syncProgress .progress-bar-success {
+    background-color: #198754 !important; /* Bootstrap 5 success green */
+}
+
+#syncProgress .progress-bar-danger {
+    background-color: #dc3545 !important; /* Bootstrap 5 danger red */
+}
+
+/* Animation for striped progress bar */
+#syncProgress .progress-bar-striped {
+    background-image: linear-gradient(45deg, 
+        rgba(255,255,255,.15) 25%, 
+        transparent 25%, 
+        transparent 50%, 
+        rgba(255,255,255,.15) 50%, 
+        rgba(255,255,255,.15) 75%, 
+        transparent 75%, 
+        transparent) !important;
+    background-size: 1rem 1rem !important;
+}
+
+#syncProgress .progress-bar.active {
+    animation: progress-bar-stripes 1s linear infinite;
+}
+
+@keyframes progress-bar-stripes {
+    from { background-position: 1rem 0; }
+    to { background-position: 0 0; }
+}
+</style>
 {% endblock %}
 
 {% block canvas_content %}

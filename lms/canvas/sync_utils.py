@@ -196,8 +196,8 @@ async def sync_course_groups(
             await SyncProgress.async_update(
                 user_id,
                 course_id,
-                current=1,
-                total=5,
+                current=0,
+                total=1,  # Will be updated once we know total groups
                 status="fetching_course",
                 message="Getting course information..."
             )
@@ -213,59 +213,109 @@ async def sync_course_groups(
                 await SyncProgress.async_update(
                     user_id,
                     course_id,
-                    current=2,
-                    total=5,
+                    current=0,
+                    total=1,
                     status="fetching_course_api",
                     message="Fetching course from Canvas API..."
                 )
             course_data = await client.get_course(course_id)
             course = await client._save_course(course_data)
 
-        # Update progress
+        # First, get a count of all groups to properly track progress
         if user_id:
             await SyncProgress.async_update(
                 user_id,
                 course_id,
-                current=2,
-                total=5,
+                current=0,
+                total=1,
+                status="counting_groups",
+                message="Counting groups to sync..."
+            )
+        
+        # Get all categories to count total groups
+        categories = await client.get_group_categories(course_id)
+        total_groups = 0
+        for cat in categories:
+            groups = await client.get_groups(cat["id"])
+            total_groups += len(groups)
+        
+        logger.info(f"Found {total_groups} total groups across {len(categories)} categories")
+        
+        # Handle case where there are no groups
+        if total_groups == 0:
+            if user_id:
+                await SyncProgress.async_update(
+                    user_id,
+                    course_id,
+                    current=1,
+                    total=1,
+                    status="completed",
+                    message="No groups found to sync"
+                )
+            return {
+                "course": course,
+                "group_count": 0,
+                "group_ids": [],
+                "success": True,
+            }
+        
+        # We'll add 2 extra steps: one for syncing memberships, one for completion
+        total_steps = total_groups + 2
+        
+        # Update progress with actual total
+        if user_id:
+            await SyncProgress.async_update(
+                user_id,
+                course_id,
+                current=0,
+                total=total_steps,
                 status="fetching_groups",
-                message="Fetching group categories and groups..."
+                message=f"Starting sync of {total_groups} groups..."
             )
 
         # Create syncer instance
         syncer = CanvasSyncer(client)
 
-        # Fetch and process group categories and groups
-        group_ids = await syncer.sync_canvas_groups(course, user_id)
+        # Fetch and process group categories and groups with progress tracking
+        group_ids = await syncer.sync_canvas_groups(course, user_id, total_steps)
 
-        # Update progress
+        # Sync group memberships - add this as an extra step
         if user_id:
             await SyncProgress.async_update(
                 user_id,
                 course_id,
-                current=3,
-                total=5,
-                status="syncing_members",
+                current=total_groups,
+                total=total_steps,
+                status="syncing_memberships",
                 message="Syncing group memberships..."
             )
+        
+        await syncer.sync_group_memberships(course, user_id, total_steps)
 
-        # Sync group memberships
-        await syncer.sync_group_memberships(course, user_id)
-
-        # Update progress
+        # Final update - this is the last step
         if user_id:
             await SyncProgress.async_update(
                 user_id,
                 course_id,
-                current=4,
-                total=5,
-                status="updating_timestamp",
-                message="Updating timestamps..."
+                current=total_steps - 1,
+                total=total_steps,
+                status="completing",
+                message="Finalizing sync..."
             )
 
         # Force an update to the course's updated_at timestamp
-        # The updated_at field has auto_now=True so it will update automatically
         await course.asave()
+        
+        # Mark as truly complete
+        if user_id:
+            await SyncProgress.async_update(
+                user_id,
+                course_id,
+                current=total_steps,
+                total=total_steps,
+                status="completed",
+                message="Group sync completed successfully"
+            )
 
         return {
             "course": course,

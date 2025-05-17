@@ -501,12 +501,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
         syncProgress.style.display = 'block';
         syncProgressBar.style.width = '0%';
+        syncProgressBar.setAttribute('aria-valuenow', 0);
+        syncProgressBar.className = 'progress-bar progress-bar-primary progress-bar-striped active';
         syncStatusMessage.textContent = 'Starting group sync...';
 
         // Disable sync button
         const syncButton = document.getElementById('syncGroupsBtn');
         if (syncButton) {
             syncButton.disabled = true;
+            syncButton.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Syncing...';
         }
 
         // Get course ID from the page meta tag
@@ -549,6 +552,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         const syncButton = document.getElementById('syncGroupsBtn');
                         if (syncButton) {
                             syncButton.disabled = false;
+                            syncButton.innerHTML = '<i class="fa fa-refresh"></i> Sync Groups';
                         }
 
                         // Reload the page after a slight delay if successful
@@ -567,6 +571,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     const syncButton = document.getElementById('syncGroupsBtn');
                     if (syncButton) {
                         syncButton.disabled = false;
+                        syncButton.innerHTML = '<i class="fa fa-refresh"></i> Sync Groups';
                     }
                 });
         }, 1000); // Poll every second
@@ -577,11 +582,38 @@ document.addEventListener('DOMContentLoaded', function() {
         const syncProgressBar = document.getElementById('syncProgressBar');
         const syncStatusMessage = document.getElementById('syncStatusMessage');
 
-        if (data.current !== undefined && data.total !== undefined) {
-            const percent = (data.current / data.total) * 100;
-            syncProgressBar.style.width = `${percent}%`;
+        // Debug: Log the received data to console
+        console.log('Progress data received:', data);
+
+        // Calculate progress percentage
+        let percent = 0;
+        
+        // Always try to use current and total values first
+        if (data.current !== undefined && data.total !== undefined && data.total > 0) {
+            percent = Math.round((data.current / data.total) * 100);
+            console.log(`Using current/total: ${data.current}/${data.total} = ${percent}%`);
+        } else if (data.status === 'completed') {
+            // If completed but no progress values, set to 100%
+            percent = 100;
+            console.log('Status is completed, setting to 100%');
+        } else if (data.status === 'error') {
+            // If error, keep at current percentage
+            percent = parseInt(syncProgressBar.style.width) || 0;
+            console.log('Status is error, keeping current percentage:', percent);
+        } else {
+            // No progress data available, show indeterminate progress
+            percent = parseInt(syncProgressBar.style.width) || 0;
+            if (percent < 90) {
+                percent += 5;
+            }
+            console.log('No progress data, incremental update:', percent);
         }
 
+        // Update progress bar width
+        syncProgressBar.style.width = `${percent}%`;
+        syncProgressBar.setAttribute('aria-valuenow', percent);
+
+        // Update status message
         if (data.message) {
             syncStatusMessage.textContent = data.message;
         }
@@ -589,10 +621,13 @@ document.addEventListener('DOMContentLoaded', function() {
         // Update progress bar class based on status
         if (data.status === 'completed') {
             syncProgressBar.className = 'progress-bar progress-bar-success';
+            if (!syncProgressBar.style.width || syncProgressBar.style.width === '0%') {
+                syncProgressBar.style.width = '100%';
+            }
         } else if (data.status === 'error') {
             syncProgressBar.className = 'progress-bar progress-bar-danger';
         } else {
-            syncProgressBar.className = 'progress-bar progress-bar-primary';
+            syncProgressBar.className = 'progress-bar progress-bar-primary progress-bar-striped active';
         }
     }
 });
