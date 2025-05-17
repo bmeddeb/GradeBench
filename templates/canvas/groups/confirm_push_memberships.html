@@ -7,14 +7,8 @@
 {% block nav_canvas_dashboard %}active{% endblock %}
 
 {% block extra_head %}
-{% load static %}
-<link rel="stylesheet" href="{% static 'css/canvas-high-contrast.css' %}">
-<link rel="stylesheet" href="{% static 'css/components/progress.css' %}">
 <style>
-    /* Additional inline styles for this specific page */
-    .alert-info {
-        font-weight: 500;
-    }
+    /* Page-specific styles only */
     #confirmationContainer {
         display: none;
     }
@@ -22,47 +16,60 @@
 {% endblock %}
 
 {% block canvas_content %}
-    <!-- Use the card component with direct content -->
+    <!-- Enhanced card with Paper Dashboard styling -->
     <div class="card">
-        <div class="card-header">
-            <h4 class="card-title">Push Group Memberships to Canvas</h4>
-            <p class="card-category">Update student group assignments in Canvas</p>
+        <div class="card-header modal-header">
+            <h4 class="modal-title">Push Group Memberships to Canvas</h4>
         </div>
         <div class="card-body">
             <!-- Progress component (shown when push is in progress) -->
             {% if push_in_progress %}
-                <div id="progress-container">
+                <div id="progress-container" class="my-5">
                     {% with id_prefix="push-memberships" title="Pushing Group Memberships to Canvas" context_class="primary" show_details=True %}
                         {% include "components/progress.html" %}
                     {% endwith %}
                 </div>
                 
                 <!-- Action buttons - shown after completion -->
-                <div id="action-buttons" class="d-flex justify-content-end mt-4" style="display: none;">
-                    <a href="{% url 'canvas_course_groups' course_id=course_id %}" class="btn btn-primary btn-round">
-                        <i class="fa fa-arrow-left me-1"></i> Return to Groups
+                <div id="action-buttons" class="text-center mt-4" style="display: none;">
+                    <a href="{% url 'canvas_course_groups' course_id=course_id %}" class="btn btn-primary btn-round btn-lg">
+                        <i class="fa fa-arrow-left me-2"></i>Return to Groups
                     </a>
-                    <button id="retryButton" class="btn btn-primary btn-round ms-2" style="display: none;">
-                        <i class="fa fa-sync me-1"></i> Retry
+                    <button id="retryButton" class="btn btn-warning btn-round btn-lg ms-3" style="display: none;">
+                        <i class="fa fa-sync me-2"></i>Retry
                     </button>
                 </div>
             {% endif %}
             
             <!-- Confirmation form (hidden when in progress) -->
             <div id="confirmationContainer" {% if not push_in_progress %}style="display: block;"{% endif %}>
-                <!-- Now use the alert component -->
-                {% with alert_content="<p>This action will push all current group memberships from GradeBench to Canvas.</p><p class='mb-0'>Use this if you notice that some student assignments in Canvas don't match what you see in GradeBench.</p>" %}
-                    {% include "components/alert.html" with type="info" title="Information" icon="info-circle" content=alert_content %}
-                {% endwith %}
+                <!-- Enhanced alert using new styles -->
+                <div class="alert alert-info border-primary text-primary mb-4">
+                    <div class="d-flex align-items-start">
+                        <i class="fa fa-info-circle fa-2x me-3"></i>
+                        <div>
+                            <h5 class="alert-heading mb-2">Information</h5>
+                            <p>This action will push all current group memberships from GradeBench to Canvas.</p>
+                            <p class="mb-0">Use this if you notice that some student assignments in Canvas don't match what you see in GradeBench.</p>
+                        </div>
+                    </div>
+                </div>
 
-                <p>You are about to update all group memberships for course <strong>{{ course.name }}</strong> in Canvas.</p>
-                <p>This will make Canvas reflect exactly what's in the GradeBench database for all groups in this course.</p>
+                <div class="text-center my-4">
+                    <p class="text-large">You are about to update all group memberships for course:</p>
+                    <h3 class="text-primary">{{ course.name }}</h3>
+                    <p class="text-muted mt-3">This will make Canvas reflect exactly what's in the GradeBench database for all groups in this course.</p>
+                </div>
 
                 <form method="post">
                     {% csrf_token %}
-                    <div class="d-flex justify-content-end mt-4">
-                        <a href="{% url 'canvas_course_groups' course_id=course.canvas_id %}" class="btn btn-secondary btn-round me-2">Cancel</a>
-                        {% bootstrap_button "Push Memberships to Canvas" button_type="submit" button_class="btn-primary btn-round" %}
+                    <div class="d-flex justify-content-center mt-5">
+                        <a href="{% url 'canvas_course_groups' course_id=course.canvas_id %}" class="btn btn-secondary btn-round btn-lg me-3">
+                            <i class="fa fa-times me-2"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary btn-round btn-lg">
+                            <i class="fa fa-upload me-2"></i>Push Memberships to Canvas
+                        </button>
                     </div>
                 </form>
             </div>
@@ -81,11 +88,11 @@
             hideOnComplete: false,
             completedCallback: function(data) {
                 // Show the action buttons when completed
-                document.getElementById('action-buttons').style.display = 'flex';
+                document.getElementById('action-buttons').style.display = 'block';
             },
             errorCallback: function(data) {
                 // Show retry button on error
-                document.getElementById('action-buttons').style.display = 'flex';
+                document.getElementById('action-buttons').style.display = 'block';
                 document.getElementById('retryButton').style.display = 'inline-block';
             }
         });
